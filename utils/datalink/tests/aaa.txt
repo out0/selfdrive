@@ -1,0 +1,2 @@
+connecting to the server
+readFromSocket error
