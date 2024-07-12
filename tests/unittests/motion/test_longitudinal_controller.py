@@ -4,7 +4,7 @@ sys.path.append("../../../")
 import unittest, math
 from motion.longitudinal_controller import LongitudinalController
 from model.vehicle_pose import VehiclePose
-from model.slam import SLAM
+from slam.slam import SLAM
 
 class TestLongitudinalController(unittest.TestCase):
     _power_actuator_value: float

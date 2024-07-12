@@ -4,7 +4,7 @@ from motion.longitudinal_controller import LongitudinalController
 from motion.lateral_controller import LateralController
 from model.reference_path import ReferencePath
 from typing import List
-from model.slam import SLAM
+from slam.slam import SLAM
 from model.sensors import Odometer
 from utils.debug import DebugTelemetry
 

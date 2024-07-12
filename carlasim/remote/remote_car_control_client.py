@@ -4,7 +4,7 @@ import numpy as np
 from model.map_pose import VehiclePose
 from model.discrete_component import DiscreteComponent
 from model.planning_data import PlanningData, PrePlanningData
-from model.slam import SLAM
+from slam.slam import SLAM
 from utils.datalink.pybind.pydatalink import PyDatalink
 import time, math
 from utils.float_encoder import FloatEncoder

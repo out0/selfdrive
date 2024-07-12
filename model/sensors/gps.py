@@ -1,6 +1,6 @@
-from model.world_pose import WorldPose
+from model.sensor_data import GpsData
 
 class GPS:
     
-    def read(self) -> WorldPose:
+    def read(self) -> GpsData:
         pass

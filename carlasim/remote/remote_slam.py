@@ -1,4 +1,4 @@
-from model.slam import SLAM
+from slam.slam import SLAM
 from model.map_pose import VehiclePose
 from .remote_car_control_client import RemoteSensorsClient
 import math

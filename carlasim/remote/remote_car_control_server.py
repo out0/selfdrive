@@ -3,7 +3,7 @@ from carlasim.carla_ego_car import EgoCar
 from carlasim.carla_client import CarlaClient
 from model.map_pose import VehiclePose
 from model.discrete_component import DiscreteComponent
-from model.slam import SLAM
+from slam.slam import SLAM
 from utils.datalink.pybind.pydatalink import PyDatalink
 from utils.float_encoder import FloatEncoder
 import time

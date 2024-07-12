@@ -4,7 +4,7 @@ sys.path.append("../../../")
 import unittest, math
 from motion.lateral_controller import LateralController
 from model.vehicle_pose import VehiclePose
-from model.slam import SLAM
+from slam.slam import SLAM
 from carlasim.carla_slam import CarlaSLAM
 
 

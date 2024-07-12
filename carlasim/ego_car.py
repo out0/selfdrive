@@ -3,12 +3,12 @@ import random
 import carla
 from carlasim.sensors.carla_camera import FrontSemanticCamera, BEVSemanticCamera, BEVRGBCamera, CarlaCamera
 from carlasim.sensors.data_sensors import CarlaGps, CarlaIMU, CarlaOdometer
-from model.slam import SLAM
+from slam.slam import SLAM
 from model.ego_car import EgoCar
 import threading, time
 import numpy as np
 from carlasim.video_streamer import VideoStreamer
-from model.map_pose import VehiclePose
+from model.map_pose import MapPose
 
 
 GPS_PERIOD_ms = 50
@@ -61,7 +61,7 @@ class CarlaEgoCar(EgoCar):
     _video_streamer_bev_rgb: VideoStreamer
     _video_streamer_bev_rgb_periodic_sender: PeriodicCaller
     _slam: SLAM
-    _last_ego_pose: VehiclePose   
+    _last_ego_pose: MapPose   
     
     def __init__(self, client: CarlaClient) -> None:
         self._client = client
@@ -100,7 +100,7 @@ class CarlaEgoCar(EgoCar):
         self._slam = slam
         self._last_ego_pose = None
 
-    def get_last_stored_pose(self) -> VehiclePose:
+    def get_last_stored_pose(self) -> MapPose:
         return self._last_ego_pose
 
     def destroy(self) -> None:
