@@ -2,5 +2,5 @@ from model.world_pose import WorldPose
 
 class GPS:
     
-    def read() -> WorldPose:
+    def read(self) -> WorldPose:
         pass

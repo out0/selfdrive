@@ -1,4 +1,4 @@
 class Odometer:
     
-    def read() -> float:
+    def read(self) -> float:
         pass
