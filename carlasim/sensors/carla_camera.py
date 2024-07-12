@@ -4,7 +4,7 @@ from carlasim.carla_client import CarlaClient
 import threading
 import time
 from carlasim.sensors.frame_segment_converter_cuda import FrameSegmentConverterCuda 
-from model.camera import Camera
+from model.sensors.camera import Camera
 import numpy as np
 import math
 

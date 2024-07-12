@@ -2,7 +2,7 @@ import sys
 import ctypes
 sys.path.append("../")
 from model.sensors import Gps, Odometer, IMU
-from model.camera import Camera
+from model.sensors.camera import Camera
 from model.ego_car import EgoCar
 
 LIBNAME = "/usr/local/lib/libcrawler.so"

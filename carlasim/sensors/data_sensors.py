@@ -1,8 +1,11 @@
-from model.waypoint import Waypoint
 from carlasim.carla_client import CarlaClient
 import carla
 import threading
 import math, numpy as np
+from model.sensors.gps import GPS
+from model.sensors.imu import IMU
+from model.sensors.odometer import Odometer
+from model.sensor_data import GpsData
 
 
 class PeriodicDataSensor:
@@ -40,17 +43,9 @@ class PeriodicDataSensor:
                 return f
         return None
 
-class GpsData:
-    latitude: float
-    longitude: float
-    altitude: float
-    
-    def __init__(self, lat: float, lon: float, alt: float) -> None:
-        self.latitude = lat
-        self.longitude = lon
-        self.altitude = alt
 
-class CarlaGps (PeriodicDataSensor):    
+
+class CarlaGps (PeriodicDataSensor, GPS):    
     def __init__(self, client: CarlaClient, vehicle: any, capture_period_in_seconds: float) -> None:
         super().__init__("sensor.other.gnss", client, vehicle, capture_period_in_seconds)
 
@@ -80,7 +75,7 @@ class IMUData:
         self.gyro_z = 0.0
         self.compass = 0.0
 
-class CarlaIMU (PeriodicDataSensor):    
+class CarlaIMU (PeriodicDataSensor, IMU):    
     def __init__(self, client: CarlaClient, vehicle: any, capture_period_in_seconds: float) -> None:
         super().__init__("sensor.other.imu", client, vehicle, capture_period_in_seconds)
 
@@ -107,7 +102,7 @@ class OdometerData:
         self.vel_z = 0.0
 
 
-class CarlaOdometer:
+class CarlaOdometer (Odometer):
     
     _vehicle: any
     

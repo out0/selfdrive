@@ -1,4 +1,4 @@
-from model.vehicle_pose import VehiclePose
+from model.map_pose import MapPose
 from model.discrete_component import DiscreteComponent
 from motion.longitudinal_controller import LongitudinalController
 from motion.lateral_controller import LateralController

@@ -2,11 +2,14 @@ import sys
 sys.path.append("..")
 
 from model.world_pose import WorldPose
-from model.sensors import *
+from model.sensors.gps import GPS
+from model.sensors.odometer import Odometer
+from model.sensors.imu import IMU
 from model.ego_car import EgoCar
+from model.sensor_data import *
 
 class EgoLocation:
-        _gps: Gps
+        _gps: GPS
         _odometer: Odometer
         _imu: IMU
     

@@ -1,18 +1,20 @@
 import sys, time
 sys.path.append("../../../")
 sys.path.append("../../")
-from model.sensors import GpsData, IMUData
+from model.sensor_data import GpsData, IMUData
 import unittest, math
 
 from data.ego_location import EgoLocation
 from model.ego_car import EgoCar
-from model.sensors import *
+from model.sensors.odometer import *
+from model.sensors.gps import *
+from model.sensors.imu import *
 
 class DummyOdometer(Odometer):   
     def read(self) -> float:
         return 12.2
 
-class DummyGps(Gps):    
+class DummyGps(GPS):    
     def read(self) -> GpsData:
         return GpsData(
             10.1,
@@ -30,7 +32,7 @@ class DummyEgoCar(EgoCar):
     def get_odometer(self) -> Odometer:
         return DummyOdometer()
 
-    def get_gps(self) -> Gps:
+    def get_gps(self) -> GPS:
         return DummyGps()
 
     def get_imu(self) -> IMU:

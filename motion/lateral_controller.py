@@ -1,7 +1,5 @@
 from model.waypoint import Waypoint
 from model.world_pose import WorldPose
-from model.reference_path import ReferencePath
-from model.slam import SLAM
 import math
 
 class LateralController:
