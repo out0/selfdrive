@@ -42,6 +42,7 @@ class TestLateralController(unittest.TestCase):
 
     def test_on_path_wrong_heading(self):
         slam = TestLateralController.StubSlamTest()
+        
         controller = LateralController(
             vehicle_length=4,
             slam=slam,
@@ -49,12 +50,12 @@ class TestLateralController(unittest.TestCase):
             steering_actuator=self.steer_actuator
         )
 
-        slam.set_pose(MapPose(0, 0, 30, 0))
+        slam.set_pose(MapPose(0, 0, 0, 30))
         controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertEqual(first=self._last_steer_value, second=-40, msg="steering should be -40")
 
-        slam.set_pose(MapPose(0, 0, -30, 0))
+        slam.set_pose(MapPose(0, 0, 0, -30))
         controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertEqual(first=self._last_steer_value, second=40, msg="steering should be +40")

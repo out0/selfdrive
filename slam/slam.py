@@ -35,8 +35,9 @@ class SLAM:
     def estimate_ego_pose (self) -> MapPose:
         pose: WorldPose = None
         
-        if self._imu is None or self._odometer is None:
+        if self._imu is None:
             pose = self.read_gps()
+            
         else:
             # TODO
             #return self._kalman_filter.estimate_pose(self._gps.read(), self._imu.read(), self._odometer.read())

@@ -36,7 +36,7 @@ class LateralController:
     def __get_ref_point(self) -> MapPose:
         cg: MapPose = self._slam.estimate_ego_pose()
         a = math.radians(cg.heading)
-        return MapPose(cg.x + math.cos(a) * self._vehicle_length, cg.y + math.sin(a) * self._vehicle_length, cg.heading, 0)
+        return MapPose(x=cg.x + math.cos(a) * self._vehicle_length, y=cg.y + math.sin(a) * self._vehicle_length, z=0, heading=cg.heading)
 
     def __fix_range(heading: float) -> float:
         return min(
