@@ -5,7 +5,7 @@ import math, numpy as np
 from model.sensors.gps import GPS
 from model.sensors.imu import IMU
 from model.sensors.odometer import Odometer
-from model.sensor_data import GpsData
+from model.sensor_data import *
 
 
 class PeriodicDataSensor:
@@ -57,24 +57,6 @@ class CarlaGps (PeriodicDataSensor, GPS):
         carla_gps = super().read()
         return GpsData(carla_gps.latitude, carla_gps.longitude, carla_gps.altitude)
         
-class IMUData:
-    accel_x: float  # m/s²
-    accel_y: float  # m/s²
-    accel_z: float  # m/s²
-    gyro_x: float   # rad/s
-    gyro_y: float   # rad/s
-    gyro_z: float   # rad/s
-    compass: float  # rad
-    
-    def __init__(self) -> None:
-        self.accel_x = 0.0
-        self.accel_y = 0.0
-        self.accel_z = 0.0
-        self.gyro_x = 0.0
-        self.gyro_y = 0.0
-        self.gyro_z = 0.0
-        self.compass = 0.0
-
 class CarlaIMU (PeriodicDataSensor, IMU):    
     def __init__(self, client: CarlaClient, vehicle: any, capture_period_in_seconds: float) -> None:
         super().__init__("sensor.other.imu", client, vehicle, capture_period_in_seconds)

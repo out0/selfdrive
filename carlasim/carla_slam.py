@@ -1,5 +1,5 @@
 from slam.slam import SLAM
-from model.map_pose import VehiclePose
+from model.map_pose import MapPose
 from carlasim.carla_ego_car import EgoCar
 import math
 
@@ -11,14 +11,14 @@ class CarlaSLAM (SLAM):
         self._car = car
         pass
 
-    def estimate_ego_pose(self) -> VehiclePose:
+    def estimate_ego_pose(self) -> MapPose:
         location = self._car.get_location()
         heading = self._car.get_heading()
-        pose = VehiclePose(location[0], location[1], heading, 0)
+        pose = MapPose(location[0], location[1], heading, 0)
         pose.z = location[2]
         return pose
 
-    def distance_to(self, goal: VehiclePose) -> float:
+    def distance_to(self, goal: MapPose) -> float:
         return self.estimate_ego_pose().distance_to(goal)
         
     #
@@ -47,7 +47,7 @@ class CarlaSLAM (SLAM):
     def compute_heading(self) -> float:
         return  self._car.get_heading()
     
-    def compute_path_heading(self, p1: VehiclePose, p2: VehiclePose) -> float:
+    def compute_path_heading(self, p1: MapPose, p2: MapPose) -> float:
         dy = p2.y - p1.y
         dx = p2.x - p1.x
 

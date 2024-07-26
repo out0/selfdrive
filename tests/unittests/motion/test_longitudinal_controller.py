@@ -1,10 +1,8 @@
 import sys, time
 sys.path.append("../../")
 sys.path.append("../../../")
-import unittest, math
+import unittest
 from motion.longitudinal_controller import LongitudinalController
-from model.vehicle_pose import VehiclePose
-from slam.slam import SLAM
 
 class TestLongitudinalController(unittest.TestCase):
     _power_actuator_value: float
@@ -25,9 +23,10 @@ class TestLongitudinalController(unittest.TestCase):
     def test_accel(self):  
         curr_speed = 0
         controller = LongitudinalController(
+            actuation_period_ms=20,
             power_actuator=self.power_actuator,
             brake_actuator=self.brake_actuator,
-            odometer=lambda : curr_speed
+            velocity_read=lambda : curr_speed
         )
 
         controller.set_speed(20.0)
@@ -39,9 +38,10 @@ class TestLongitudinalController(unittest.TestCase):
     def test_slight_deceleration(self):  
         curr_speed = 20
         controller = LongitudinalController(
+            actuation_period_ms=20,
             power_actuator=self.power_actuator,
             brake_actuator=self.brake_actuator,
-            odometer=lambda : curr_speed
+            velocity_read=lambda : curr_speed
         )
 
         controller.set_speed(0.0)
@@ -53,9 +53,10 @@ class TestLongitudinalController(unittest.TestCase):
     def test_moderate_deceleration(self):  
         curr_speed = 40
         controller = LongitudinalController(
+            actuation_period_ms=20,
             power_actuator=self.power_actuator,
             brake_actuator=self.brake_actuator,
-            odometer=lambda : curr_speed
+            velocity_read=lambda : curr_speed
         )
 
         controller.set_speed(0.0)
@@ -67,9 +68,10 @@ class TestLongitudinalController(unittest.TestCase):
     def test_strong_deceleration(self):  
         curr_speed = 100
         controller = LongitudinalController(
+            actuation_period_ms=20,
             power_actuator=self.power_actuator,
             brake_actuator=self.brake_actuator,
-            odometer=lambda : curr_speed
+            velocity_read=lambda : curr_speed
         )
 
         controller.set_speed(0.0)

@@ -30,6 +30,7 @@ class IMUData:
         data.gyro_y = float(p[4])
         data.gyro_z = float(p[5])
         data.compass = float(p[6].replace('\n', ''))
+        return data
     
 class GpsData:
     latitude: float

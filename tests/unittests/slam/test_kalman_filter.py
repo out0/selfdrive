@@ -8,6 +8,7 @@ from model.sensors.imu import IMU
 from model.sensors.odometer import Odometer
 from model.sensor_data import GpsData, IMUData
 from slam.slam import SLAM
+from slam.kalman_filter import ExtendedKalmanFilter
 from model.map_pose import MapPose
 import json, numpy as np
 
@@ -51,18 +52,8 @@ class DummyOdometer(Odometer):
     def read(self) -> float:
         return self._data
 
-class TestSLAM(unittest.TestCase):
+class TestKalmanFilter(unittest.TestCase):
     
-    def test_non_ekf(self):
-        gps = DummyGps()
-        gps.set_from_str("11.1|11.2|11.3")
-        
-        slam = SLAM(gps, None, None)
-        pose = slam.estimate_ego_pose()
-        
-        self.assertEqual(pose.lat, 11.1)
-        self.assertEqual(pose.lon, 11.2)
-        self.assertEqual(pose.alt, 11.3)
     
     def __convert_data (self, raw: str) -> tuple[GpsData, IMUData, MapPose, float, float]:
         dict = json.loads(raw)
@@ -79,17 +70,30 @@ class TestSLAM(unittest.TestCase):
         return arr + noise
     
     
+    def calibrate(self, filter: ExtendedKalmanFilter,  lines: list[str]) -> int:
+        for i in range(len(lines)):
+            location, imu, pose, vel, dt = self.__convert_data(lines[i])
+            if (vel != 0):
+                filter.calibrate()
+                return i
+            filter.add_calibration_gnss_data(pose)
+    
     def test_ekf(self):
         f = open("location.log", "r")
-       
-        location, imu, pose, vel, dt = self.__convert_data(f.readline())
+        filter = ExtendedKalmanFilter()
         
-        noise_gps = np.random.normal(0, 0.0001, (3,1))
-        location.latitude += noise_gps[0]
-        location.longitude += noise_gps[1]
-        location.altitude += noise_gps[2]
-        noise_imu = np.random.normal(0, 2, (7,1)) 
+        lines = f.readlines()
+        init = self.calibrate(filter, lines)
         
+        location_0, _, pose_0, _, _ = self.__convert_data(lines[init - 1])
+        
+            
+        for i in range(init, len(lines)):
+            location, imu, pose, vel, dt = self.__convert_data(lines[i])
+            filter.predict_state_with_imu(imu, dt)
+            filter.correct_state_with_gnss(pose)
+            l = filter.get_location()            
+            last_dt = dt
         
         p = 1
 

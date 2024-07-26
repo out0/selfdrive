@@ -8,7 +8,7 @@ class LongitudinalController:
     __KI = 0.2
     __KD = 0.01
 
-    _odometer: callable
+    _velocity_read: callable
     _power_actuator : callable
     _brake_actuator : callable
     _error_prev: float
@@ -18,12 +18,12 @@ class LongitudinalController:
     _prev_throttle: float
     _actuation_period_s: float
    
-    def __init__(self,  actuation_period_ms: int, odometer: callable, power_actuator: callable, brake_actuator: callable) -> None:
+    def __init__(self,  actuation_period_ms: int, velocity_read: callable, power_actuator: callable, brake_actuator: callable) -> None:
         self._actuation_period_s = actuation_period_ms / 1000
         self._last_actuation_time = 0
         self._desired_speed = 0.0
         self._prev_throttle = 0.0
-        self._odometer = odometer
+        self._velocity_read = velocity_read
         self._power_actuator = power_actuator
         self._brake_actuator = brake_actuator
         self._error_I = 0.0
@@ -66,7 +66,7 @@ class LongitudinalController:
         self._power_actuator(throttle)
     
     def loop(self, dt: float) -> None:
-        current_speed = self._odometer()
+        current_speed = self._velocity_read()
         
         # Autobreak
         if current_speed == 0 and self._desired_speed == 0:

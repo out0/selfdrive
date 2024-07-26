@@ -2,61 +2,74 @@ from model.map_pose import MapPose
 from model.discrete_component import DiscreteComponent
 from motion.longitudinal_controller import LongitudinalController
 from motion.lateral_controller import LateralController
-from model.reference_path import ReferencePath
 from typing import List
 from slam.slam import SLAM
-from model.sensors import Odometer
-from utils.debug import DebugTelemetry
+from model.sensors.odometer import Odometer
+from model.ego_car import EgoCar
 
 class MotionController (DiscreteComponent):
     _longitudinal_controller: LongitudinalController
     _lateral_controller: LateralController
     _on_finished_motion: callable
     _slam: SLAM
-    _list: List[VehiclePose]
+    _list: List[MapPose]
     _search_state: bool
     _last_pos: int
+    _ego: EgoCar
+    _odometer: Odometer
+    _desired_speed: float
 
     MAX_RANGE_SQUARED = 625
 
     def __init__(self, 
                 period_ms: int, 
-                longitudinal_controller_period_ms: int,
-                on_finished_motion: callable,
-                odometer: callable, 
-                power_actuator: callable, 
-                brake_actuator: callable,
-                steering_actuator: callable,
-                slam: SLAM) -> None:
+                longitudinal_controller_period_ms: int,                
+                ego: EgoCar,
+                slam: SLAM,
+                desired_speed: float,
+                on_finished_motion: callable) -> None:
         
         super().__init__(period_ms)
+        
+        self._ego = ego
+        self._odometer = ego.get_odometer()
 
         self._longitudinal_controller = LongitudinalController(
             longitudinal_controller_period_ms,
-            brake_actuator=brake_actuator,
-            power_actuator=power_actuator,
-            odometer=odometer
+            brake_actuator=self.__set_break,
+            power_actuator=self.__set_power,
+            velocity_read=self.__get_velocity()
         )
         self._lateral_controller = LateralController(
             vehicle_length=2,
-            odometer=odometer,
-            steering_actuator=steering_actuator,
+            odometer=self.__get_velocity(),
+            steering_actuator=self.__set_sterring,
             slam=slam
         )
-        self._odometer = odometer
         self._slam = slam
         self._on_finished_motion = on_finished_motion
         self._search_state = False
         self._last_pos = 0
+        self._desired_speed = desired_speed
         
         # self._longitudinal_controller.start()
+    
+    def __set_break(self, val: float):
+        self._ego.set_brake(val)
+        
+    def __set_power(self, val: float):
+        self._ego.set_power(val)
+        
+    def __get_velocity(self) -> float:
+        return self._odometer.read()
+    
+    def __set_sterring(self, val: float):
+        self._ego.set_steering(val)
 
-    def set_path(self, list: List[VehiclePose]):
+    def set_path(self, list: List[MapPose]):
         self._search_state = True
         self._list = list
         self._last_pos = 0
-        DebugTelemetry.log_path("[motion controller]", list)
-
     
     def brake(self) -> None:
         self._lateral_controller.cancel()
@@ -67,10 +80,9 @@ class MotionController (DiscreteComponent):
         if not self._search_state:
             return
         
-        pos = ReferencePath.find_best_p1_for_location(self._list, self._slam.estimate_ego_pose(), self._last_pos)
-    
+        pos = MapPose.find_nearest_goal_pose( self._slam.estimate_ego_pose(), self._list, self._last_pos)
+
         if (pos < 0):
-            DebugTelemetry.log_message("[motion controller] finished motion")
             self._on_finished_motion()
             self._search_state = False
             return
@@ -86,16 +98,16 @@ class MotionController (DiscreteComponent):
         p1 = self._list[pos]
         p2 = self._list[pos + 1]
         self._lateral_controller.set_reference_path(p1, p2)
-        self._longitudinal_controller.set_speed(p1.desired_speed)
+        self._longitudinal_controller.set_speed(self._desired_speed)
 
         self._lateral_controller.loop(dt)
         self._longitudinal_controller.loop(dt)
     
-    def get_driving_path_ahead (self) -> list[VehiclePose]:
+    def get_driving_path_ahead (self) -> list[MapPose]:
         if not self._search_state:
             return None
         
-        pos = ReferencePath.find_best_p1_for_location(self._list, self._slam.estimate_ego_pose(), self._last_pos)
+        pos = MapPose.find_nearest_goal_pose( self._slam.estimate_ego_pose(), self._list, self._last_pos)
         if pos < 0:
             return None
         

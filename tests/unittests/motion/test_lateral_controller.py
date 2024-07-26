@@ -3,24 +3,22 @@ sys.path.append("../../")
 sys.path.append("../../../")
 import unittest, math
 from motion.lateral_controller import LateralController
-from model.vehicle_pose import VehiclePose
+from model.map_pose import MapPose
 from slam.slam import SLAM
-from carlasim.carla_slam import CarlaSLAM
-
 
 class TestLateralController(unittest.TestCase):
 
-    class StubSlamTest(CarlaSLAM):
-        _pose: VehiclePose
+    class StubSlamTest(SLAM):
+        _pose: MapPose
         _last_steer_value: float
 
         def __init__(self) -> None:
             self._pose = None
 
-        def set_pose(self, pose: VehiclePose):
+        def set_pose(self, pose: MapPose):
             self._pose = pose
         
-        def estimate_ego_pose(self) -> VehiclePose:
+        def estimate_ego_pose(self) -> MapPose:
             return self._pose
 
     def steer_actuator(self, value: float) -> None:
@@ -32,13 +30,13 @@ class TestLateralController(unittest.TestCase):
         controller = LateralController(
             vehicle_length=4,
             slam=slam,
-            odometer=lambda : 10,
+            velocity_read=lambda : 10,
             steering_actuator=self.steer_actuator
         )
 
-        slam.set_pose(VehiclePose(0, 0, 0, 0))
+        slam.set_pose(MapPose(0, 0, 0, 0))
 
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertAlmostEqual(first=self._last_steer_value, second=0, msg="steering should be 0")
 
@@ -47,17 +45,17 @@ class TestLateralController(unittest.TestCase):
         controller = LateralController(
             vehicle_length=4,
             slam=slam,
-            odometer=lambda : 10,
+            velocity_read=lambda : 10,
             steering_actuator=self.steer_actuator
         )
 
-        slam.set_pose(VehiclePose(0, 0, 30, 0))
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        slam.set_pose(MapPose(0, 0, 30, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertEqual(first=self._last_steer_value, second=-40, msg="steering should be -40")
 
-        slam.set_pose(VehiclePose(0, 0, -30, 0))
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        slam.set_pose(MapPose(0, 0, -30, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertEqual(first=self._last_steer_value, second=40, msg="steering should be +40")
 
@@ -66,17 +64,17 @@ class TestLateralController(unittest.TestCase):
         controller = LateralController(
             vehicle_length=4,
             slam=slam,
-            odometer=lambda : 30,
+            velocity_read=lambda : 30,
             steering_actuator=self.steer_actuator
         )
 
-        slam.set_pose(VehiclePose(0, 2, 0, 0))
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        slam.set_pose(MapPose(0, 2, 0, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertTrue(self._last_steer_value < -10)
 
-        slam.set_pose(VehiclePose(0, -2, 0, 0))
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        slam.set_pose(MapPose(0, -2, 0, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertTrue(self._last_steer_value > 10)
 
@@ -85,17 +83,17 @@ class TestLateralController(unittest.TestCase):
         controller = LateralController(
             vehicle_length=4,
             slam=slam,
-            odometer=lambda : 100,
+            velocity_read=lambda : 100,
             steering_actuator=self.steer_actuator
         )
 
-        slam.set_pose(VehiclePose(0, 2, 0, 0))
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        slam.set_pose(MapPose(0, 2, 0, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertTrue(self._last_steer_value < -2)
 
-        slam.set_pose(VehiclePose(0, -2, 0, 0))
-        controller.set_reference_path(VehiclePose(-10, 0, 0, 0), VehiclePose(10, 0, 0, 0))
+        slam.set_pose(MapPose(0, -2, 0, 0))
+        controller.set_reference_path(MapPose(-10, 0, 0, 0), MapPose(10, 0, 0, 0))
         controller.loop(time.time)
         self.assertTrue(self._last_steer_value > 2)
 

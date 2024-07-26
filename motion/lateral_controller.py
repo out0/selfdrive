@@ -1,5 +1,7 @@
 from model.waypoint import Waypoint
 from model.world_pose import WorldPose
+from model.map_pose import MapPose
+from slam.slam import SLAM
 import math
 
 class LateralController:
@@ -7,36 +9,34 @@ class LateralController:
     __V_DUMPING_CONSTANT: float = 2
     __MAX_RANGE: float = 40.0
     _slam: SLAM
-    _odometer: callable
+    _velocity_read: callable
     _steering_actuator: callable
     _vehicle_length: float
-    _p1: VehiclePose
-    _p2: VehiclePose
+    _p1: MapPose
+    _p2: MapPose
     _canceled: bool
     
     _last_crosstrack_error: float
     _last_heading_error: float
-    
 
-
-    def __init__(self, vehicle_length: float, slam: SLAM, odometer: callable, steering_actuator: callable) -> None:
+    def __init__(self, vehicle_length: float, slam: SLAM, velocity_read: callable, steering_actuator: callable) -> None:
         self._slam = slam
-        self._odometer = odometer
+        self._velocity_read = velocity_read
         self._steering_actuator = steering_actuator
         self._vehicle_length = vehicle_length
         self._canceled = True
         self._last_crosstrack_error = 0
         self._last_heading_error = 0
 
-    def set_reference_path(self, p1: VehiclePose, p2: VehiclePose):
+    def set_reference_path(self, p1: MapPose, p2: MapPose):
         self._p1 = p1
         self._p2 = p2
         self._canceled = False
 
-    def __get_ref_point(self) -> VehiclePose:
-        cg: VehiclePose = self._slam.estimate_ego_pose()
+    def __get_ref_point(self) -> MapPose:
+        cg: MapPose = self._slam.estimate_ego_pose()
         a = math.radians(cg.heading)
-        return VehiclePose(cg.x + math.cos(a) * self._vehicle_length, cg.y + math.sin(a) * self._vehicle_length, cg.heading, 0)
+        return MapPose(cg.x + math.cos(a) * self._vehicle_length, cg.y + math.sin(a) * self._vehicle_length, cg.heading, 0)
 
     def __fix_range(heading: float) -> float:
         return min(
@@ -65,13 +65,12 @@ class LateralController:
         
         ego_ref = self.__get_ref_point()
 
-        current_speed = self._odometer()
+        current_speed = self._velocity_read()
         if current_speed < 0.1:
             return
 
-        path_heading = self._slam.compute_path_heading( self._p1,  self._p2)
-
-        crosstrack_error = ReferencePath.distance_to_line(self._p1, self._p2, ego_ref)
+        path_heading = MapPose.compute_path_heading(self._p1,  self._p2)
+        crosstrack_error = MapPose.distance_to_line(self._p1, self._p2, ego_ref)
         heading_error = path_heading - math.radians(ego_ref.heading) 
 
         #print(f"path_heading = {math.degrees(path_heading)}, vehicle heading: {ego_ref.heading}")
