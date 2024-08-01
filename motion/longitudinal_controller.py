@@ -1,9 +1,9 @@
 
 import numpy as np
-from model.discrete_component import DiscreteComponent
 import time
+from utils.logging import Telemetry
 
-class LongitudinalController:
+class LongitudinalController:    
     __KP = 1.0
     __KI = 0.2
     __KD = 0.01
@@ -41,16 +41,19 @@ class LongitudinalController:
         if error < -50:
             self._power_actuator(0.0)
             self._brake_actuator(1.0)
+            Telemetry.log(3, self.__class__.__name__, f"strong break: 100%")
             return
         
         if error < -30:
             self._power_actuator(0.0)
             self._brake_actuator(0.5)
+            Telemetry.log(3, self.__class__.__name__, f"medium break: 50%")
             return
         
         if error < -10:
             self._power_actuator(0.0)
             self._brake_actuator(0.3)
+            Telemetry.log(3, self.__class__.__name__, f"light break: 30%")
             return
         
         acc = LongitudinalController.__KP * error \
@@ -62,14 +65,16 @@ class LongitudinalController:
             throttle = self._prev_throttle + 0.1
         
         self._prev_throttle = throttle
-        #print (f"[long controller] throttle: {throttle}") 
+        
+        Telemetry.log(3, self.__class__.__name__, f"set throttle: {throttle}")       
         self._power_actuator(throttle)
     
     def loop(self, dt: float) -> None:
         current_speed = self._velocity_read()
+        Telemetry.log(3, self.__class__.__name__, f"current_speed = {current_speed}")
         
         # Autobreak
-        if current_speed == 0 and self._desired_speed == 0:
+        if current_speed == 0 and self._desired_speed == 0:            
             #self._brake_actuator(1.0)
             return
         

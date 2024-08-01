@@ -3,6 +3,7 @@ from model.world_pose import WorldPose
 from model.map_pose import MapPose
 from slam.slam import SLAM
 import math
+from utils.logging import Telemetry
 
 class LateralController:
     __K_GAIN: float = 3
@@ -64,16 +65,18 @@ class LateralController:
             return
         
         ego_ref = self.__get_ref_point()
+        Telemetry.log(3, self.__class__.__name__, f"ego ref. point: {ego_ref}")
 
         current_speed = self._velocity_read()
         if current_speed < 0.1:
+            Telemetry.log(3, self.__class__.__name__, f"speed too low")
             return
 
         path_heading = MapPose.compute_path_heading(self._p1,  self._p2)
         crosstrack_error = MapPose.distance_to_line(self._p1, self._p2, ego_ref)
-        heading_error = path_heading - math.radians(ego_ref.heading) 
-
-        #print(f"path_heading = {math.degrees(path_heading)}, vehicle heading: {ego_ref.heading}")
+        heading_error = path_heading - math.radians(ego_ref.heading)
+        
+        Telemetry.log(3, self.__class__.__name__, f"path heading: {path_heading}, cross_err = {crosstrack_error}, heading_err = {heading_error}")
 
         self._last_crosstrack_error = crosstrack_error
         self._last_heading_error = heading_error
@@ -81,5 +84,5 @@ class LateralController:
         if current_speed > 0:
             new_heading = math.degrees(heading_error + math.atan( LateralController.__K_GAIN * crosstrack_error / (current_speed + LateralController.__V_DUMPING_CONSTANT)))
             new_heading = LateralController.__fix_range(new_heading)
-            #print(f"[lat controller] new heading: {new_heading}, ke = {crosstrack_error}, he = {heading_error}")
+            Telemetry.log(3, self.__class__.__name__, f"new heading: {new_heading}, cross_err = {crosstrack_error}, heading_err = {heading_error}")
             self._steering_actuator(new_heading)

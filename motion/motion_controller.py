@@ -6,6 +6,7 @@ from typing import List
 from slam.slam import SLAM
 from model.sensors.odometer import Odometer
 from model.ego_car import EgoCar
+from utils.logging import Telemetry
 
 class MotionController (DiscreteComponent):
     _longitudinal_controller: LongitudinalController
@@ -38,11 +39,11 @@ class MotionController (DiscreteComponent):
             longitudinal_controller_period_ms,
             brake_actuator=self.__set_break,
             power_actuator=self.__set_power,
-            velocity_read=self.__get_velocity()
+            velocity_read=self.__get_velocity
         )
         self._lateral_controller = LateralController(
             vehicle_length=2,
-            odometer=self.__get_velocity(),
+            velocity_read=self.__get_velocity,
             steering_actuator=self.__set_sterring,
             slam=slam
         )
@@ -80,23 +81,23 @@ class MotionController (DiscreteComponent):
         if not self._search_state:
             return
         
-        pos = MapPose.find_nearest_goal_pose( self._slam.estimate_ego_pose(), self._list, self._last_pos)
+        pos = MapPose.find_nearest_goal_pose( self._slam.estimate_ego_pose(), self._list, 0)
 
         if (pos < 0):
-            self._on_finished_motion()
+            self._on_finished_motion(self)
             self._search_state = False
             return
     
    
-        #print (f"[motion] controlling movement from {pos} to {pos+1}")            
+        print (f"[motion] controlling movement from {pos} to {pos+1}")            
         self._last_pos = pos
         if pos >= len(self._list) - 1:
-            self._on_finished_motion()
+            self._on_finished_motion(self)
             self._search_state = False
             return
             
-        p1 = self._list[pos]
-        p2 = self._list[pos + 1]
+        p1 = self._list[pos - 1]
+        p2 = self._list[pos]
         self._lateral_controller.set_reference_path(p1, p2)
         self._longitudinal_controller.set_speed(self._desired_speed)
 
