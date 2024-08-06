@@ -12,6 +12,32 @@ class Quaternion(object):
         self.x = x
         self.y = y
         self.z = z
+    
+    @classmethod
+    def angle_normalize(cls, a):
+        """Normalize angles to lie in range -pi < a[i] <= pi."""
+        a = np.remainder(a, 2*np.pi)
+        a[a <= -np.pi] += 2*np.pi
+        a[a  >  np.pi] -= 2*np.pi
+        return a
+
+
+    @classmethod
+    def build_from_angles(cls, angles: np.ndarray) -> 'Quaternion':
+        a = Quaternion.angle_normalize(angles)
+        norm = np.linalg.norm(a)
+        w = np.cos(norm / 2)
+        if norm < 1e-50:  # to avoid instabilities and nans
+            x = 0
+            y = 0
+            z = 0
+        else:
+            imag = a / norm * np.sin(norm / 2)
+            x = imag[0].item()
+            y = imag[1].item()
+            z = imag[2].item()
+        return Quaternion(w, x, y, z)
+
 
     def __add__(self, other) -> 'Quaternion':
         if isinstance(other, Quaternion):
@@ -46,7 +72,7 @@ class Quaternion(object):
             )
     
     @classmethod
-    def __build_mult_matrix(cls, q1: 'Quaternion') -> np.ndarray:
+    def build_mult_matrix(cls, q1: 'Quaternion') -> np.ndarray:
         return  np.array([
                 [q1.w, -q1.x, -q1.y, -q1.z],
                 [q1.x,  q1.w, -q1.z,  q1.y],
@@ -56,7 +82,7 @@ class Quaternion(object):
     @classmethod
     def q_mul(cls, q1: 'Quaternion', q2: any) -> 'Quaternion':
         if isinstance(q2, Quaternion):
-            m = Quaternion.__build_mult_matrix(q1)
+            m = Quaternion.build_mult_matrix(q1)
             
             r = np.dot(m, np.array([q2.w, q2.x, q2. y, q2.z]))
             return Quaternion(

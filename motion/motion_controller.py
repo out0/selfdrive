@@ -91,7 +91,7 @@ class MotionController (DiscreteComponent):
    
         print (f"[motion] controlling movement from {pos} to {pos+1}")            
         self._last_pos = pos
-        if pos >= len(self._list) - 1:
+        if pos >= len(self._list):
             self._on_finished_motion(self)
             self._search_state = False
             return

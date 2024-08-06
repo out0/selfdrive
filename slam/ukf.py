@@ -1,131 +1,70 @@
 import numpy as np
 import math
+from model.sensors.imu import IMU, IMUData
+from model.map_pose import MapPose
+from utils.quaternion import Quaternion
 
 class UKF:
+    _gnss_init_data: np.ndarray
+    _gnss_init_data_count: int
+    _last_predicted_pos: MapPose
+    _last_heading: Quaternion
+    _state: np.ndarray
+
+    def __init__(self) -> None:
+        self._x = None
+        self._gnss_init_data_count = 0
+        self._last_predicted_pos = None
+        self._last_heading = None
     
-    def predict(motion_model: callable, x, P, Q):
-        """ Executes prediction step for the UKF. This step happens before the arrival of measurement data
-        :type motion_model:callable: the motion model method should receive a state and return the next state, based on applying the laws of motion
-        :param motion_model:callable: x
-
-        :type x: vehicle vector state with dimension N. Can be [position velocity] for example
-        :param x: last state
-
-        :type P: covariance matrix (NxN)
-        :param P: Last valid covariance matrix
-
-        :type Q: model error
-        :param Q: last model error
-
-        :raises:
-
-        :rtype: next predicted state (1xN), next predicted covariance matrix (NxN)
-        """
-
-        pd = np.linalg.cholesky(P)
-        
-        len_x = UKF.__len(x)
-        
-        N = len_x
-        k = 3 - N
-        SP = np.zeros((N, 2*N + 1))
-
-        q = math.sqrt(N + k)
-
-        SP[:,0] = x
-        for i in range(1, N+1):
-            SP[:,i] = x + q * pd.T[i-1]
-            SP[:,i+N] = x - q * pd.T[i-1]
-
-        a0 = k / (k + N)
-        a1 = 0.5 * (1/(k+N))
-
-        Xp = 0
-        Pp = Q
-        
-        SP[:,0] = motion_model(SP[:,0])
-        Xp = a0 * SP[:,0]
-        for i in range (1, 2*N+1):
-            SP[:, i] = motion_model(SP[:,i])
-            Xp += a1 * SP[:,1]
-
-        for i in range (0, 2*N+1):
-            a = a0
-            if i > 0: a = a1    
-            diff = SP[:,i] - Xp
-            diff = np.atleast_2d(diff)
-            Pp += a * np.dot(diff.T, diff)
-
-        return Xp, Pp
+    def gnss_calibrate(self, gnss: MapPose):
+        if self._gnss_init_data_count == 0:
+            self._x = np.zeros(10)
     
-    def __len(val) -> int:
-        if np.isscalar(val): return 1
-        return len(val)
+        self._state[0] += gnss.x
+        self._state[1] += gnss.y
+        self._state[2] += gnss.z
+        self._gnss_init_data_count += 1
     
-    def correct(measurement_model: callable, Xp, Pp, y, R):
-        # predict the measurement
-        pd = np.linalg.cholesky(Pp)
-        
-        len_x = UKF.__len(Xp)
-        len_y = UKF.__len(y)
+    def calibrate(self):
+        self._state /= self._gnss_init_data_count
+        self._last_predicted_pos = MapPose(
+            self._state[0],
+            self._state[1],
+            self._state[2],
+            0
+        )
+        self._gnss_init_data_count = 0
+        self._last_heading = Quaternion(1, 0, 0, 0)
+    
 
-        N = len_x
-        k = 3 - N
-        SPx = np.zeros((len_x, 2*N + 1))       
-        SPy = np.zeros((len_y, 2*N + 1))
-        q = math.sqrt(N + k)
 
-        SPx[:,0] = Xp
-        for i in range(1, N+1):
-            SPx[:,i] = Xp + q * pd.T[i-1]
-            SPx[:,i+N] = Xp - q * pd.T[i-1]
+    @classmethod
+    def _motion_model(cls, dt: float, state: np.ndarray, imu_data: IMUData) -> np.ndarray:
         
-        a0 = k / (k + N)
-        a1 = 0.5 * (1/(k+N))
+        imu_f = np.array([imu_data.accel_x, imu_data.accel_y])
+        imu_w = np.array([imu_data.gyro_x, imu_data.gyro_y, imu_data.gyro_z])
+
+        # pos += pos * last_V * dt
+        state[0:2] += dt * state[2:4]  
         
-        # predict the mean
-        SPy[:,0] = measurement_model(SPx[:,0])
-        yp = a0 * SPy[:,0]
-        for i in range (1, 2*N+1):
-            SPy[:, i] = measurement_model(SPx[:,i])
-            yp += a1 * SPy[0,1]
-        
-        # predict the covariance
-        Py = R
-        for i in range (0, 2*N+1):
-            a = a0
-            if i > 0: a = a1        
-            diff = (SPy[:,i] - yp)
-            Py += a * np.dot(diff, diff.T)
-        
-        # compute the cross-covariance
-        Pxy = 0
-        for i in range (0, 2*N+1):
-            a = a0
-            if i > 0: a = a1        
-            
-            diffX = (SPx[:,i] - Xp)
-            #diffX = np.atleast_2d(diffX)
-            
-            diffY = (SPy[:,i] - yp)
-            if UKF.__len(diffY) == 1:
-                diffY = diffY[0]
-            
-            #diffY = np.atleast_2d(diffY)            
-            
-            Pxy += a * np.dot(diffX, diffY.T)
-            #Pxy += a * diffX * diffY.T
-        
-        if UKF.__len(Py) == 1:
-            K = Pxy * 1/Py
-            X = Xp + K * (y - yp)
-            P = Pp - K * Py @ K.T
-        else:
-            K = Pxy @ np.linalg.inv(Py)
-            X = Xp + K @ (y - yp)
-            P = Pp - K @ Py @ K.T
-               
-        return X, P
+        # v += 1/2 at²
+        state[2:4] += 0.5 * dt * dt * imu_f
+
+        theta = imu_w * dt
+
+        diff_q = Quaternion.build_from_angles(theta)
+        h = Quaternion(state[4], state[5], state[6], state[7])
+        h = diff_q * h * diff_q.inv()
+
+        state[4] = h.w
+        state[5] = h.x
+        state[6] = h.y
+        state[7] = h.z
+
+        return state
+
+   
             
 if __name__ == "__main__":
     x0 = np.array([0, 5])

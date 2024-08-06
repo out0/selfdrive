@@ -130,19 +130,14 @@ class MapPose:
         best_walked_path_ratio = 0
         best_in_middle = False
         
-        nearest: MapPose
-        
         for i in range (start, n - 1):
             
             if MapPose.are_close(location, poses[i]):
                 return i+1
             
-            nearest, proportion, path_size = MapPose.project_on_path(poses[i], poses[i+1], location)
+            _, proportion, path_size = MapPose.project_on_path(poses[i], poses[i+1], location)
             
             if path_size == 0:
-                continue
-            
-            if nearest is None:
                 continue
             
             if proportion >= path_size: # I'm after the path

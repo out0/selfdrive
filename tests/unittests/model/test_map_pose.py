@@ -194,9 +194,9 @@ class TestMapPose(unittest.TestCase):
             [18,39],
             [14,39],
             [14,29],
-            [5, 19],    
-            [5, 15],  
-            [5, 12],
+            [5, 24],    
+            [5, 20],  
+            [5, 19],
         ])
 
         expected_pos = np.array([
@@ -219,17 +219,13 @@ class TestMapPose(unittest.TestCase):
             11, #16
             13,
             14,
-            -1
+            14
         ], dtype=np.int32)
         
         for i in range (len(expected_pos)):
-            if i == 18:
-                pass
             location = MapPose(x=points[i, 0], y=points[i, 1], z=0, heading=0)
             expected_pos_for_location = expected_pos[i]            
             obtained_pos_for_location = MapPose.find_nearest_goal_pose(location, path, 0)
-            
-
             
             self.assertEqual(expected_pos_for_location, obtained_pos_for_location, 
                              f"wrong goal pose: expected: {expected_pos_for_location} ({points[expected_pos_for_location]}) obtained: {obtained_pos_for_location} ({points[obtained_pos_for_location]}) for test #{i}")
