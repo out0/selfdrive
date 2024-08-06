@@ -1,6 +1,6 @@
 
 
-LOGGING_LEVEL = 3
+LOGGING_LEVEL = 0
 LOGGING_FILE = "run.log"
 
 class Telemetry:

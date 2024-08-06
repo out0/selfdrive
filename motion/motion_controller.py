@@ -6,7 +6,6 @@ from typing import List
 from slam.slam import SLAM
 from model.sensors.odometer import Odometer
 from model.ego_car import EgoCar
-from utils.logging import Telemetry
 
 class MotionController (DiscreteComponent):
     _longitudinal_controller: LongitudinalController
