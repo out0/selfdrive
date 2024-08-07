@@ -10,11 +10,13 @@ EARTH_RADIUS = 6378137.0
 
 class CoordinateConverter:
     
-    _world_origin: WorldPose
+    _lat_origin: float
+    _map_pose_origin: MapPose
     _orig_heading: float
 
     def __init__(self, world_origin: WorldPose):
-        self._world_origin = world_origin
+        self._lat_origin = world_origin.lat
+        self._map_pose_origin = self.convert_to_map_pose(world_origin)
         
     def __convert_map_heading_to_compass(h: float) -> float:
         return (h + 90 + 360) % 360
@@ -25,9 +27,18 @@ class CoordinateConverter:
             return p - 360
         return p
     
-
+    def get_relative_map_pose(self, world_pose: WorldPose) -> MapPose:
+        pose = self.convert_to_map_pose(world_pose)
+        return pose - self._map_pose_origin
+    
+    def get_relative_world_pose(self, map_pose: MapPose) -> WorldPose:
+        m = map_pose + self._map_pose_origin
+        pose = self.convert_to_world_pose(m)
+        return pose
+    
     def convert_to_map_pose(self, world_pose: WorldPose) -> MapPose:
-        scale = math.cos(math.radians(self._world_origin.lat))
+        scale = math.cos(math.radians(self._lat_origin))
+
         return MapPose(
             x=scale * EARTH_RADIUS * math.radians(world_pose.lon),
             y=-scale * EARTH_RADIUS * math.log(math.tan(math.pi * (90 + world_pose.lat) / 360)),
@@ -36,7 +47,7 @@ class CoordinateConverter:
         )
         
     def convert_to_world_pose(self, map_pose: MapPose) -> WorldPose:
-        scale = math.cos(math.radians(self._world_origin.lat))  
+        scale = math.cos(math.radians(self._lat_origin))  
         return WorldPose(
             lat=360 * math.atan(math.exp(-map_pose.y / (EARTH_RADIUS * scale))) / math.pi - 90,
             lon=map_pose.x * 180 / (math.pi * EARTH_RADIUS * scale),

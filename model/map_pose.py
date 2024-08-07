@@ -18,6 +18,38 @@ class MapPose:
                 self.z == other.z and\
                 self.heading == other.heading
     
+    def __add__(self, other) -> 'MapPose':
+        if isinstance(other, MapPose):
+            return MapPose (
+                self.x + other.x,
+                self.y + other.y,
+                self.z + other.z,
+                self.heading + other.heading
+            )
+        else:
+            return MapPose (
+                self.x + other,
+                self.y + other,
+                self.z + other,
+                self.heading
+            )
+    def __sub__(self, other) -> 'MapPose':
+        if isinstance(other, MapPose):
+            return MapPose (
+                self.x - other.x,
+                self.y - other.y,
+                self.z - other.z,
+                self.heading - other.heading
+            )
+        else:
+            return MapPose (
+                self.x - other,
+                self.y - other,
+                self.z - other,
+                self.heading
+            )
+
+
     @classmethod    
     def are_close(cls, p1: 'MapPose', p2: 'MapPose') -> bool:
         return  math.isclose(p1.x, p2.x, rel_tol=1e-2) and\

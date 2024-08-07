@@ -56,13 +56,21 @@ class TestSLAM(unittest.TestCase):
     def test_non_ekf(self):
         gps = DummyGps()
         gps.set_from_str("11.1|11.2|11.3")
+
+        imu = DummyIMU()
+        imu.set_from_str("1.1|1.1|1.1|1.1|1.1|1.1|50")
+        odom = DummyOdometer()
         
-        slam = SLAM(gps, None, None)
+        slam = SLAM(gps, imu, odom)
+
+        slam.initialize()
+
         pose = slam.estimate_ego_pose()
         
-        self.assertEqual(pose.lat, 11.1)
-        self.assertEqual(pose.lon, 11.2)
-        self.assertEqual(pose.alt, 11.3)
+        self.assertEqual(pose.x, 0)
+        self.assertEqual(pose.y, 0)
+        self.assertEqual(pose.z, 0)
+        self.assertEqual(pose.heading, -40)
     
     def __convert_data (self, raw: str) -> tuple[GpsData, IMUData, MapPose, float, float]:
         dict = json.loads(raw)

@@ -3,7 +3,6 @@ from model.map_pose import MapPose
 from model.sensors.gps import GPS
 from model.sensors.imu import IMU
 from model.sensors.odometer import Odometer
-from model.sensor_data import GpsData, IMUData
 from data.coordinate_converter import CoordinateConverter
 
 class SLAM:    
@@ -17,9 +16,15 @@ class SLAM:
         self._imu = imu
         self._odometer = odometer
         self._coordinate_converter = None
-        
-    def initialize(self) -> None:
-        pose = self.read_gps()
+    
+    def __read_raw_world_data(self) -> WorldPose:
+        w = self.read_gps()
+        imu_data = self._imu.read()
+        w.heading = imu_data.compass
+        return w
+    
+    def calibrate(self) -> None:
+        pose = self.__read_raw_world_data()
         self._coordinate_converter = CoordinateConverter(pose)
 
     def read_gps(self) -> WorldPose:
@@ -31,16 +36,16 @@ class SLAM:
             heading=0
         )
 
+    def estimate_velocity(self) -> float:
+        return self._odometer.read()
+    
+        # TODO
+        # check if this is real or a Kalman Filter may be necessary to estimate v with imu data integration
 
     def estimate_ego_pose (self) -> MapPose:
-        pose: WorldPose = None
+        pose: WorldPose = self.__read_raw_world_data()
+        return self._coordinate_converter.get_relative_map_pose(pose)
+           
+        # TODO - Make the real thing, using Kalman Filter for pose and heading estimation
+        #return self._kalman_filter.estimate_pose(self._gps.read(), self._imu.read(), self._odometer.read())
         
-        if self._imu is None:
-            pose = self.read_gps()
-            
-        else:
-            # TODO
-            #return self._kalman_filter.estimate_pose(self._gps.read(), self._imu.read(), self._odometer.read())
-            return None
-        
-        return self._coordinate_converter.convert_to_map_pose(pose)

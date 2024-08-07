@@ -27,6 +27,23 @@ class TestCoordinateConverter(unittest.TestCase):
         self.assertAlmostEqual(world_pose_truth.lon, world_pose.lon, 7)
         self.assertAlmostEqual(world_pose_truth.heading, world_pose.heading, 0)
 
+    def __test_conversion_to_map_rel(self, conv: CoordinateConverter, pose: str, map_truth: str):
+        world_pose = WorldPose.from_str(pose)
+        map_pose = conv.get_relative_map_pose(world_pose)
+        map_pose_carla = MapPose.from_str(map_truth)
+        self.assertAlmostEqual(map_pose.x, map_pose_carla.x, 1)
+        self.assertAlmostEqual(map_pose.y, map_pose_carla.y, 1)
+        self.assertAlmostEqual(map_pose.heading, map_pose_carla.heading, 0)
+        
+    def __test_conversion_to_world_rel(self, conv: CoordinateConverter, pose: str, map_truth: str):
+        world_pose_truth = WorldPose.from_str(pose)
+        map_pose = MapPose.from_str(map_truth)
+        world_pose = conv.get_relative_world_pose(map_pose)
+        
+        self.assertAlmostEqual(world_pose_truth.lat, world_pose.lat, 7)
+        self.assertAlmostEqual(world_pose_truth.lon, world_pose.lon, 7)
+        self.assertAlmostEqual(world_pose_truth.heading, world_pose.heading, 0)
+
     def test_convert_world_pose_to_map_pose(self):
         origin = WorldPose.from_str("-4.256008878655848e-09|-1.5864868596990013e-08|1.0150023698806763|89.99923752329113")
         conv = CoordinateConverter(origin)
@@ -52,6 +69,25 @@ class TestCoordinateConverter(unittest.TestCase):
         self.__test_conversion_to_world(conv, "-0.0005389866003611132|4.491557144842781e-05|1.0365043878555298|90.00011178750489", "4.999978542327881|59.99971389770508|1.0365043878555298|0.00010962043597828597")
         self.__test_conversion_to_world(conv, "-0.0005389890676639197|4.4915811324487864e-05|1.036553144454956|180.01979889717103", "5.00000524520874|59.9999885559082|1.036553144454956|90.00000762939453")
         self.__test_conversion_to_world(conv, "-0.000538989855826344|4.491587986050503e-05|1.0365053415298462|225.00000967629", "5.0000128746032715|60.00007629394531|1.0365053415298462|135.0")
+
+    def test_relative_conversion(self):
+        w1 = WorldPose.from_str("-4.256008878655848e-09|-1.5864868596990013e-08|1.0150023698806763|89.99923752329113")
+        conv = CoordinateConverter(w1)
+        map = conv.get_relative_map_pose(w1)
+
+        self.assertAlmostEqual(map.x, 0, places=5)
+        self.assertAlmostEqual(map.y, 0, places=5)
+        self.assertAlmostEqual(map.z, 0, places=5)
+        self.assertAlmostEqual(map.heading, 0, places=5)
+
+        map2 = map + 10
+        w2 = conv.get_relative_world_pose(map2)
+
+        map2 = conv.get_relative_map_pose(w2)
+        self.assertAlmostEqual(map2.x, 10, places=5)
+        self.assertAlmostEqual(map2.y, 10, places=5)
+        self.assertAlmostEqual(map2.z, 10, places=5)
+        self.assertAlmostEqual(map2.heading, 0, places=5)
 
 
 if __name__ == "__main__":
