@@ -347,7 +347,7 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
             continue;
 
         waypoints[pos + 3] = __CPU_computeFeasibleForAngle(this->frame, (int *)segmentationClassCost, x, z, heading,
-                                                           this->width, this->height, this->min_dist_x, this->min_dist_z, this->lower_bound_x, this->lower_bound_z,
+                                                           this->width, this->height, this->min_dist_x / 2, this->min_dist_z / 2, this->lower_bound_x, this->lower_bound_z,
                                                            this->upper_bound_x, this->upper_bound_z);
     }
 }

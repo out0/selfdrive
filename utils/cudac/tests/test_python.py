@@ -372,7 +372,6 @@ class TestSetVectorizedGoal(unittest.TestCase):
                 if feasible_expect[i, j] == 1:
                     self.assertAlmostEqual(f[i, j, 1], expected_dist, places=4, msg=f"not valid for ({i},{j}): computed: {f[i, j, 1]}, expected: {expected_dist}")
 
-
 class TestPathFeasible(unittest.TestCase): 
     
     def test_path_feasible_min_xz_all_ok(self):
@@ -501,7 +500,7 @@ class TestPathFeasible(unittest.TestCase):
 
         i = 11
         for f in feasible:
-            self.assertTrue(f)
+            self.assertTrue(f, f"path not true for {path[11-i]}")
             i -= 1
             if i == 0: break
 
@@ -544,6 +543,8 @@ class TestPathFeasible(unittest.TestCase):
                 self.assertFalse(feasible[i])
             else:
                 self.assertTrue(feasible[i])
-    
+
+
+
 if __name__ == "__main__":
     unittest.main()

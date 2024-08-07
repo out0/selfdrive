@@ -341,8 +341,8 @@ void CUDA_setGoal(float3 *frame, int width, int height, int goal_x, int goal_z, 
     params[1] = height;
     params[2] = goal_x;
     params[3] = goal_z;
-    params[4] = min_dist_x;
-    params[5] = min_dist_z;
+    params[4] = min_dist_x / 2;
+    params[5] = min_dist_z / 2;
     params[6] = lower_bound_x;
     params[7] = lower_bound_z;
     params[8] = upper_bound_x;
@@ -412,8 +412,8 @@ float4 *CUDA_checkFeasibleWaypoints(
 
     params[0] = width;
     params[1] = height;
-    params[2] = min_dist_x;
-    params[3] = min_dist_z;
+    params[2] = min_dist_x / 2;
+    params[3] = min_dist_z / 2;
     params[4] = lower_bound_x;
     params[5] = lower_bound_z;
     params[6] = upper_bound_x;
