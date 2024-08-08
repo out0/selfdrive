@@ -63,14 +63,14 @@ class TestSLAM(unittest.TestCase):
         
         slam = SLAM(gps, imu, odom)
 
-        slam.initialize()
+        slam.calibrate()
 
         pose = slam.estimate_ego_pose()
         
         self.assertEqual(pose.x, 0)
         self.assertEqual(pose.y, 0)
         self.assertEqual(pose.z, 0)
-        self.assertEqual(pose.heading, -40)
+        self.assertEqual(pose.heading, 0)
     
     def __convert_data (self, raw: str) -> tuple[GpsData, IMUData, MapPose, float, float]:
         dict = json.loads(raw)
@@ -87,19 +87,6 @@ class TestSLAM(unittest.TestCase):
         return arr + noise
     
     
-    def test_ekf(self):
-        f = open("location.log", "r")
-       
-        location, imu, pose, vel, dt = self.__convert_data(f.readline())
-        
-        noise_gps = np.random.normal(0, 0.0001, (3,1))
-        location.latitude += noise_gps[0]
-        location.longitude += noise_gps[1]
-        location.altitude += noise_gps[2]
-        noise_imu = np.random.normal(0, 2, (7,1)) 
-        
-        
-        p = 1
 
 if __name__ == "__main__":
     unittest.main()
