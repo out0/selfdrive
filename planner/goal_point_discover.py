@@ -69,7 +69,7 @@ class GoalPointDiscover:
 
     def _find_local_goal_for_out_of_range_goal(self, og: OccupancyGrid, out_of_range_goal: Waypoint):
 
-        dist = Waypoint.compute_euclidian_distance(self._ego_start, out_of_range_goal)
+        dist = Waypoint.distance_between(self._ego_start, out_of_range_goal)
         direction = self._compute_direction(self._ego_start, out_of_range_goal)
 
         if dist >= TOO_FAR_THRESHOLD:
@@ -98,6 +98,10 @@ class GoalPointDiscover:
         width = og.width()
         height = og.height()
         min_dist_z = og.get_minimal_distance_z()
+        
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
+        HEADING_MINUS_45 = int(GridDirection.HEADING_MINUS_45.value)
    
         goal, _ = self._find_best_goal_in_range(
             frame=og.get_frame(), 
@@ -118,6 +122,11 @@ class GoalPointDiscover:
         height = og.height()
         min_dist_z = og.get_minimal_distance_z()
    
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
+        HEADING_45 = int(GridDirection.HEADING_45.value)
+
+   
         goal, _ = self._find_best_goal_in_range(
             frame=og.get_frame(), 
             x_range=(round(width/2), width - 1),
@@ -135,6 +144,9 @@ class GoalPointDiscover:
                                             border_depth: int) -> Waypoint:
         width = og.width()
         height = og.height()
+        
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
    
         goal, _ = self._find_best_goal_in_range(
             frame=og.get_frame(), 
@@ -150,6 +162,8 @@ class GoalPointDiscover:
 ### tested as side-effect of other methods
 
     def __find_best_goal_heading(self, frame_direction: int, relative_heading: float):
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+
         if frame_direction & HEADING_FROM_START > 0:
             return relative_heading
 
@@ -307,7 +321,12 @@ class GoalPointDiscover:
     def _find_best_goal_on_boundary_TOP_LEFT(self, 
                                             og: OccupancyGrid, 
                                             relative_heading: float, 
-                                            border_depth: int) -> Waypoint:
+                                            border_depth: int) -> Waypoint:        
+        
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
+        HEADING_45 = int(GridDirection.HEADING_45.value)
+        
    
         width = og.width()
         height = og.height()
@@ -330,6 +349,10 @@ class GoalPointDiscover:
                                             relative_heading: float, 
                                             border_depth: int) -> Waypoint:
    
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
+        HEADING_MINUS_45 = int(GridDirection.HEADING_MINUS_45.value)
+
         width = og.width()
         height = og.height()
         min_dist_z = og.get_minimal_distance_z()
@@ -351,7 +374,9 @@ class GoalPointDiscover:
                                             relative_heading: float, 
                                             border_depth: int) -> Waypoint:
         width = og.width()
-   
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
+        
         goal, _ = self._find_best_goal_in_range(
             frame=og.get_frame(), 
             x_range=(0, width - 1),
@@ -365,6 +390,8 @@ class GoalPointDiscover:
     
     ### TESTED
     def _find_any_feasible_in_direction(self, og: OccupancyGrid, out_of_range_goal: Waypoint, direction: int) -> Waypoint:
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
         
         width = og.width()
         height = og.height()

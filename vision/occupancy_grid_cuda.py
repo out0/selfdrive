@@ -112,3 +112,28 @@ class OccupancyGrid:
     
     def check_waypoint_feasible(self, point: Waypoint) -> bool:
         return self._frame.check_waypoint_feasible(point)
+
+    def find_car_dimensions(frame: np.ndarray, car_class: int) -> tuple[Waypoint, Waypoint]:
+        mid_x = math.floor(frame.shape[1] / 2)
+        mid_z = math.floor(frame.shape[0] / 2)
+        
+        i = mid_x
+        while i >= 0 and frame[mid_z, i, 0] == car_class:
+            i -= 1
+        
+        j = mid_z
+        while j >= 0 and frame[j, mid_x, 0] == car_class:
+            j -= 1
+            
+        x_size = mid_x - i
+        z_size = mid_z - j
+        
+        bottom_left = Waypoint(mid_x - x_size, mid_z + z_size)
+        top_right = Waypoint(mid_x + x_size, mid_z - z_size)
+        
+        return (bottom_left, top_right)
+    
+    def compute_heading(p1: 'Waypoint', p2: 'Waypoint') -> float:
+        dz = p2.z - p1.z
+        dx = p2.x - p1.x
+        return math.degrees(math.pi/2 - math.atan2(-dz, dx))
