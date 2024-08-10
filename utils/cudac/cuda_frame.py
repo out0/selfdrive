@@ -6,6 +6,7 @@ sys.path.append("../../")
 sys.path.append("../../../")
 from model.waypoint import Waypoint
 import math
+from enum import Enum
 
 LIBNAME = "/usr/local/lib/libdriveless-cudac.so"
 lib = ctypes.CDLL(LIBNAME)
@@ -63,12 +64,16 @@ lib.compute_feasible_path.argtypes = [
 lib.get_class_cost.restype = ctypes.c_int
 lib.get_class_cost.argtypes = [ctypes.c_int]
 
-ALL = 0x0f
-HEADING_0 = 0x08
-HEADING_90 = 0x04
-HEADING_45 = 0x02
-HEADING_MINUS_45 = 0x01
-HEADING_FROM_START = 0x10
+
+class GridDirection (Enum):
+    ALL = 0x0f
+    HEADING_0 = 0x08
+    HEADING_90 = 0x04
+    HEADING_45 = 0x02 # TL, BR
+    HEADING_MINUS_45 = 0x01  # TR, BL 
+    HEADING_FROM_START = 0x10
+
+
 
 class CudaFrame:
     _cpu_frame: np.ndarray

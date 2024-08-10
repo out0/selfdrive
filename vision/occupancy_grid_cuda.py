@@ -1,11 +1,9 @@
-import ctypes
 from model.waypoint import Waypoint
-from planner.occupancy_grid import OccupancyGrid, GridDirection
-import numpy as np, enum
-from utils.cudac2.cuda_frame import *
+import numpy as np
+from utils.cudac.cuda_frame import *
 from threading import Lock
 
-class CudaOccupancyGrid (OccupancyGrid):
+class OccupancyGrid:
     _frame: CudaFrame
     _goal_point: Waypoint
     _minimal_distance_x: int
@@ -27,7 +25,7 @@ class CudaOccupancyGrid (OccupancyGrid):
         for i in range (0, self._frame.shape[0]):
             for j in range (0, self._frame.shape[1]):
                 new_frame[i, j, 0] = self._frame[i, j, 0]
-        return CudaOccupancyGrid(new_frame)
+        return OccupancyGrid(new_frame)
 
     def set_goal(self, goal: Waypoint) -> None:
         self._lock.acquire()
