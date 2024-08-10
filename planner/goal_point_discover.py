@@ -37,7 +37,7 @@ RIGHT = 1   # 0001
 INSIDE = 0  # 0000
 
 
-TOO_FAR_THRESHOLD = 200
+TOO_FAR_THRESHOLD = 150
 
 
 class GoalPointDiscover:

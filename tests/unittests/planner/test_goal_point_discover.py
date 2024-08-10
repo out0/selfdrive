@@ -467,9 +467,9 @@ class TestGoalPointDiscover(unittest.TestCase):
         
     
         best_goal = gpd._find_best_goal_on_boundary_TOP_LEFT(og, relative_heading, 0)
-        self.assertEqual(32, best_goal.x)
+        self.assertEqual(25, best_goal.x)
         self.assertEqual(0, best_goal.z)
-        self.assertAlmostEqual(math.radians(-90), best_goal.heading, places=3)
+        self.assertAlmostEqual(-55.36, best_goal.heading, places=1)
 
         frame = np.full((256, 256, 3), 1)
         self.add_obstacle(frame, (0,0), (70, 30))
@@ -487,7 +487,7 @@ class TestGoalPointDiscover(unittest.TestCase):
         
         best_goal = gpd._find_best_goal_on_boundary_TOP_LEFT(og, relative_heading, 0)
         self.assertEqual(0, best_goal.x)
-        self.assertEqual(45, best_goal.z)
+        self.assertEqual(41, best_goal.z)
         self.assertAlmostEqual(relative_heading, best_goal.heading, places=3)
         
         frame = np.full((256, 256, 3), 1)
@@ -561,9 +561,9 @@ class TestGoalPointDiscover(unittest.TestCase):
         
     
         best_goal = gpd._find_best_goal_on_boundary_TOP_RIGHT(og, relative_heading, 0)
-        self.assertEqual(223, best_goal.x)
+        self.assertEqual(230, best_goal.x)
         self.assertEqual(0, best_goal.z)
-        self.assertAlmostEqual(math.radians(-90), best_goal.heading, places=3)
+        self.assertAlmostEqual(54.43, best_goal.heading, places=1)
 
         frame = np.full((256, 256, 3), 1)
         self.add_obstacle(frame, (120,0), (255, 30))
@@ -582,7 +582,7 @@ class TestGoalPointDiscover(unittest.TestCase):
         
         best_goal = gpd._find_best_goal_on_boundary_TOP_RIGHT(og, relative_heading, 0)
         self.assertEqual(255, best_goal.x)
-        self.assertEqual(45, best_goal.z)
+        self.assertEqual(41, best_goal.z)
         self.assertAlmostEqual(relative_heading, best_goal.heading, places=3)
         
         frame = np.full((256, 256, 3), 1)
@@ -664,7 +664,7 @@ class TestGoalPointDiscover(unittest.TestCase):
         og.set_goal_vectorized(goal)
         relative_heading = OccupancyGrid.compute_heading(gpd._ego_start, goal)
         best_goal = gpd._find_best_goal_on_boundary_TOP(og, relative_heading, 0)
-        self.assertEqual(142, best_goal.x)
+        self.assertEqual(135, best_goal.x)
         self.assertEqual(0, best_goal.z)
         self.assertAlmostEqual(math.radians(-90), best_goal.heading, places=3)
 
@@ -722,17 +722,17 @@ class TestGoalPointDiscover(unittest.TestCase):
         og.set_goal_vectorized(goal1)
         
         best_goal = gpd._find_best_goal_on_boundaries(og, goal1, TOP | LEFT, 0)
-        self.assertEqual(142, best_goal.x)
+        self.assertEqual(135, best_goal.x)
         self.assertEqual(0, best_goal.z)
         self.assertAlmostEqual(relative_heading, best_goal.heading, places=3)
         
         best_goal = gpd._find_best_goal_on_boundaries(og, goal1, TOP, 0)
-        self.assertEqual(142, best_goal.x)
+        self.assertEqual(135, best_goal.x)
         self.assertEqual(0, best_goal.z)
         self.assertAlmostEqual(relative_heading, best_goal.heading, places=3)
                 
         best_goal = gpd._find_best_goal_on_boundaries(og, goal1, TOP | RIGHT, 0)
-        self.assertEqual(142, best_goal.x)
+        self.assertEqual(135, best_goal.x)
         self.assertEqual(0, best_goal.z)
         self.assertAlmostEqual(relative_heading, best_goal.heading, places=3)
 
@@ -762,8 +762,8 @@ class TestGoalPointDiscover(unittest.TestCase):
         goal1 = Waypoint(-50, 5)  # TL
         og.set_goal_vectorized(goal1)
         best_goal = gpd._find_any_feasible_in_direction(og, goal1, TOP)
-        self.assertEqual(14, best_goal.x)
-        self.assertEqual(17, best_goal.z)
+        self.assertEqual(7, best_goal.x)
+        self.assertEqual(13, best_goal.z)
         self.assertAlmostEqual(math.radians(-90), best_goal.heading, places=3)
 
     
@@ -793,8 +793,8 @@ class TestGoalPointDiscover(unittest.TestCase):
         )
         
         best_goal = gpd._find_local_goal_for_out_of_range_goal(og, goal1)
-        self.assertEqual(14, best_goal.goal.x)
-        self.assertEqual(17, best_goal.goal.z)
+        self.assertEqual(7, best_goal.goal.x)
+        self.assertEqual(13, best_goal.goal.z)
         
         ## DEGENERATING
         frame = np.full((256, 256, 3), 1)
