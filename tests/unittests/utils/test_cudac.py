@@ -19,6 +19,11 @@ def convertToBoolStr(p):
 
 
 def convertToStr(p):
+    HEADING_90 = int(GridDirection.HEADING_90.value)
+    HEADING_45 = int(GridDirection.HEADING_45.value)
+    HEADING_0 = int(GridDirection.HEADING_0.value)
+    HEADING_MINUS_45 = int(GridDirection.HEADING_MINUS_45.value)
+
     p = int(p)
     res = ""
     if p & HEADING_0 > 0:
@@ -206,6 +211,8 @@ class TestSetGoal(unittest.TestCase):
 class TestSetVectorizedGoal(unittest.TestCase): 
     
     def test_vector_feasible_no_min_dist(self):
+        ALL = int(GridDirection.ALL.value)
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
         frame = np.array([
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [24, 0, 0], [25, 0, 0], [25, 0, 0], [25, 0, 0], [24, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [24, 0, 0], [25, 0, 0], [25, 0, 0], [25, 0, 0], [24, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
@@ -262,6 +269,12 @@ class TestSetVectorizedGoal(unittest.TestCase):
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [24, 0, 0], [25, 0, 0], [25, 0, 0], [25, 0, 0], [24, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         ], dtype=np.float32)
 
+        ALL = int(GridDirection.ALL.value)
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_45 = int(GridDirection.HEADING_45.value)
+        HEADING_90 = int(GridDirection.HEADING_90.value)
+        HEADING_MINUS_45 = int(GridDirection.HEADING_MINUS_45.value)
+        
         feasible_expect = np.array([
             [0, 0, 0, HEADING_45 | HEADING_90, ALL, ALL, ALL, HEADING_MINUS_45 | HEADING_90, 0, 0, 0],
             [0, 0, 0, HEADING_90, ALL, ALL, ALL, HEADING_90, 0, 0, 0],
@@ -304,6 +317,12 @@ class TestSetVectorizedGoal(unittest.TestCase):
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [24, 0, 0], [25, 0, 0], [25, 0, 0], [25, 0, 0], [24, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         ], dtype=np.float32)
 
+        ALL = int(GridDirection.ALL.value)
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
+        HEADING_45 = int(GridDirection.HEADING_45.value)
+        HEADING_0 = int(GridDirection.HEADING_0.value)
+        HEADING_MINUS_45 = int(GridDirection.HEADING_MINUS_45.value)
+
         feasible_expect = np.array([
             [0, 0, 0, HEADING_0 | HEADING_MINUS_45, ALL, ALL, ALL, HEADING_45 | HEADING_0, 0, 0, 0],
             [0, 0, 0, HEADING_0, ALL, ALL, ALL, HEADING_0, 0, 0, 0],
@@ -345,6 +364,9 @@ class TestSetVectorizedGoal(unittest.TestCase):
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [24, 0, 0], [25, 0, 0], [25, 0, 0], [25, 0, 0], [24, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [24, 0, 0], [25, 0, 0], [25, 0, 0], [25, 0, 0], [24, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         ], dtype=np.float32)
+        
+        ALL = int(GridDirection.ALL.value)
+        HEADING_FROM_START = int(GridDirection.HEADING_FROM_START.value)
 
         feasible_expect = np.array([
             [0, 0, 0, 0, ALL, ALL, ALL, 0, 0, 0, 0],

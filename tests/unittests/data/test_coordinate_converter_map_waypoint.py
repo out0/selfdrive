@@ -12,7 +12,15 @@ from model.physical_parameters import PhysicalParameters
 
 class TestCoordinateConverterMapWaypoint(unittest.TestCase):
 
+    def set_physical_params(self) -> None:
+        PhysicalParameters.OG_WIDTH = 600
+        PhysicalParameters.OG_HEIGHT = 600
+        PhysicalParameters.OG_REAL_WIDTH = 60
+        PhysicalParameters.OG_REAL_HEIGHT = 60
+
+
     def test_convert_map_to_waypoint_H_zero__0deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         x, y = (30, 0)
@@ -40,6 +48,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertEqual(wz, p.z)
 
     def test_convert_map_to_waypoint_H_zero__45deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         x, y = (30, 30)
@@ -67,7 +76,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertEqual(wz, p.z)
 
     def test_convert_map_to_waypoint_H_45deg__45deg(self):
-                
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         rt = math.sqrt(2)
@@ -97,6 +106,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertEqual(wz, p.z)
  
     def test_convert_map_to_waypoint_H_minus45deg__45deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         rt = math.sqrt(2)
@@ -126,6 +136,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertEqual(wz, p.z)
 
     def test_convert_to_MapPose_H_zero__0deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         x, y = (30, 0)
@@ -153,6 +164,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertAlmostEqual(y, p.y, places=4)
 
     def test_convert_to_MapPose_H_zero__45deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         x, y = (30, 30)
@@ -180,6 +192,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertAlmostEqual(y, p.y, places=4)
 
     def test_convert_to_MapPose_H_45deg__45deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         rt = math.sqrt(2)
@@ -209,6 +222,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertAlmostEqual(y, p.y, places=4)
     
     def test_convert_to_MapPose_H_minus45deg__45deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         rt = math.sqrt(2)
@@ -238,6 +252,7 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertAlmostEqual(y, p.y, places=4)
 
     def test_convert_H_45deg__0deg(self):
+        self.set_physical_params()
         map_coordinator = CoordinateConverter(WorldPose(0, 0, 0, 0))
         
         rt = math.sqrt(2)
@@ -254,9 +269,5 @@ class TestCoordinateConverterMapWaypoint(unittest.TestCase):
         self.assertAlmostEqual(p.y, y, places=4)
 
 if __name__ == "__main__":
-    PhysicalParameters.OG_WIDTH = 600
-    PhysicalParameters.OG_HEIGHT = 600
-    PhysicalParameters.OG_REAL_WIDTH = 60
-    PhysicalParameters.OG_REAL_HEIGHT = 60
     unittest.main()
 
