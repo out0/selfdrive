@@ -3,11 +3,46 @@ import numpy as np
 from utils.cudac.cuda_frame import *
 from threading import Lock
 
+
+SEGMENTED_COLORS = np.array([
+    [0,   0,   0],
+    [128,  64, 128],
+    [244,  35, 232],
+    [70,  70,  70],
+    [102, 102, 156],
+    [190, 153, 153],
+    [153, 153, 153],
+    [250, 170,  30],
+    [220, 220,   0],
+    [107, 142,  35],
+    [152, 251, 152],
+    [70, 130, 180],
+    [220,  20,  60],
+    [255,   0,   0],
+    [0,   0, 142],
+    [0,   0,  70],
+    [0,  60, 100],
+    [0,  80, 100],
+    [0,   0, 230],
+    [119,  11,  32],
+    [110, 190, 160],
+    [170, 120,  50],
+    [55,  90,  80],     # other
+    [45,  60, 150],
+    [157, 234,  50],
+    [81,   0,  81],
+    [150, 100, 100],
+    [230, 150, 140],
+    [180, 165, 180]
+])
+
 class OccupancyGrid:
     _frame: CudaFrame
     _goal_point: Waypoint
     _minimal_distance_x: int
     _minimal_distance_z: int
+    _lower_bound: Waypoint
+    _upper_bound: Waypoint
     _frame_size: int
     _lock: Lock
 
@@ -15,17 +50,28 @@ class OccupancyGrid:
     def __init__(self, frame: np.ndarray, minimal_distance_x: int, minimal_distance_z: int, lower_bound: Waypoint, upper_bound: Waypoint) -> None:
         self._frame = CudaFrame(frame, round(minimal_distance_x / 2), round(minimal_distance_z / 2), lower_bound, upper_bound)
         self._goal_point = None
-        self._minimal_distance_x = minimal_distance_x / 2
-        self._minimal_distance_z = minimal_distance_z / 2
+        self._minimal_distance_x = minimal_distance_x
+        self._minimal_distance_z = minimal_distance_z
         self._frame_size = frame.shape[0] * frame.shape[1] * frame.shape[2]
         self._lock = Lock()
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
 
     def clone(self) -> 'OccupancyGrid':
-        new_frame = np.zeros(self._frame.shape)
-        for i in range (0, self._frame.shape[0]):
-            for j in range (0, self._frame.shape[1]):
-                new_frame[i, j, 0] = self._frame[i, j, 0]
-        return OccupancyGrid(new_frame)
+        shape = self._frame.get_shape()
+        new_frame = np.zeros(shape)
+        frame = self._frame.get_frame()
+        for i in range (0, shape[0]):
+            for j in range (0, shape[1]):
+                new_frame[i, j, 0] = frame[i, j, 0]
+                
+        return OccupancyGrid(
+            frame=new_frame,
+            minimal_distance_x=self._minimal_distance_x,
+            minimal_distance_z=self._minimal_distance_z,
+            lower_bound=self._lower_bound,
+            upper_bound=self._upper_bound
+        )
 
     def set_goal(self, goal: Waypoint) -> None:
         self._lock.acquire()

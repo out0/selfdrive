@@ -93,7 +93,7 @@ class LocalPlanner:
                 
     def plan (self, planning_data: PlanningData):
             
-        goal_result = self._goal_point_discover.find_goal(og=planning_data.bev,
+        goal_result = self._goal_point_discover.find_goal(og=planning_data.og,
                                                           current_pose=planning_data.ego_location,
                                                           goal_pose=planning_data.goal)
     

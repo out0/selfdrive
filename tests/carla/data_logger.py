@@ -4,6 +4,7 @@ from carlasim.carla_ego_car import CarlaEgoCar
 from carlasim.sensors.data_sensors import *
 import time
 from model.map_pose import MapPose
+from model.world_pose import WorldPose
 from model.sensor_data import *
 from model.discrete_component import DiscreteComponent
 from model.sensors.gps import GPS
@@ -39,8 +40,15 @@ class DataLogger(DiscreteComponent):
                        z=location[2],
                        heading=self.ego.get_heading())
         
+        world_pose = WorldPose(
+            lat=gps_data.latitude,
+            lon=gps_data.longitude,
+            alt=gps_data.altitude,
+            heading=imu_data.compass
+        )
+        
         data = {}
-        data['gps'] = str(gps_data)
+        data['gps'] = str(world_pose)
         data['imu'] = str(imu_data)
         data['velocity'] = str(velocity)
         data['pose'] = str(pose)
@@ -48,6 +56,12 @@ class DataLogger(DiscreteComponent):
         
         self.logs.append(json.dumps(data))
     
+    def add_goal_data(self, goal: MapPose, next_goal: MapPose) -> None:
+        data = {}
+        data['goal'] = str(goal)
+        data['next_goal'] = str(next_goal)        
+        self.logs.append(json.dumps(data))
+        
     def _loop (self, dt: float):
         self.sample(dt)
         pass

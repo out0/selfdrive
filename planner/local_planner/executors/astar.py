@@ -1,6 +1,6 @@
 from model.waypoint import Waypoint
 from planner.local_planner.local_planner_executor import LocalPathPlannerExecutor
-from planner.local_planner.local_planner import PlanningData, PlanningResult, PlannerResultType
+from model.planning_data import PlanningData, PlanningResult, PlannerResultType
 from threading import Thread
 import math, numpy as np, sys
 from vision.occupancy_grid_cuda import OccupancyGrid
@@ -203,11 +203,7 @@ class AStarPlanner (LocalPathPlannerExecutor):
         
         self._og = self._planner_data.og.clone()
         
-        self._og.set_goal(partial_result.local_goal,
-                            PhysicalParameters.MIN_DISTANCE_WIDTH_PX, 
-                            PhysicalParameters.MIN_DISTANCE_HEIGHT_PX,
-                            PhysicalParameters.EGO_LOWER_BOUND,
-                            PhysicalParameters.EGO_UPPER_BOUND)
+        self._og.set_goal(partial_result.local_goal)
         self._plan_task = Thread(target=self.__perform_planning)
         self._plan_task.start()
     

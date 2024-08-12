@@ -55,11 +55,11 @@ class GoalPointDiscover:
 
     def find_goal(self, og: OccupancyGrid, current_pose: MapPose, goal_pose: MapPose) -> GoalPointDiscoverResult:
 
-        goal = self._map_coordinate_converter.convert_to_waypoint(current_pose, goal_pose)
+        goal = self._map_coordinate_converter.convert_map_to_waypoint(current_pose, goal_pose)
 
         if self._ego_start is None:
             self._ego_start = Waypoint(
-                og.width() / 2, self._ego_upper_bound.z - 1)
+                og.width() / 2, PhysicalParameters.EGO_UPPER_BOUND.z - 1)
 
         if self._check_goal_is_in_range_and_feasible(og, goal):
             return GoalPointDiscoverResult(og, self._ego_start, goal, 0, self._check_too_close(og, goal))
