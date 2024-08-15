@@ -29,8 +29,6 @@ class LocalPlanner:
     _goal_point_discover: GoalPointDiscover
     _path_planner: LocalPathPlannerExecutor
     _planner_result: PlanningResult
-    _is_planning: bool
-
 
     def __init__(self, 
                 plan_timeout_ms: int,
@@ -43,20 +41,19 @@ class LocalPlanner:
         self._goal_point_discover = GoalPointDiscover(map_coordinate_converter)
         self._path_planner = self.__get_local_planner_algorithm(local_planner_type)
         self._planner_result = None
-        self._is_planning = False
           
         
     def cancel(self):
         self._path_planner.cancel()
-        self._is_planning = False
         self._planner_result = None
 
     def is_planning(self) -> bool:
-        return self._is_planning and self._path_planner.is_planning()
+        return self._path_planner.is_planning()
     
     def get_result(self) -> PlanningResult:
-        if not self._is_planning:
+        if self._planner_result is not None:
             return self._planner_result
+        return self._path_planner.get_result()
 
     def __get_local_planner_algorithm(self, type: LocalPlannerType) -> LocalPathPlannerExecutor:
         match type:
@@ -92,7 +89,7 @@ class LocalPlanner:
                 
                 
     def plan (self, planning_data: PlanningData):
-            
+        
         goal_result = self._goal_point_discover.find_goal(og=planning_data.og,
                                                           current_pose=planning_data.ego_location,
                                                           goal_pose=planning_data.goal)

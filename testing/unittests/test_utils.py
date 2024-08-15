@@ -1,26 +1,11 @@
-import sys, time
-sys.path.append("../../../../")
-import unittest
-from planner.local_planner.local_planner_executor import LocalPathPlannerExecutor
-from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType, PlanningResult, PlannerResultType
+import sys
+sys.path.append("../../../")
 from model.planning_data import PlanningData
 import cv2, numpy as np, json
-from vision.occupancy_grid_cuda import SEGMENTED_COLORS, OccupancyGrid
+from vision.occupancy_grid_cuda import SEGMENTED_COLORS
 from model.map_pose import MapPose
 from model.waypoint import Waypoint
 from model.world_pose import WorldPose
-from data.coordinate_converter import CoordinateConverter
-from planner.goal_point_discover import GoalPointDiscover
-from model.physical_parameters import PhysicalParameters
-
-
-class DummyLocalPlanner (LocalPathPlannerExecutor):
-    def __init__(self, max_exec_time_ms: int) -> None:
-        super().__init__(max_exec_time_ms)
-    
-    def check_timeout(self) -> bool:
-        return self._check_timeout()
-
 
 class PlannerDataReader:
 
@@ -56,39 +41,40 @@ class PlannerDataReader:
                 next_goal=MapPose.from_str(pos_log_data["next_goal"])
             )
             
-            
-            
-            
 
-class TestAStarPlanner(unittest.TestCase):
+class PlannerTestOutput:
+    _frame: np.ndarray
+
+    def __init__(self, frame: np.ndarray, convert_to_gray: bool = True):
+        self._frame = frame
+        
+        if convert_to_gray:
+            self._frame[:,:,1] = self._frame[:,:,0]
+            self._frame[:,:,2] = self._frame[:,:,0]
+
     
-    def test_a_start(self):
+    def add_point (self, point: Waypoint,  color = [255, 255, 255]) -> None:
         
-        world_pose, planning_data = PlannerDataReader.read(1)
+        if point.x < 0:
+            point.x = 0
+        if point.z < 0:
+            point.z = 0
         
-        planner = LocalPlanner(
-                plan_timeout_ms=500,
-                local_planner_type=LocalPlannerType.AStar,
-                map_coordinate_converter=CoordinateConverter(world_pose)
-            )
-        
-        self.assertFalse(planner.is_planning())
-        self.assertIsNone(planner.get_result())
-        
-        planner.plan(planning_data)
-        time.sleep(0.1)
-        self.assertTrue(planner.is_planning())
-        
-        while planner.is_planning():
-            time.sleep(0.01)
-            
-        self.assertFalse(planner.is_planning())
-        res = planner.get_result()
-        
-        self.assertEqual(PlannerResultType.VALID, res.result_type)
-            
-      
+        if point.x > 0:
+            self._frame[point.z, point.x - 1, :] = color
+        if point.x < self._frame.shape[1] - 1:
+            self._frame[point.z, point.x + 1, :] = color
+        if point.z > 0:
+            self._frame[point.z - 1, point.x, :] = color
+        if point.z < self._frame.shape[0] - 1:
+            self._frame[point.z + 1, point.x, :] = color
+
+        self._frame[point.z, point.x, :] = color
     
 
-if __name__ == "__main__":
-    unittest.main()
+    def add_path (self, path: list[Waypoint], color = [255, 255, 255]) -> None:
+        for p in path:
+            self.add_point(p, color)
+       
+    def write (self, file: str) -> None:
+        cv2.imwrite(file, self._frame)

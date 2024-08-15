@@ -267,6 +267,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         self._search = True
         self._planner_data = planner_data
         self._result = partial_result.clone()
+        self._og = planner_data.og
         
         #self._og.set_goal_vectorized(planner_data.local_goal)
         
