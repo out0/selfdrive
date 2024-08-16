@@ -104,13 +104,11 @@ class OccupancyGrid:
     def check_direction_allowed(self, x: int, z: int, direction: GridDirection) -> bool:
         if self._frame is None:
             return False
-        return int(self.get_frame()[z, x, 2]) & int(direction.value) > 0
-    
-    def check_direction_allowed(self, x: int, z: int, direction: int) -> bool:
-        if self._frame is None:
-            return False
         
-        return int(self._frame.get_frame()[z, x, 2]) & direction > 0   
+        if  isinstance(direction, GridDirection):
+            direction = int(direction.value)
+        
+        return int(self.get_frame()[z, x, 2]) & direction > 0
 
     def get_color_frame(self) -> np.ndarray:
         self._lock.acquire()

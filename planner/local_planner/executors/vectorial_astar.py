@@ -189,7 +189,7 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
         cv2.imwrite("plan_debug_outp.png", frame)
 
     def plan(self, planner_data: PlanningData, partial_result: PlanningResult):
-        
+        self._og = planner_data.og
         self._search = True
         self._planner_data = planner_data
         self._result = partial_result        

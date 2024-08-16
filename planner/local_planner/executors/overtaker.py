@@ -33,6 +33,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
 
 
     def plan(self, planner_data: PlanningData, partial_result: PlanningResult) -> None:
+        self._og = planner_data.og
         self._mid_x = math.floor(planner_data.og.width() / 2)
         self._mid_z = math.floor(planner_data.og.height() / 2)
         self._planner_data = planner_data
@@ -153,7 +154,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         for i in range (1, n):
             x = path[i].x
             z = path[i].z
-            while (x >= 0 and x < w and not self._planner_data.og.check_direction_allowed(x, z, GridDirection.TOP)):
+            while (x >= 0 and x < w and not self._planner_data.og.check_direction_allowed(x, z, GridDirection.HEADING_0)):
                 x += inc
             
             if x < 0 or x >= w:
