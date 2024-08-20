@@ -5,6 +5,9 @@ from threading import Thread
 from planner.local_planner.executors.waypoint_interpolator import WaypointInterpolator
 from vision.occupancy_grid_cuda import GridDirection
 import math, numpy as np
+from planner.local_planner.executors.dubins_curves import Dubins
+from planner.local_planner.executors.waypoint_interpolator import WaypointInterpolator
+from model.physical_parameters import PhysicalParameters
 
 class OvertakerPlanner(LocalPathPlannerExecutor):
 
@@ -52,32 +55,6 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     def get_result(self) -> PlanningResult:
         return self._result
 
-    def __compute_euclidian_distance(self, p1: Waypoint, p2: Waypoint) -> float:
-        dz = p2.z - p1.z
-        dx = p2.x - p1.x
-        return math.sqrt(dz * dz + dx * dx)
-
-    def __gen_intra_points(self, p1: Waypoint, p2: Waypoint) -> list[Waypoint]:
-        lst: list[Waypoint] = []
-        lst.append(p1)
-
-        slope = math.atan2(p2.z - p1.z, p2.x - p1.x)
-        size = self.__compute_euclidian_distance(p1, p2)
-        path_step_size = size / self._step_size
-        x_inc = path_step_size * math.cos(slope)
-        z_inc = path_step_size * math.sin(slope)
-
-        x = p1.x
-        z = p1.z
-        for _ in range(self._step_size - 1):
-            x += x_inc
-            z += z_inc
-
-            lst.append(Waypoint(math.floor(x), math.floor(z)))
-
-        lst.append(p2)
-        return lst
-
     def __check_path_feasible(self, path: list[Waypoint]) -> bool:
         if path is None or len(path) <= 2:
             return False
@@ -105,74 +82,63 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         goal = Waypoint(self._result.local_goal.x,
                         self._result.local_goal.z)
 
+
+        # try going straight first        
+        path = WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._og.width, self._og.height, 20)
         
-        path: list[Waypoint] = self.__gen_intra_points(start, goal)
+        if self.__check_path_feasible(path):
+            self._result.result_type = PlannerResultType.VALID
+            self._result.path = path
+            self._result.total_exec_time_ms = self.get_execution_time()
+            self._search = False
+            return
         
-        step = -1
-
-        while self._search and not self._check_timeout():
-            if self.__check_path_feasible(path):
-                interpolated_path = WaypointInterpolator.interpolate_straight_line_path(
-                    path[1], goal, self._og.height())
-
-                if self.__check_path_feasible(interpolated_path):
-                    self._result.result_type = PlannerResultType.VALID
-                    self._result.path = interpolated_path
-                    self._result.total_exec_time_ms = self.get_execution_time()
-                    self._search = False
-                    #OvertakerPlanner.__dump_to_tmp(self._og.get_color_frame(), path, color=[255, 0, 0])
-                    return
-
-            #OvertakerPlanner.__dump_to_tmp(self._og.get_color_frame(), path)
-
-            valid, inc = self.__delocate_path(False,  step, path)
-
-            if not valid:
-                valid, inc = self.__delocate_path(True, step, path)
-                if not valid:
-                    break
-            
-            step += inc
-
-        self._result.result_type = PlannerResultType.INVALID_PATH
-        self._result.path = None
-        self._result.timeout = self._search
-        self._result.total_exec_time_ms = self.get_execution_time()
-        self._search = False
-
-    def __delocate_path(self, reverse: bool, step: int, path: list[Waypoint]) -> tuple[bool, int]:
-        n = len(path)
-        w = self._og.width()
+        # if fails, try relocating the goal point
         
-        if reverse:
-            inc = 1
+        try_left_first = self._result.local_goal.x > start.x
+        
+        if try_left_first:
+            self.__relocate(start, goal, 0, PhysicalParameters.OG_WIDTH - 1)
         else:
+            self.__relocate(start, goal, PhysicalParameters.OG_WIDTH - 1, 0)
+    
+    def __find_first_feasible_goal(self, z: int, x_init: int, x_limit: int) -> int:
+        inc = 1
+        if x_init > x_limit:
             inc = -1
         
-        changes = np.zeros(n, dtype=np.int32)
-        best_x = path[1].x
-        for i in range (1, n):
-            x = path[i].x
-            z = path[i].z
-            while (x >= 0 and x < w and not self._planner_data.og.check_direction_allowed(x, z, GridDirection.HEADING_0)):
-                x += inc
+        for i in range(x_init, x_limit, inc):
+            if self._og.check_direction_allowed(i, z, GridDirection.HEADING_0):
+                return i
+        return -1
             
-            if x < 0 or x >= w:
-                if reverse:
-                    return False, 0
-                
-                return self.__delocate_path(True, step, path)
+    
+    def __relocate(self, start: Waypoint, goal: Waypoint, x_min: int, x_max: int):
+        x = self.__find_first_feasible_goal(goal.z, x_min, x_max)
+        if x == -1:
+            self._result.result_type = PlannerResultType.INVALID_PATH
+            self._result.path = None
+            self._result.total_exec_time_ms = self.get_execution_time()
+            self._search = False
+            return
         
-            changes[i] = x
+        res = Dubins(5, 1).dubins_path(
+            (start.x, start.z, start.heading),
+            (x, goal.z, 0)
+        )
+        
+        
+        self._result.path = []
+                
+        for p in res:
+            if p[0] < 0 or p[0] > self._og.width():
+                continue
+            if p[1] < 0 or p[1] > self._og.height():
+                continue
+            self._result.path.append(Waypoint(p[0], p[1], 0))
+        
+        self._search = False        
+        self._result.result_type = PlannerResultType.INVALID_PATH
             
-            if inc > 0:
-                best_x = max(best_x, x)
-            else:
-                best_x = min(best_x, x)
-            
-
-        for i in range(1, n):
-            path[i].x = best_x + step
-
-        return True, inc
-
+        if self._og.check_all_path_feasible(self._result.path):
+            self._result.result_type = PlannerResultType.VALID

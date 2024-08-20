@@ -40,7 +40,10 @@ class TestLocalPlanners(unittest.TestCase):
             sm.add_point(p.z, p.x)
         return sm.get_cost()
     
-    def __run_plan(self, timeout: int, type: LocalPlannerType, planning_data: PlanningData, world_pose: WorldPose, outp: PlannerTestOutput) -> float:
+    def __run_plan(self, timeout: int, type: LocalPlannerType, test_scenario: int, expected_success: bool = True) -> float:
+        
+        world_pose, planning_data, outp = self.read(test_scenario)
+        
         planner = LocalPlanner(
                 plan_timeout_ms=timeout,
                 local_planner_type=type,
@@ -55,34 +58,38 @@ class TestLocalPlanners(unittest.TestCase):
         res = planner.get_result()
         
         outp.add_path(res.path)
-        outp.write("output_1.png")
+        outp.write(f"log/output_{test_scenario}_{str.lower(type.name)}.png")
         
-        self.assertEqual(PlannerResultType.VALID, res.result_type)
-        
-
-        
+        if expected_success:
+            self.assertEqual(PlannerResultType.VALID, res.result_type)
+        else:
+            self.assertEqual(PlannerResultType.INVALID_PATH, res.result_type)
+            
+        print(f"exec time for {type.name}: {res.total_exec_time_ms} ms")
+               
         cost = self.__compute_cost(res.path)
         return cost
 
     def test_bev1(self):
-        world_pose, planning_data, outp = self.read(1)
+        
         timeout = 500
         
-        cost = self.__run_plan(timeout, LocalPlannerType.AStar, planning_data, world_pose, outp)
+        cost = self.__run_plan(timeout, LocalPlannerType.AStar, 1)
         self.assertEqual(0.0, cost)
         
-        cost = self.__run_plan(timeout, LocalPlannerType.HybridAStar, planning_data, world_pose, outp)
+        cost = self.__run_plan(timeout, LocalPlannerType.HybridAStar, 1)
         self.assertEqual(0.0, cost)
 
-        cost = self.__run_plan(timeout, LocalPlannerType.VectorialAStar, planning_data, world_pose, outp)
+        cost = self.__run_plan(timeout, LocalPlannerType.VectorialAStar, 1)
         self.assertEqual(0.0, cost)
         
-        
-        cost = self.__run_plan(timeout, LocalPlannerType.Overtaker, planning_data, world_pose, outp)
+        cost = self.__run_plan(timeout, LocalPlannerType.Interpolator, 1)
         self.assertEqual(0.0, cost)
         
-        cost = self.__run_plan(timeout, LocalPlannerType.Interpolator, planning_data, world_pose, outp)
+        cost = self.__run_plan(timeout, LocalPlannerType.Overtaker, 1)
         self.assertEqual(0.0, cost)
+        
+
     
 
 if __name__ == "__main__":

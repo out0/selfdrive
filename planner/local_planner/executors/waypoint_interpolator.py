@@ -108,6 +108,40 @@ class WaypointInterpolator:
                 result.append(Waypoint(math.floor(x), math.floor(z)))
         
         return result
+    
+    def __create_waypoint(x: float, z: float, og_width: int, og_height: int) -> Waypoint:
+        if x < 0: x = 0
+        if x >= og_width: x = og_width - 1
+        if z < 0: z = 0
+        if z >= og_height: z = og_height - 1
+        return Waypoint(math.floor(x), math.floor(z), 0)
+    
+    def interpolate_straight_line_path2(p1: Waypoint, p2: Waypoint, og_width: int, og_height: int, num_steps: int) -> List[Waypoint]:
+
+        forward_movement = p1.z > p2.z
+        
+        dx = (p2.x - p1.x) / num_steps
+        dz = (p2.z - p1.z) / num_steps
+        
+        path = []
+        path.append(p1)
+        x = p1.x
+        z = p1.z
+        
+        if forward_movement:
+            while z > p2.z:
+                x = x + dx
+                z = z + dz
+                p = WaypointInterpolator.__create_waypoint(x, z, og_width(), og_height())
+                path.append(p)
+        else:
+            while z < p2.z:
+                x = x + dx
+                z = z + dz
+                p = WaypointInterpolator.__create_waypoint(x, z, og_width(), og_height())
+                path.append(p)
+                        
+        return path
 
     def path_interpolate(path: List[Waypoint], goal: Waypoint, og_height: int) -> List[Waypoint]:
         size = len(path)
