@@ -86,8 +86,8 @@ class InterpolatorPlanner(LocalPathPlannerExecutor):
         
         if self._planner_data.og.check_all_path_feasible(self._result.path):
             self._result.result_type = PlannerResultType.VALID
-        else:
-            self.dump_log("interpolator", self._og, self._result.path)
+        # else:
+        #     self.dump_log("interpolator", self._planner_data.og, self._result.path)
        
         self._result.total_exec_time_ms = self.get_execution_time()
         self._search = False

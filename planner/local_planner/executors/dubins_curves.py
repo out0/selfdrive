@@ -1,4 +1,6 @@
 import numpy as np
+from model.waypoint import Waypoint
+import math
 
 def ortho(vect2d):
     """Computes an orthogonal vector to the one given"""
@@ -51,7 +53,24 @@ class Dubins:
         self.radius = radius
         self.point_separation = point_separation
 
-    def all_options(self, start, end, sort=False):
+    def build_path(self, start: Waypoint, goal: Waypoint, max_width: int, max_height: int) -> list[Waypoint]:
+        res = self.__dubins_path(
+            (start.x, start.z, -90 + start.heading),
+            (goal.x, goal.z, -90 + goal.heading)
+        )
+        
+        path = []
+                
+        for p in res:
+            if p[0] < 0 or p[0] > max_width:
+                continue
+            if p[1] < 0 or p[1] > max_height:
+                continue
+            path.append(Waypoint(math.floor(p[0]), math.floor(p[1]), 0))
+            
+        return path
+
+    def __all_options(self, start, end, sort=False):
         """
         Computes all the possible Dubin's path and returns them, in the form
         of a list of tuples representing each option: (path_length,
@@ -74,21 +93,21 @@ class Dubins:
         given as input with only turns of a defined radius and straight line.
 
         """
-        center_0_left = self.find_center(start, 'L')
-        center_0_right = self.find_center(start, 'R')
-        center_2_left = self.find_center(end, 'L')
-        center_2_right = self.find_center(end, 'R')
-        options = [self.lsl(start, end, center_0_left, center_2_left),
-                   self.rsr(start, end, center_0_right, center_2_right),
-                   self.rsl(start, end, center_0_right, center_2_left),
-                   self.lsr(start, end, center_0_left, center_2_right),
-                   self.rlr(start, end, center_0_right, center_2_right),
-                   self.lrl(start, end, center_0_left, center_2_left)]
+        center_0_left = self.__find_center(start, 'L')
+        center_0_right = self.__find_center(start, 'R')
+        center_2_left = self.__find_center(end, 'L')
+        center_2_right = self.__find_center(end, 'R')
+        options = [self.__lsl(start, end, center_0_left, center_2_left),
+                   self.__rsr(start, end, center_0_right, center_2_right),
+                   self.__rsl(start, end, center_0_right, center_2_left),
+                   self.__lsr(start, end, center_0_left, center_2_right),
+                   self.__rlr(start, end, center_0_right, center_2_right),
+                   self.__lrl(start, end, center_0_left, center_2_left)]
         if sort:
             options.sort(key=lambda x: x[0])
         return options
 
-    def dubins_path(self, start, end):
+    def __dubins_path(self, start, end):
         """
         Computes all the possible Dubin's path and returns the sequence of
         points representing the shortest option.
@@ -109,11 +128,11 @@ class Dubins:
         In the form of a (2xn) numpy array.
 
         """
-        options = self.all_options(start, end)
+        options = self.__all_options(start, end)
         dubins_path, straight = min(options, key=lambda x: x[0])[1:]
-        return self.generate_points(start, end, dubins_path, straight)
+        return self.__generate_points(start, end, dubins_path, straight)
 
-    def generate_points(self, start, end, dubins_path, straight):
+    def __generate_points(self, start, end, dubins_path, straight):
         """
         Transforms the dubins path in a succession of points in the 2D plane.
 
@@ -143,10 +162,10 @@ class Dubins:
 
         """
         if straight:
-            return self.generate_points_straight(start, end, dubins_path)
-        return self.generate_points_curve(start, end, dubins_path)
+            return self.__generate_points_straight(start, end, dubins_path)
+        return self.__generate_points_curve(start, end, dubins_path)
 
-    def lsl(self, start, end, center_0, center_2):
+    def __lsl(self, start, end, center_0, center_2):
         """
         Left-Straight-Left trajectories.
         First computes the poisition of the centers of the turns, and then uses
@@ -183,7 +202,7 @@ class Dubins:
         total_len = self.radius*(beta_2+beta_0)+straight_dist
         return (total_len, (beta_0, beta_2, straight_dist), True)
 
-    def rsr(self, start, end, center_0, center_2):
+    def __rsr(self, start, end, center_0, center_2):
         """
         Right-Straight-Right trajectories.
         First computes the poisition of the centers of the turns, and then uses
@@ -221,7 +240,7 @@ class Dubins:
         total_len = self.radius*(beta_2+beta_0)+straight_dist
         return (total_len, (-beta_0, -beta_2, straight_dist), True)
 
-    def rsl(self, start, end, center_0, center_2):
+    def __rsl(self, start, end, center_0, center_2):
         """
         Right-Straight-Left trajectories.
         Because of the change in turn direction, it is a little more complex to
@@ -267,7 +286,7 @@ class Dubins:
         total_len = self.radius*(beta_2+beta_0)+straight_dist
         return (total_len, (-beta_0, beta_2, straight_dist), True)
 
-    def lsr(self, start, end, center_0, center_2):
+    def __lsr(self, start, end, center_0, center_2):
         """
         Left-Straight-Right trajectories.
         Because of the change in turn direction, it is a little more complex to
@@ -313,7 +332,7 @@ class Dubins:
         total_len = self.radius*(beta_2+beta_0)+straight_dist
         return (total_len, (beta_0, -beta_2, straight_dist), True)
 
-    def lrl(self, start, end, center_0, center_2):
+    def __lrl(self, start, end, center_0, center_2):
         """
         Left-right-Left trajectories.
         Using the isocele triangle made by the centers of the three circles,
@@ -355,7 +374,7 @@ class Dubins:
                 (beta_0, beta_1, 2*np.pi-gamma),
                 False)
 
-    def rlr(self, start, end, center_0, center_2):
+    def __rlr(self, start, end, center_0, center_2):
         """
         Right-left-right trajectories.
         Using the isocele triangle made by the centers of the three circles,
@@ -397,8 +416,7 @@ class Dubins:
                 (beta_0, beta_1, 2*np.pi-gamma),
                 False)
 
-
-    def find_center(self, point, side):
+    def __find_center(self, point, side):
         """
         Given an initial position, and the direction of the turn, computes the
         center of the circle with turn radius self.radius passing by the intial
@@ -423,7 +441,7 @@ class Dubins:
         return np.array((point[0] + np.cos(angle)*self.radius,
                          point[1] + np.sin(angle)*self.radius))
 
-    def generate_points_straight(self, start, end, path):
+    def __generate_points_straight(self, start, end, path):
         """
         For the 4 first classes of dubins paths, containing in the middle a
         straight section.
@@ -450,8 +468,8 @@ class Dubins:
 
         """
         total = self.radius*(abs(path[1])+abs(path[0]))+path[2] # Path length
-        center_0 = self.find_center(start, 'L' if path[0] > 0 else 'R')
-        center_2 = self.find_center(end, 'L' if path[1] > 0 else 'R')
+        center_0 = self.__find_center(start, 'L' if path[0] > 0 else 'R')
+        center_2 = self.__find_center(end, 'L' if path[1] > 0 else 'R')
 
         # We first need to find the points where the straight segment starts
         if abs(path[0]) > 0:
@@ -469,16 +487,16 @@ class Dubins:
         points = []
         for x in np.arange(0, total, self.point_separation):
             if x < abs(path[0])*self.radius: # First turn
-                points.append(self.circle_arc(start, path[0], center_0, x))
+                points.append(self.__circle_arc(start, path[0], center_0, x))
             elif x > total - abs(path[1])*self.radius: # Last turn
-                points.append(self.circle_arc(end, path[1], center_2, x-total))
+                points.append(self.__circle_arc(end, path[1], center_2, x-total))
             else: # Straight segment
                 coeff = (x-abs(path[0])*self.radius)/dist_straight
                 points.append(coeff*fin + (1-coeff)*ini)
         points.append(end[:2])
         return np.array(points)
 
-    def generate_points_curve(self, start, end, path):
+    def __generate_points_curve(self, start, end, path):
         """
         For the two last paths, where the trajectory is a succession of 3
         turns. First computing the position of the center of the central turn,
@@ -507,8 +525,8 @@ class Dubins:
 
         """
         total = self.radius*(abs(path[1])+abs(path[0])+abs(path[2]))
-        center_0 = self.find_center(start, 'L' if path[0] > 0 else 'R')
-        center_2 = self.find_center(end, 'L' if path[1] > 0 else 'R')
+        center_0 = self.__find_center(start, 'L' if path[0] > 0 else 'R')
+        center_2 = self.__find_center(end, 'L' if path[1] > 0 else 'R')
         intercenter = dist(center_0, center_2)
         center_1 = (center_0 + center_2)/2 +\
                    np.sign(path[0])*ortho((center_2-center_0)/intercenter)\
@@ -519,9 +537,9 @@ class Dubins:
         points = []
         for x in np.arange(0, total, self.point_separation):
             if x < abs(path[0])*self.radius: # First turn
-                points.append(self.circle_arc(start, path[0], center_0, x))
+                points.append(self.__circle_arc(start, path[0], center_0, x))
             elif x > total - abs(path[1])*self.radius: # Last turn
-                points.append(self.circle_arc(end, path[1], center_2, x-total))
+                points.append(self.__circle_arc(end, path[1], center_2, x-total))
             else: # Middle Turn
                 angle = psi_0-np.sign(path[0])*(x/self.radius-abs(path[0]))
                 vect = np.array([np.cos(angle), np.sin(angle)])
@@ -529,7 +547,7 @@ class Dubins:
         points.append(end[:2])
         return np.array(points)
 
-    def circle_arc(self, reference, beta, center, x):
+    def __circle_arc(self, reference, beta, center, x):
         """
         Returns the point located on the circle of center center and radius
         defined by the class, at the angle x.

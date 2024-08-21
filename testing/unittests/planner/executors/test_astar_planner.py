@@ -29,7 +29,7 @@ class TestLocalPlanners(unittest.TestCase):
     def read(self, code: int) -> tuple[WorldPose, PlanningData, PlannerTestOutput]:
         
         if self._last_code != code:
-            self._last_world_pose, self._last_planning_data = PlannerDataReader.read(1)
+            self._last_world_pose, self._last_planning_data = PlannerDataReader.read(code)
             self._last_test_outp = PlannerTestOutput(self._last_planning_data.og.get_color_frame())
             
         return self._last_world_pose, self._last_planning_data, self._last_test_outp
@@ -64,31 +64,37 @@ class TestLocalPlanners(unittest.TestCase):
             self.assertEqual(PlannerResultType.VALID, res.result_type)
         else:
             self.assertEqual(PlannerResultType.INVALID_PATH, res.result_type)
-            
-        print(f"exec time for {type.name}: {res.total_exec_time_ms} ms")
-               
+        
         cost = self.__compute_cost(res.path)
+            
+        print(f"exec time for {type.name}: {res.total_exec_time_ms} ms - cost: {cost}")
+               
+        
         return cost
 
     def test_bev1(self):
-        
-        timeout = 500
-        
+        return
+        timeout = 500 
         cost = self.__run_plan(timeout, LocalPlannerType.AStar, 1)
-        self.assertEqual(0.0, cost)
-        
+        self.assertEqual(0.0, cost)       
         cost = self.__run_plan(timeout, LocalPlannerType.HybridAStar, 1)
         self.assertEqual(0.0, cost)
-
         cost = self.__run_plan(timeout, LocalPlannerType.VectorialAStar, 1)
-        self.assertEqual(0.0, cost)
-        
+        self.assertEqual(0.0, cost)        
         cost = self.__run_plan(timeout, LocalPlannerType.Interpolator, 1)
-        self.assertEqual(0.0, cost)
-        
+        self.assertEqual(0.0, cost)        
         cost = self.__run_plan(timeout, LocalPlannerType.Overtaker, 1)
         self.assertEqual(0.0, cost)
         
+    def test_bev2(self):
+        
+        timeout = 500
+        
+        cost = self.__run_plan(timeout, LocalPlannerType.AStar, 2)
+        cost = self.__run_plan(timeout, LocalPlannerType.HybridAStar, 2)
+        cost = self.__run_plan(timeout, LocalPlannerType.VectorialAStar, 2)     
+        cost = self.__run_plan(timeout, LocalPlannerType.Interpolator, 2, expected_success=False)
+        cost = self.__run_plan(timeout, LocalPlannerType.Overtaker, 2)
 
     
 

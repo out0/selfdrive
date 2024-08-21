@@ -24,6 +24,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     _step_size: int
     _mid_x: int
     _mid_z: int
+    _dubins: Dubins
 
     NAME = "overtaker"
 
@@ -33,6 +34,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         
         super().__init__(max_exec_time_ms)
         self._step_size = step_size
+        self._dubins = Dubins(40, 4)
 
 
     def plan(self, planner_data: PlanningData, partial_result: PlanningResult) -> None:
@@ -84,7 +86,10 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
 
 
         # try going straight first        
-        path = WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._og.width, self._og.height, 20)
+        #path = WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._og.width, self._og.height, 20)
+        
+        path = self._dubins.build_path(start, goal, self._og.width(), self._og.height())
+        
         
         if self.__check_path_feasible(path):
             self._result.result_type = PlannerResultType.VALID
@@ -98,9 +103,9 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         try_left_first = self._result.local_goal.x > start.x
         
         if try_left_first:
-            self.__relocate(start, goal, 0, PhysicalParameters.OG_WIDTH - 1)
+            self._relocate(start, goal, 0, PhysicalParameters.OG_WIDTH - 1)
         else:
-            self.__relocate(start, goal, PhysicalParameters.OG_WIDTH - 1, 0)
+            self._relocate(start, goal, PhysicalParameters.OG_WIDTH - 1, 0)
     
     def __find_first_feasible_goal(self, z: int, x_init: int, x_limit: int) -> int:
         inc = 1
@@ -111,34 +116,28 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
             if self._og.check_direction_allowed(i, z, GridDirection.HEADING_0):
                 return i
         return -1
-            
     
-    def __relocate(self, start: Waypoint, goal: Waypoint, x_min: int, x_max: int):
+    
+    
+    def _relocate(self, start: Waypoint, goal: Waypoint, x_min: int, x_max: int):
         x = self.__find_first_feasible_goal(goal.z, x_min, x_max)
+        
         if x == -1:
             self._result.result_type = PlannerResultType.INVALID_PATH
             self._result.path = None
             self._result.total_exec_time_ms = self.get_execution_time()
             self._search = False
             return
-        
-        res = Dubins(5, 1).dubins_path(
-            (start.x, start.z, start.heading),
-            (x, goal.z, 0)
-        )
-        
-        
-        self._result.path = []
-                
-        for p in res:
-            if p[0] < 0 or p[0] > self._og.width():
-                continue
-            if p[1] < 0 or p[1] > self._og.height():
-                continue
-            self._result.path.append(Waypoint(p[0], p[1], 0))
-        
-        self._search = False        
+       
+        self._result.path = self._dubins.build_path(start, Waypoint(x, goal.z, 0), self._og.width(), self._og.height())
         self._result.result_type = PlannerResultType.INVALID_PATH
             
         if self._og.check_all_path_feasible(self._result.path):
             self._result.result_type = PlannerResultType.VALID
+            self._result.total_exec_time_ms = self.get_execution_time()
+            self._search = False
+        else:
+            if x_max > x_min:
+                self._relocate(start, goal, x + 1, x_max)
+            else:
+                self._relocate(start, goal, x - 1, x_max)
