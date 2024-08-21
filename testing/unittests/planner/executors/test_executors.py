@@ -73,7 +73,6 @@ class TestLocalPlanners(unittest.TestCase):
         return cost
 
     def test_bev1(self):
-        return
         timeout = 500 
         cost = self.__run_plan(timeout, LocalPlannerType.AStar, 1)
         self.assertEqual(0.0, cost)       
@@ -87,16 +86,17 @@ class TestLocalPlanners(unittest.TestCase):
         self.assertEqual(0.0, cost)
         
     def test_bev2(self):
-        
         timeout = 500
-        
-        cost = self.__run_plan(timeout, LocalPlannerType.AStar, 2)
-        cost = self.__run_plan(timeout, LocalPlannerType.HybridAStar, 2)
-        cost = self.__run_plan(timeout, LocalPlannerType.VectorialAStar, 2)     
-        cost = self.__run_plan(timeout, LocalPlannerType.Interpolator, 2, expected_success=False)
-        cost = self.__run_plan(timeout, LocalPlannerType.Overtaker, 2)
+        cost1 = self.__run_plan(timeout, LocalPlannerType.AStar, 2)
+        cost2 = self.__run_plan(timeout, LocalPlannerType.HybridAStar, 2)
+        cost3 = self.__run_plan(timeout, LocalPlannerType.VectorialAStar, 2)     
+        cost4 = self.__run_plan(timeout, LocalPlannerType.Interpolator, 2, expected_success=False)
+        cost5 = self.__run_plan(timeout, LocalPlannerType.Overtaker, 2)
 
-    
+        self.assertLessEqual(cost5, cost4)
+        self.assertLessEqual(cost5, cost3)
+        self.assertLessEqual(cost5, cost2)
+        self.assertLessEqual(cost5, cost1)
 
 if __name__ == "__main__":
     unittest.main()

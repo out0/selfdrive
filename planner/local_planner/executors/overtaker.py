@@ -85,10 +85,11 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
                         self._result.local_goal.z)
 
 
-        # try going straight first        
-        #path = WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._og.width, self._og.height, 20)
-        
-        path = self._dubins.build_path(start, goal, self._og.width(), self._og.height())
+        if start.x == goal.x:
+            # try going straight first        
+            path = WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._og.width, self._og.height, 20)
+        else:
+            path = self._dubins.build_path(start, goal, self._og.width(), self._og.height())
         
         
         if self.__check_path_feasible(path):
