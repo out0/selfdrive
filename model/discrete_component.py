@@ -7,6 +7,7 @@ class DiscreteComponent:
     _period_ms: int
     _run: bool
     _last_timestamp: float
+    _NAME: str
 
     def __init__(self, period_ms: int) -> None:
         self._period_ms = period_ms / 1000

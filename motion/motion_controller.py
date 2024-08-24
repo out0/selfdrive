@@ -26,7 +26,6 @@ class MotionController (DiscreteComponent):
                 longitudinal_controller_period_ms: int,                
                 ego: EgoCar,
                 slam: SLAM,
-                desired_speed: float,
                 on_finished_motion: callable) -> None:
         
         super().__init__(period_ms)
@@ -50,7 +49,8 @@ class MotionController (DiscreteComponent):
         self._on_finished_motion = on_finished_motion
         self._search_state = False
         self._last_pos = 0
-        self._desired_speed = desired_speed
+        self._desired_speed = 0
+
         
         # self._longitudinal_controller.start()
     
@@ -66,10 +66,11 @@ class MotionController (DiscreteComponent):
     def __set_sterring(self, val: float):
         self._ego.set_steering(val)
 
-    def set_path(self, list: List[MapPose]):
+    def set_path(self, list: List[MapPose], velocity: float):
         self._search_state = True
         self._list = list
         self._last_pos = 0
+        self._desired_speed = velocity
     
     def brake(self) -> None:
         self._lateral_controller.cancel()

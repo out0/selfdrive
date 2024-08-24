@@ -78,3 +78,56 @@ class PlannerTestOutput:
        
     def write (self, file: str) -> None:
         cv2.imwrite(file, self._frame)
+        
+
+class TestFrame:
+    frame: np.ndarray
+    
+    FREE_CLASS_TYPE = 1
+    OBSTACLE_CLASS_TYPE = 0
+    
+    def __init__(self, width: int, height: int) -> None:
+        self.frame = np.full((width, height, 3), TestFrame.FREE_CLASS_TYPE, dtype=np.int32)
+    
+    def dump_to_file (self, file: str = 'frame.png'):
+        cv2.imwrite(file, self.frame)
+        
+    def read_from_file (self, file: str = 'frame.png'):
+        self.frame = np.ndarray(cv2.imread(file, self._frame), dtype=np.int32)
+        
+    def add_obstacle (self, x1: int, z1: int, x2: int, z2: int) -> None:
+        
+        z_start = z1
+        z_end = z2       
+        if z1 > z2:
+            z_start = z2
+            z_end = z1
+
+        x_start = x1
+        x_end = x2       
+        if x1 > x2:
+            x_start = x2
+            x_end = x1
+
+        for z in range (z_start, z_end):
+            for x in range (x_start, x_end):
+                if z < 0 or x < 0: 
+                    continue
+                if z >= self.frame.shape[0] or x >= self.frame.shape[1]: 
+                    continue
+                self.frame[z, x, :] = [TestFrame.OBSTACLE_CLASS_TYPE, TestFrame.OBSTACLE_CLASS_TYPE, TestFrame.OBSTACLE_CLASS_TYPE]
+                
+    def add_squared_obstacle(self, x_center: int, z_center: int, size: int) -> None:
+        l = size / 2
+        self.add_obstacle(x_center - l, z_center - l, x_center + l, z_center + l)
+    
+    def add_point(self, x: int, z: int, color = [0, 0, 255]) -> None:
+        for j in range (z - 1, z + 2):
+            if j < 0: continue
+            if j > self.frame.shape[0]: continue
+            self.frame[j, x, :] = color
+        
+        for j in range (x - 1, x + 2):
+            if x < 0: continue
+            if j > self.frame.shape[0]: continue
+            self.frame[z, j, :] = color            
