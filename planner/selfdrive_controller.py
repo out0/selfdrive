@@ -77,15 +77,14 @@ class SelfDriveController(DiscreteComponent):
     def __init__(self, 
                  ego: EgoCar, 
                  planning_data_builder: PlanningDataBuilder,
+                 slam: SLAM,
                  controller_response: callable) -> None:
         
         super().__init__(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS)
         
         self._NAME = "SelfdriveController"
         
-        self._slam = SLAM(gps=ego.get_gps(), 
-                          imu=ego.get_imu(), 
-                          odometer=ego.get_odometer())
+        self._slam = slam
         
         first_pose = None
         while first_pose is None:
@@ -103,7 +102,7 @@ class SelfDriveController(DiscreteComponent):
         self._motion_controller = MotionController(
             period_ms=SelfDriveController.MOTION_CONTROLLER_PERIOD_MS,
             longitudinal_controller_period_ms=SelfDriveController.LONGITUDINAL_CONTROLLER_PERIOD_MS,
-            ego=EgoCar,
+            ego=ego,
             slam=self._slam,
             on_finished_motion=self.__on_finished_motion
         )
@@ -114,7 +113,8 @@ class SelfDriveController(DiscreteComponent):
             period_ms=SelfDriveController.COLLISION_DETECTOR_PERIOD_MS,
             coordinate_converter=coord,
             planning_data_builder=planning_data_builder,
-            on_collision_detected_cb=self.__on_collision_detected
+            on_collision_detected_cb=self.__on_collision_detected,
+            slam=slam
         )
         
         self._on_vehicle_controller_response = controller_response
@@ -123,6 +123,8 @@ class SelfDriveController(DiscreteComponent):
 
         self._collision_detector.start()
         self._motion_controller.start()
+        
+        self._planning_data_builder = planning_data_builder
     
     def destroy(self) -> None:
         self._collision_detector.destroy()
@@ -206,7 +208,7 @@ class SelfDriveController(DiscreteComponent):
             Telemetry.log(2, self._NAME, "Planning data build failed, will wait for valid data")
             return ControllerState.START_PLANNING
         
-        p2, p3 = self.__find_goal()
+        p2, p3 = self.__find_goal(plan_data)
         
         if p2 is None:
             Telemetry.log(0, self._NAME, "End of driving mission")
@@ -267,28 +269,28 @@ class SelfDriveController(DiscreteComponent):
         return ControllerState.WAIT_MISSION_EXECUTION
     
     def __report_invalid_start(self, res: PlanningResult) -> None:
-        self._on_vehicle_controller_response(SelfDriveControllerResponse(
+        self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.PLAN_INVALID_START,
                 planner_result=res,
                 planner_data=self._last_planning_data
             ))
         
     def __report_invalid_goal(self, res: PlanningResult) -> None:
-        self._on_vehicle_controller_response(SelfDriveControllerResponse(
+        self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.PLAN_INVALID_GOAL,
                 planner_result=res,
                 planner_data=self._last_planning_data
             ))
         
     def __report_invalid_path(self, res: PlanningResult) -> None:
-        self._on_vehicle_controller_response(SelfDriveControllerResponse(
+        self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.PLAN_INVALID_PATH,
                 planner_result=res,
                 planner_data=self._last_planning_data
             ))
         
     def __on_planning_unknown_error(self) -> None:
-        self._on_vehicle_controller_response(SelfDriveControllerResponse(
+        self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.UNKNOWN_ERROR,
                 planner_result=None,
                 planner_data=self._last_planning_data
@@ -297,4 +299,5 @@ class SelfDriveController(DiscreteComponent):
 
     def __perform_motion(self, res: PlanningResult) -> None:
         self._collision_detector.watch_path(res.path)
-        self._motion_controller.set_path(res.path)
+        # TODO: must convert path
+        self._motion_controller.set_path(res.path, velocity=10.0)

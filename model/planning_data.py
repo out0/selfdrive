@@ -41,17 +41,23 @@ class PlanningData:
 
     def __init__(self, bev: np.ndarray, ego_location: MapPose, velocity: float, goal: MapPose, next_goal: MapPose) -> None:
         self.bev = bev
-        self.og = OccupancyGrid(
-            frame=bev,
-            minimal_distance_x=PhysicalParameters.MIN_DISTANCE_WIDTH_PX,
-            minimal_distance_z=PhysicalParameters.MIN_DISTANCE_HEIGHT_PX,
-            lower_bound=PhysicalParameters.EGO_LOWER_BOUND,
-            upper_bound=PhysicalParameters.EGO_UPPER_BOUND
-        )
+        
+        if bev is not None:     
+            self.og = OccupancyGrid(
+                frame=bev,
+                minimal_distance_x=PhysicalParameters.MIN_DISTANCE_WIDTH_PX,
+                minimal_distance_z=PhysicalParameters.MIN_DISTANCE_HEIGHT_PX,
+                lower_bound=PhysicalParameters.EGO_LOWER_BOUND,
+                upper_bound=PhysicalParameters.EGO_UPPER_BOUND
+            )
+        else:
+            self.og = None
+            
         self.ego_location = ego_location
         self.velocity = velocity
         self.goal = goal
         self.next_goal = next_goal
+        
 
     def __frame_shape_to_str(self, frame: np.ndarray) -> str:
         if frame is None:
@@ -60,6 +66,8 @@ class PlanningData:
 
     def __str__(self) -> str:
         return f"ego_location:{self.ego_location},velocity:{self.velocity},bev:{self.__frame_shape_to_str(self.bev)},goal:{self.goal},next_goal:{self.next_goal}"
+
+
 
 class PlannerResultType(Enum):
     NONE =0
