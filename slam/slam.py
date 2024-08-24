@@ -19,6 +19,8 @@ class SLAM:
     
     def __read_raw_world_data(self) -> WorldPose:
         w = self.read_gps()
+        if w is None:
+            return w
         imu_data = self._imu.read()
         w.heading = imu_data.compass
         return w
@@ -29,6 +31,9 @@ class SLAM:
 
     def read_gps(self) -> WorldPose:
         gps_data = self._gps.read()
+        if gps_data is None:
+            return None
+        
         return WorldPose(
             lat=gps_data.latitude,
             lon=gps_data.longitude,
@@ -44,6 +49,8 @@ class SLAM:
 
     def estimate_ego_pose (self) -> MapPose:
         pose: WorldPose = self.__read_raw_world_data()
+        if pose is None:
+            return None
         return self._coordinate_converter.get_relative_map_pose(pose)
            
         # TODO - Make the real thing, using Kalman Filter for pose and heading estimation

@@ -29,6 +29,9 @@ class LocalPathPlannerExecutor:
     def get_result(self) -> PlanningResult:
         pass
     
+    def destroy(self) -> None:
+        pass
+    
     def _rst_timeout(self) -> None:
         self.__timeout = time.time()
     

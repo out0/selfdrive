@@ -66,6 +66,7 @@ class SelfDriveController(DiscreteComponent):
     _driving_path_pos: int
     _collision_detector: CollisionDetector
     _last_planning_data: PlanningData
+    _coord: CoordinateConverter
 
     SELF_DRIVE_CONTROLLER_PERIOD_MS = 1
     MOTION_CONTROLLER_PERIOD_MS = 10
@@ -91,12 +92,12 @@ class SelfDriveController(DiscreteComponent):
             first_pose = self._slam.read_gps()
             time.sleep(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS/1000)
                 
-        coord = CoordinateConverter(first_pose)
+        self._coord = CoordinateConverter(first_pose)
         
         self._local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
             local_planner_type=LocalPlannerType.Ensemble,
-            map_coordinate_converter=coord
+            map_coordinate_converter=self._coord
         )
         
         self._motion_controller = MotionController(
@@ -111,7 +112,7 @@ class SelfDriveController(DiscreteComponent):
         
         self._collision_detector = CollisionDetector(
             period_ms=SelfDriveController.COLLISION_DETECTOR_PERIOD_MS,
-            coordinate_converter=coord,
+            coordinate_converter=self._coord,
             planning_data_builder=planning_data_builder,
             on_collision_detected_cb=self.__on_collision_detected,
             slam=slam
@@ -127,9 +128,10 @@ class SelfDriveController(DiscreteComponent):
         self._planning_data_builder = planning_data_builder
     
     def destroy(self) -> None:
+        self._run = False
         self._collision_detector.destroy()
         self._motion_controller.destroy()
-        return super().destroy()
+        self._local_planner.destroy()
         
     def __on_collision_detected(self) -> None:
         Telemetry.log(1, self._NAME, f"Collision ahead detected. Performing replan on path pos: {self._driving_path_pos}")
@@ -231,7 +233,7 @@ class SelfDriveController(DiscreteComponent):
     
     def __report_end_of_mission(self) -> None:
         self._on_vehicle_controller_response(
-            SelfDriveControllerResponse(
+            res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.GOAL_REACHED,
                 planner_result=None,
                 planner_data=self._last_planning_data
@@ -297,7 +299,23 @@ class SelfDriveController(DiscreteComponent):
             ))
     
 
+    def __downsample_waypoints(self, waypoints: List[Waypoint]) -> List[Waypoint]:
+            res = []
+            division = max(1, math.floor(len(waypoints) / 20))
+
+            i = 0
+            for p in waypoints:
+                if i % division == 0:
+                    res.append(p)
+                i += 1
+
+            if len(waypoints) > 0:
+                res.append(waypoints[len(waypoints) - 1])
+            return res
+
     def __perform_motion(self, res: PlanningResult) -> None:
-        self._collision_detector.watch_path(res.path)
         # TODO: must convert path
-        self._motion_controller.set_path(res.path, velocity=10.0)
+        ds_path = self.__downsample_waypoints(res.path)
+        ideal_motion_path = self._coord.convert_waypoint_path_to_map_pose(res.ego_location, ds_path)
+        self._motion_controller.set_path(ideal_motion_path, velocity=10.0)
+        self._collision_detector.watch_path(ideal_motion_path)

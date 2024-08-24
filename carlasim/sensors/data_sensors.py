@@ -55,6 +55,8 @@ class CarlaGps (PeriodicDataSensor, GPS):
 
     def read(self) -> GpsData:
         carla_gps = super().read()
+        if carla_gps is None:
+            return None
         return GpsData(carla_gps.latitude, carla_gps.longitude, carla_gps.altitude)
         
 class CarlaIMU (PeriodicDataSensor, IMU):    
@@ -63,6 +65,8 @@ class CarlaIMU (PeriodicDataSensor, IMU):
 
     def read(self) -> IMUData:
         carla_imu = super().read()
+        if carla_imu is None:
+            return None
         data = IMUData()
         data.accel_x = carla_imu.accelerometer.x
         data.accel_y = carla_imu.accelerometer.y

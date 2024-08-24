@@ -42,7 +42,11 @@ class LocalPlanner:
         self._path_planner = self.__get_local_planner_algorithm(local_planner_type)
         self._planner_result = None
           
+    
+    def destroy(self) -> None:
+        self._path_planner.destroy()
         
+    
     def cancel(self):
         self._path_planner.cancel()
         self._planner_result = None
