@@ -72,8 +72,8 @@ class SelfDriveController(DiscreteComponent):
     _coord: CoordinateConverter
 
     SELF_DRIVE_CONTROLLER_PERIOD_MS = 1
-    MOTION_CONTROLLER_PERIOD_MS = 10
-    LONGITUDINAL_CONTROLLER_PERIOD_MS = 50
+    MOTION_CONTROLLER_PERIOD_MS = 2
+    LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
     PLAN_TIMEOUT=500
 
@@ -99,7 +99,7 @@ class SelfDriveController(DiscreteComponent):
         
         self._local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
-            local_planner_type=LocalPlannerType.Ensemble,
+            local_planner_type=LocalPlannerType.HybridAStar,
             map_coordinate_converter=self._coord
         )
         
@@ -140,7 +140,8 @@ class SelfDriveController(DiscreteComponent):
         Telemetry.log(1, self._NAME, f"Collision ahead detected. Performing replan on path pos: {self._driving_path_pos}")
         self.__replan()
     
-    def __on_finished_motion(self) -> None:
+    def __on_finished_motion(self, motion_controller: MotionController) -> None:
+        motion_controller.brake()
         Telemetry.log(1, self._NAME, f"Motion finished succesfuly on path pos: {self._driving_path_pos}")
         self.__replan()
        
@@ -175,6 +176,7 @@ class SelfDriveController(DiscreteComponent):
             case ControllerState.WAIT_PLANNING:
                 if not self._local_planner.is_planning():
                     self._state = ControllerState.EXECUTE_MISSION
+                time.sleep(0.001)
                 return
 
             case ControllerState.EXECUTE_MISSION:
@@ -182,6 +184,7 @@ class SelfDriveController(DiscreteComponent):
                 return
 
             case ControllerState.WAIT_MISSION_EXECUTION:
+                time.sleep(0.001)
                 return
     
     def __check_plan_data(self, plan_data: PlanningData) -> bool:
@@ -338,5 +341,5 @@ class SelfDriveController(DiscreteComponent):
 
     def __perform_motion(self, path: list[MapPose]) -> None:
         # TODO: must convert path
-        self._motion_controller.set_path(path, velocity=10.0)
+        self._motion_controller.set_path(path, velocity=2.0)
         self._collision_detector.watch_path(path)

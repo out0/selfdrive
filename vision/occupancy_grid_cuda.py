@@ -48,7 +48,7 @@ class OccupancyGrid:
 
 
     def __init__(self, frame: np.ndarray, minimal_distance_x: int, minimal_distance_z: int, lower_bound: Waypoint, upper_bound: Waypoint) -> None:
-        self._frame = CudaFrame(frame, round(minimal_distance_x / 2), round(minimal_distance_z / 2), lower_bound, upper_bound)
+        self._frame = CudaFrame(frame, minimal_distance_x, minimal_distance_z, lower_bound, upper_bound)
         self._goal_point = None
         self._minimal_distance_x = minimal_distance_x
         self._minimal_distance_z = minimal_distance_z

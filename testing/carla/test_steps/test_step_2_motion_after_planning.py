@@ -16,7 +16,9 @@ from carlasim.carla_slam import CarlaSLAM
 from carlasim.sensors.data_sensors import *
 from model.waypoint import Waypoint
 from testing.unittests.carla_test_utils import CarlaTestUtils
+from carlasim.expectator_cam_follower import ExpectatorCameraAutoFollow
 import time
+from scenario_builder import ScenarioBuilder, ScenarioActor
 
 COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09, 
                       lon=-1.5848012769283334e-08,
@@ -72,11 +74,18 @@ def main(argc: int, argv: List[str]) -> int:
     
     client = CarlaClient(town='Town07')
     tst = CarlaTestUtils(client)
-    ego = CarlaEgoCar(client)
-    ego.set_pose(-100, 0, 0, 0)
-    ego.set_brake(1.0)
-
     
+    sb = ScenarioBuilder(client)
+    path, ego = sb.load_scenario("../scenarios/cars_zigzag.sce", return_ego=True)
+    ego.init_fake_bev_seg_camera()
+    ego.set_brake(1.0)
+    
+    # ego = CarlaEgoCar(client)
+    # ego.set_pose(-100, 0, 0, 0)
+    # ego.set_brake(1.0)
+
+    follower = ExpectatorCameraAutoFollow(client)
+    follower.follow(ego.get_carla_ego_car_obj())
     execute_plan(tst, ego, 1)
     return 0
 

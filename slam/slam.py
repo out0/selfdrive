@@ -55,6 +55,7 @@ class SLAM:
         # check if this is real or a Kalman Filter may be necessary to estimate v with imu data integration
 
     def estimate_ego_pose (self) -> MapPose:
+               
         pose: WorldPose = self.__read_raw_world_data()
         if pose is None:
             return None
