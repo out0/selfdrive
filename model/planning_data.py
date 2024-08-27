@@ -140,11 +140,7 @@ class PlanningResult:
         
 
     def __str__(self) -> str:
-        
-        
-        
         path = []
-        
         if self.path is not None:
             for p in self.path:
                 path.append(str(p))

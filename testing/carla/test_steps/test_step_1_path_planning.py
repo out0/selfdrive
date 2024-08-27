@@ -36,7 +36,8 @@ def execute_plan (seq: int) -> None:
         bev = bev,
         ego_location=result.ego_location,
         goal=result.map_goal,
-        next_goal=result.map_next_goal
+        next_goal=result.map_next_goal,
+        velocity=5.0
     )
 
     local_planner.plan(data)

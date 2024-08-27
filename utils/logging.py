@@ -5,7 +5,7 @@ LOGGING_FILE = "run.log"
 from model.planning_data import PlanningData, PlanningResult, PlannerResultType
 import cv2, os, numpy as np
 
-PLANNING_DATA_PATH = "planning_data/"
+PLANNING_DATA_PATH = "planning_data"
 
 class Telemetry:
     
@@ -47,9 +47,9 @@ class Telemetry:
 
     @classmethod
     def read_planning_bev(cls, seq: int) -> PlanningData:
-        file = f"{PLANNING_DATA_PATH}/bev_{seq}.dat"
+        file = f"{PLANNING_DATA_PATH}/bev_{seq}.png"
 
         if not os.path.exists (file):
             return None
             
-        return np.ndarray(cv2.imread(file))
+        return np.array(cv2.imread(file))
