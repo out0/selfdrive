@@ -84,7 +84,7 @@ class MotionController (DiscreteComponent):
         pos = MapPose.find_nearest_goal_pose( self._slam.estimate_ego_pose(), self._list, 0)
 
         if (pos < 0):
-            self._on_finished_motion()
+            self._on_finished_motion(self)
             self._search_state = False
             return
     
@@ -92,7 +92,7 @@ class MotionController (DiscreteComponent):
         print (f"[motion] controlling movement from {pos} to {pos+1}")            
         self._last_pos = pos
         if pos >= len(self._list):
-            self._on_finished_motion()
+            self._on_finished_motion(self)
             self._search_state = False
             return
             

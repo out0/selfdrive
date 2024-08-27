@@ -20,7 +20,8 @@ class SLAM:
     def __read_raw_world_data(self) -> WorldPose:
         w = self.read_gps()
         if w is None:
-            return w
+            return None
+        
         imu_data = self._imu.read()
         w.heading = imu_data.compass
         return w
@@ -28,6 +29,12 @@ class SLAM:
     def calibrate(self) -> None:
         pose = self.__read_raw_world_data()
         self._coordinate_converter = CoordinateConverter(pose)
+
+    def manual_calibrate(self, pose: WorldPose) -> None:
+        self._coordinate_converter = CoordinateConverter(pose)
+
+    def get_coordinate_converter(self) -> CoordinateConverter:
+        return self._coordinate_converter
 
     def read_gps(self) -> WorldPose:
         gps_data = self._gps.read()

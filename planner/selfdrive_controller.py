@@ -20,8 +20,8 @@ from utils.logging import Telemetry
 PLAN_TIMEOUT_MS = -1
 #PLAN_TIMEOUT_MS = 500
 PROXIMITY_RATE_TO_GET_NEXT_PATH_SEGMENT = 0.9
-MOTION_CONTROLLER_EXEC_PERIOD_MS = 10
-LONGITUDINAL_EXEC_PERIOD_MS = 50
+MOTION_CONTROLLER_EXEC_PERIOD_MS = 5
+LONGITUDINAL_EXEC_PERIOD_MS = 100
 
 class ControllerState(Enum):
     ON_HOLD = 0
@@ -45,14 +45,17 @@ class SelfDriveControllerResponse:
     response_type: SelfDriveControllerResponseType
     planner_result: PlanningResult
     planner_data: PlanningData
+    motion_path: list[MapPose]
     
     def __init__(self,
                 response_type: SelfDriveControllerResponseType,
                 planner_result: PlanningResult,
-                planner_data: PlanningData,) -> None:
+                planner_data: PlanningData,
+                motion_path: list[MapPose]) -> None:
         self.response_type = response_type
         self.planner_result = planner_result
         self.planner_data = planner_data
+        self.motion_path = motion_path
     
 
 class SelfDriveController(DiscreteComponent):
@@ -92,13 +95,14 @@ class SelfDriveController(DiscreteComponent):
             first_pose = self._slam.read_gps()
             time.sleep(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS/1000)
                 
-        self._coord = CoordinateConverter(first_pose)
+        self._coord = slam.get_coordinate_converter()
         
         self._local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
             local_planner_type=LocalPlannerType.Ensemble,
             map_coordinate_converter=self._coord
         )
+        
         
         self._motion_controller = MotionController(
             period_ms=SelfDriveController.MOTION_CONTROLLER_PERIOD_MS,
@@ -107,6 +111,7 @@ class SelfDriveController(DiscreteComponent):
             slam=self._slam,
             on_finished_motion=self.__on_finished_motion
         )
+        self._motion_controller.start()
         
         self._state = ControllerState.ON_HOLD
         
@@ -117,14 +122,12 @@ class SelfDriveController(DiscreteComponent):
             on_collision_detected_cb=self.__on_collision_detected,
             slam=slam
         )
+        self._collision_detector.start()
         
         self._on_vehicle_controller_response = controller_response
         self._driving_path = None
         self._driving_path_pos = 0
-
-        self._collision_detector.start()
-        self._motion_controller.start()
-        
+       
         self._planning_data_builder = planning_data_builder
     
     def destroy(self) -> None:
@@ -236,12 +239,15 @@ class SelfDriveController(DiscreteComponent):
             res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.GOAL_REACHED,
                 planner_result=None,
-                planner_data=self._last_planning_data
+                planner_data=self._last_planning_data,
+                motion_path=None
             ))
         
     
     def __execute_mission(self) -> ControllerState:
         res = self._local_planner.get_result()
+        
+        Telemetry.dump_planning_data(level=2, seq=self._driving_path_pos, res=res, data=self._last_planning_data)
         
         match res.result_type:
             case PlannerResultType.NONE:
@@ -267,35 +273,52 @@ class SelfDriveController(DiscreteComponent):
                 self._driving_path_pos += 1
                 return ControllerState.START_PLANNING
         
-        self.__perform_motion(res)
+        ds_path = self.__downsample_waypoints(res.path)
+        ideal_motion_path = self._coord.convert_waypoint_path_to_map_pose(res.ego_location, ds_path)
+        
+        self.__report_executing_mission(res, ideal_motion_path)
+        self.__perform_motion(ideal_motion_path)
         return ControllerState.WAIT_MISSION_EXECUTION
     
     def __report_invalid_start(self, res: PlanningResult) -> None:
         self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.PLAN_INVALID_START,
                 planner_result=res,
-                planner_data=self._last_planning_data
+                planner_data=self._last_planning_data,
+                motion_path=None
             ))
         
     def __report_invalid_goal(self, res: PlanningResult) -> None:
         self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.PLAN_INVALID_GOAL,
                 planner_result=res,
-                planner_data=self._last_planning_data
+                planner_data=self._last_planning_data,
+                motion_path=None
             ))
-        
+    
+    def __report_executing_mission(self, res: PlanningResult, path: list[MapPose]) -> None:
+        self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
+                response_type=SelfDriveControllerResponseType.VALID_WILL_EXECUTE,
+                planner_result=res,
+                planner_data=self._last_planning_data,
+                motion_path=path
+            ))
+    
+    
     def __report_invalid_path(self, res: PlanningResult) -> None:
         self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.PLAN_INVALID_PATH,
                 planner_result=res,
-                planner_data=self._last_planning_data
+                planner_data=self._last_planning_data,
+                motion_path=None
             ))
         
     def __on_planning_unknown_error(self) -> None:
         self._on_vehicle_controller_response(res=SelfDriveControllerResponse(
                 response_type=SelfDriveControllerResponseType.UNKNOWN_ERROR,
                 planner_result=None,
-                planner_data=self._last_planning_data
+                planner_data=self._last_planning_data,
+                motion_path=None
             ))
     
 
@@ -313,9 +336,7 @@ class SelfDriveController(DiscreteComponent):
                 res.append(waypoints[len(waypoints) - 1])
             return res
 
-    def __perform_motion(self, res: PlanningResult) -> None:
+    def __perform_motion(self, path: list[MapPose]) -> None:
         # TODO: must convert path
-        ds_path = self.__downsample_waypoints(res.path)
-        ideal_motion_path = self._coord.convert_waypoint_path_to_map_pose(res.ego_location, ds_path)
-        self._motion_controller.set_path(ideal_motion_path, velocity=10.0)
-        self._collision_detector.watch_path(ideal_motion_path)
+        self._motion_controller.set_path(path, velocity=10.0)
+        self._collision_detector.watch_path(path)

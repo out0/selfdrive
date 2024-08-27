@@ -3,9 +3,10 @@ sys.path.append("../../../")
 sys.path.append("../../")
 import unittest, math, numpy as np
 
-from model.planning_data import PrePlanningData, PlanningData
+from model.planning_data import PrePlanningData, PlanningData, PlanningResult, PlannerResultType
 from model.map_pose import MapPose
 from model.physical_parameters import PhysicalParameters
+from model.waypoint import Waypoint
 
 class TestPrePlanningData(unittest.TestCase):
 
@@ -69,6 +70,67 @@ class TestPlanningData(unittest.TestCase):
         
         self.assertEqual(planning.og.width(), 100)
         self.assertEqual(planning.og.height(), 100)
+
+
+class TestPlanningResult(unittest.TestCase):
+    
+    def test_planning_result_str_codec(self):
+        res = PlanningResult()
+        res.ego_location = MapPose(
+            x=1.1,
+            y=1.2,
+            z=1.3,
+            heading=1.4
+        )
+        res.goal_direction = 2
+        res.local_goal = Waypoint(
+            x=10,
+            z=20,
+            heading=30
+        )
+        res.local_start = Waypoint(
+            x=1,
+            z=2,
+            heading=3
+        )
+        res.map_goal = MapPose(
+            x=2.1,
+            y=2.2,
+            z=2.3,
+            heading=1.4
+        )
+        res.map_next_goal = MapPose(
+            x=22.1,
+            y=22.2,
+            z=22.3,
+            heading=22.4
+        )
+        res.planner_name = "name1"
+        res.result_type = PlannerResultType.TOO_CLOSE
+        res.timeout = True
+        res.path = [
+            Waypoint(0, 0, 0),
+            Waypoint(0, 0, 1),
+            Waypoint(0, 1, 0),
+            Waypoint(1, 0, 0),
+        ]
+        
+        str_val = str(res)
+        
+        res2 = PlanningResult.from_str(str_val)
+        
+        self.assertEqual(res.result_type, res2.result_type)
+        self.assertEqual(res.path, res2.path)
+        self.assertEqual(res.timeout, res2.timeout)
+        self.assertEqual(res.planner_name, res2.planner_name)
+        self.assertEqual(res.total_exec_time_ms, res2.total_exec_time_ms)
+        self.assertEqual(res.local_start, res2.local_start)
+        self.assertEqual(res.local_goal, res2.local_goal)
+        self.assertEqual(res.goal_direction, res2.goal_direction)
+        self.assertEqual(res.ego_location, res2.ego_location)
+        self.assertEqual(res.map_goal, res2.map_goal)
+        self.assertEqual(res.map_next_goal, res2.map_next_goal)
+
 
 if __name__ == "__main__":
     unittest.main()

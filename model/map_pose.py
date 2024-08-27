@@ -67,6 +67,9 @@ class MapPose:
 
     @classmethod
     def from_str(cls, payload: str) -> 'MapPose':
+        if payload == 'None':
+            return None
+        
         p = payload.split("|")
         return MapPose(
             float(p[0]),

@@ -10,8 +10,8 @@ import cv2
 import numpy as np
 
 
-DEBUG = True
-COLLISION_DETECT = True
+DEBUG = False
+COLLISION_DETECT = False
 
 class CollisionDetector(DiscreteComponent):
     

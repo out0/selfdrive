@@ -8,6 +8,8 @@ from planner.selfdrive_controller import SelfDriveController, PlanningDataBuilde
 from slam.slam import SLAM
 from carlasim.expectator_cam_follower import ExpectatorCameraAutoFollow
 from model.map_pose import MapPose
+from model.world_pose import WorldPose
+
 
 client = CarlaClient(town='Town07')
 
@@ -24,7 +26,11 @@ class CarlaPlanningDataBuilder(PlanningDataBuilder):
                           imu=ego.get_imu(), 
                           odometer=ego.get_odometer())       
          
-        self._slam.calibrate()
+        self._slam.manual_calibrate(
+            WorldPose(lat=-4.303359446566901e-09, 
+                      lon=-1.5848012769283334e-08,
+                      alt=1.0149892568588257,
+                      heading=0))
     
     def build_planning_data(self) -> PlanningData:
         return PlanningData(
@@ -46,7 +52,7 @@ def show_path(client: CarlaClient, path: list[MapPose]):
                                         persistent_lines=True)
 
 def controller_response(res: SelfDriveControllerResponse) -> None:
-    match res.planner_result.result_type:
+    match res.response_type:
         case SelfDriveControllerResponseType.UNKNOWN_ERROR:
             print("[Vehicle Controller callback] unknown error")
             return
@@ -72,7 +78,7 @@ def controller_response(res: SelfDriveControllerResponse) -> None:
             print("[Vehicle Controller callback] The final goal was reached successfuly \o/")
             return  
         case SelfDriveControllerResponseType.VALID_WILL_EXECUTE:
-            show_path(client, res.planner_result.path)
+            show_path(client, res.motion_path)
             return
 
 def drive_scenario (client: CarlaClient, file: str):
@@ -80,11 +86,11 @@ def drive_scenario (client: CarlaClient, file: str):
     
     sb = ScenarioBuilder(client)
     path, ego = sb.load_scenario(file, return_ego=True)
-    ego.init_fake_bev_camera()
+    ego.init_fake_bev_seg_camera()
     ego.set_brake(1.0)
     
     follower = ExpectatorCameraAutoFollow(client)
-    follower.follow(ego.get_carla_ego_car_obj())
+    #follower.follow(ego.get_carla_ego_car_obj())
     
     print(f"Self-driving EGO vehicle through a global path with #{len(path)} goals")
     

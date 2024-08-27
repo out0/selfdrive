@@ -5,6 +5,7 @@ from enum import Enum
 from io import StringIO
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
+import json
 
 
 class PrePlanningData:
@@ -105,20 +106,20 @@ class PlanningResult:
         self.map_goal = None
         self.map_next_goal = None
 
-    def __str__(self) -> str:
-        str = StringIO()
+    # def __str__(self) -> str:
+    #     str = StringIO()
 
-        if self.result_type == PlannerResultType.NONE:
-            return "-"
-        elif self.result_type == PlannerResultType.VALID:
-            return f"({self.ego_location} -> {self.map_goal}) valid plan to goal, waypoint: {self.local_goal}, timeout: {self.timeout}"
-        elif self.result_type == PlannerResultType.INVALID_START:
-            return f"({self.ego_location} -> {self.map_goal}) INVALID **start**, waypoint: {self.local_goal}, timeout: {self.timeout}"
-        elif self.result_type == PlannerResultType.INVALID_PATH:
-            return f"({self.ego_location} -> {self.map_goal}) INVALID **plan**, waypoint: {self.local_goal}, timeout: {self.timeout}"
-        elif self.result_type == PlannerResultType.INVALID_GOAL:
-            return f"({self.ego_location} -> {self.map_goal}) INVALID **goal**, waypoint: {self.local_goal}, timeout: {self.timeout}"
-        return str.getvalue()
+    #     if self.result_type == PlannerResultType.NONE:
+    #         return "-"
+    #     elif self.result_type == PlannerResultType.VALID:
+    #         return f"({self.ego_location} -> {self.map_goal}) valid plan to goal, waypoint: {self.local_goal}, timeout: {self.timeout}"
+    #     elif self.result_type == PlannerResultType.INVALID_START:
+    #         return f"({self.ego_location} -> {self.map_goal}) INVALID **start**, waypoint: {self.local_goal}, timeout: {self.timeout}"
+    #     elif self.result_type == PlannerResultType.INVALID_PATH:
+    #         return f"({self.ego_location} -> {self.map_goal}) INVALID **plan**, waypoint: {self.local_goal}, timeout: {self.timeout}"
+    #     elif self.result_type == PlannerResultType.INVALID_GOAL:
+    #         return f"({self.ego_location} -> {self.map_goal}) INVALID **goal**, waypoint: {self.local_goal}, timeout: {self.timeout}"
+    #     return str.getvalue()
     
     def clone(self) -> 'PlanningResult':
         res = PlanningResult()
@@ -133,5 +134,58 @@ class PlanningResult:
         res.ego_location = self.ego_location
         res.map_goal = self.map_goal
         res.map_next_goal = self.map_next_goal
+        return res
+
+
+        
+
+    def __str__(self) -> str:
+        
+        
+        
+        path = []
+        
+        if self.path is not None:
+            for p in self.path:
+                path.append(str(p))
+        
+        data = {
+            'result_type': int(self.result_type.value),
+            'path': path,
+            'timeout': self.timeout,
+            'planner_name': self.planner_name,
+            'total_exec_time_ms': self.total_exec_time_ms,
+            'local_start': str(self.local_start),
+            'local_goal': str(self.local_goal),
+            'goal_direction': self.goal_direction,
+            'ego_location': str(self.ego_location),
+            'map_goal': str(self.map_goal),
+            'map_next_goal': str(self.map_next_goal)
+        }
+        return json.dumps(data)
+    
+    @classmethod
+    def from_str(cls, val: str) -> 'PlanningResult':
+        res = PlanningResult()
+        
+        data = json.loads(val)
+        
+        res.result_type = PlannerResultType(int(data['result_type']))
+        
+        res.path = []        
+        for str_p in data['path']:
+            res.path.append(
+                Waypoint.from_str(str_p)
+            )
+        
+        res.timeout = bool(data['timeout'])
+        res.planner_name = data['planner_name']
+        res.total_exec_time_ms = float(data['total_exec_time_ms'])
+        res.local_start = Waypoint.from_str(data['local_start'])
+        res.local_goal = Waypoint.from_str(data['local_goal'])
+        res.goal_direction = int(data['goal_direction'])
+        res.ego_location = MapPose.from_str(data['ego_location'])
+        res.map_goal = MapPose.from_str(data['map_goal'])
+        res.map_next_goal = MapPose.from_str(data['map_next_goal'])        
         return res
         

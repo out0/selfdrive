@@ -14,6 +14,11 @@ class Waypoint:
         return f"({self.x}, {self.z}, {self.heading})"
     
     
+    def __eq__(self, other):
+        return  self.x == other.x and \
+                self.z == other.z and \
+                self.heading == other.heading
+    
     def from_str(payload: str) -> 'Waypoint':
         payload = payload.replace("(","").replace(")", "")
         p = payload.split(",")
