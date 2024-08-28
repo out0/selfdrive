@@ -17,8 +17,7 @@ from slam.slam import SLAM
 import time
 from utils.logging import Telemetry
 
-PLAN_TIMEOUT_MS = -1
-#PLAN_TIMEOUT_MS = 500
+
 PROXIMITY_RATE_TO_GET_NEXT_PATH_SEGMENT = 0.9
 MOTION_CONTROLLER_EXEC_PERIOD_MS = 5
 LONGITUDINAL_EXEC_PERIOD_MS = 100
@@ -75,7 +74,7 @@ class SelfDriveController(DiscreteComponent):
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
-    PLAN_TIMEOUT=500
+    PLAN_TIMEOUT=-1
 
 
     def __init__(self, 

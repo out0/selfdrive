@@ -6,6 +6,7 @@ from typing import List
 from slam.slam import SLAM
 from model.sensors.odometer import Odometer
 from model.ego_car import EgoCar
+from utils.logging import Telemetry
 
 class MotionController (DiscreteComponent):
     _longitudinal_controller: LongitudinalController
@@ -81,7 +82,11 @@ class MotionController (DiscreteComponent):
         if not self._search_state:
             return
         
-        pos = MapPose.find_nearest_goal_pose( self._slam.estimate_ego_pose(), self._list, 0)
+        pose = self._slam.estimate_ego_pose()
+        
+        pos = MapPose.find_nearest_goal_pose( pose , self._list, 0)
+        
+        Telemetry.log(3, "Motion Controller", f"next goal pose: {pos} for position {pose}")
 
         if (pos < 0):
             self._on_finished_motion(self)

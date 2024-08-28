@@ -7,7 +7,6 @@ import math
 class ModelCurveGenerator:
     _L_m: float
     _lr: float
-    _ref_local_start: Waypoint
     _delta_t: float
     
     def __init__(self, delta_t: float = 0.05) -> None:
@@ -15,10 +14,6 @@ class ModelCurveGenerator:
         self._pixel_ratio = PhysicalParameters.OG_HEIGHT / PhysicalParameters.OG_REAL_HEIGHT
         self._L_m = (PhysicalParameters.EGO_LOWER_BOUND.z - PhysicalParameters.EGO_UPPER_BOUND.z) / self._pixel_ratio
         self._lr = 0.5 * self._L_m
-        self._ref_local_start = Waypoint(
-            math.floor(PhysicalParameters.OG_WIDTH / 2),
-            PhysicalParameters.EGO_UPPER_BOUND.z
-        )
     
     @classmethod
     def get_min_radius(cls) -> float:

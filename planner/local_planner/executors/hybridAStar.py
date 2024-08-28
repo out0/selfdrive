@@ -4,7 +4,6 @@ from planner.local_planner.local_planner_executor import LocalPathPlannerExecuto
 from planner.local_planner.local_planner import PlanningData, PlanningResult, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
 from threading import Thread
-from planner.local_planner.executors.waypoint_interpolator import WaypointInterpolator
 import sys, math, numpy as np
 from vision.occupancy_grid_cuda import OccupancyGrid
 from planner.physical_model import ModelCurveGenerator
@@ -368,7 +367,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             path.append(p.local_pose)
             p = p.parent
     
-        path.append(self._result.local_start)
+        #path.append(self._result.local_start)
         path.reverse()
 
         self._result.path = path
