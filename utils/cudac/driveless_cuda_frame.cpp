@@ -209,37 +209,23 @@ static int __CPU_computeFeasibleForAngle(
     float c = cosf(angle_radians);
     float s = sinf(angle_radians);
 
-    if (x == 122 && z == 32) {
-        printf("(%d, %d) heading: %f\n", x, z, (180 * angle_radians)/3.141592654);
-    }
-
-
     for (int i = -min_dist_z; i <= min_dist_z; i++)
         for (int j = -min_dist_x; j <= min_dist_x; j++)
         {
             int xl = round(j * c - i * s) + x;
             int zl = round(j * s + i * c) + z;
 
-        if (x == 122 && z == 32)
-            printf("checking: (%d, %d) -> ", xl, zl);
-
-            if (xl < 0 || xl >= width) {
-                if (x == 122 && z == 32)
-                    printf("oob\n");
+            if (xl < 0 || xl >= width)
                 continue;
-            }
+            
 
-            if (zl < 0 || zl >= height){
-                if (x == 122 && z == 32)
-                    printf("oob\n");
+            if (zl < 0 || zl >= height)
                 continue;
-            }
+            
 
-            if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z){
-                if (x == 122 && z == 32)
-                    printf("inbound\n");
+            if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z)
                 continue;
-            }
+            
 
             int segmentation_class = round(frame[zl * width + xl].x);
 
@@ -252,13 +238,8 @@ static int __CPU_computeFeasibleForAngle(
                 // {
                 //     printf("(%d, %d) not feasible because of position: (%d, %d)\n", x, z, xl, zl);
                 // }
-                if (x == 122 && z == 32)
-                    printf("not feasible\n");
                 return 0;
             }
-
-            if (x == 122 && z == 32)
-                printf("feasible\n");
         }
 
     return 1;
@@ -321,15 +302,18 @@ static float __CPU_compute_heading(float *waypoints, int pos1, int pos2, bool *v
 
     if (pos1 < 0 || pos2 < 0)
         return 0.0;
-    
+
     int x1 = waypoints[pos1 * 4];
     int z1 = waypoints[pos1 * 4 + 1];
     int x2 = waypoints[pos2 * 4];
     int z2 = waypoints[pos2 * 4 + 1];
 
-    if (x1 == x2 && z1 == z2) return 0.0;
-    if (x1 < 0 || z1 < 0 || x2 < 0 || z2 < 0) return 0.0;
-    if (x1 >= width || z1 >= height || x2 >= width || z2 >= height) return 0.0;
+    if (x1 == x2 && z1 == z2)
+        return 0.0;
+    if (x1 < 0 || z1 < 0 || x2 < 0 || z2 < 0)
+        return 0.0;
+    if (x1 >= width || z1 >= height || x2 >= width || z2 >= height)
+        return 0.0;
 
     float dx = x2 - x1;
     float dz = z2 - z1;
@@ -337,7 +321,7 @@ static float __CPU_compute_heading(float *waypoints, int pos1, int pos2, bool *v
     float heading = 3.141592654F / 2 - atan2f(-dz, dx);
 
     if (heading > 3.141592654F) // greater than 180 deg
-        heading = heading - 2*3.141592654F;
+        heading = heading - 2 * 3.141592654F;
 
     return heading;
 }
@@ -349,12 +333,27 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, bool *valid,
     float heading = 0.0;
     int count = 0;
 
-    for (int j = 0; j < NUM_POINTS_ON_MEAN; j++)
+    for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
         bool v = false;
-        heading += __CPU_compute_heading(waypoints, pos - j - 1, pos, &v, width, height);
-        if (v)
+        heading += __CPU_compute_heading(waypoints, pos, pos + j, &v, width, height);
+        if (!v)
+            break;
+        count++;
+    }
+
+    if (count != NUM_POINTS_ON_MEAN)
+    {
+        count = 0;
+        // compute in reverse
+        for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
+        {
+            bool v = false;
+            heading += __CPU_compute_heading(waypoints, pos - j, pos, &v, width, height);
+            if (!v)
+                break;
             count++;
+        }
     }
 
     *valid = count > 0;
@@ -373,37 +372,19 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
         int x = waypoints[pos];
         int z = waypoints[pos + 1];
 
-        printf(">>> %d = (%d, %d)\n", i, x, z);
-
-        if (x == 122 && z == 32) {
-            int k = 1;
-            printf("%d (%d, %d) -> (%d, %d) (-%d)\n", i, x, z, (int)waypoints[4*(i - k)], (int)waypoints[4*(i - k) + 1], k);
-            k = 2;
-            printf("%d (%d, %d) -> (%d, %d) (-%d)\n", i, x, z, (int) waypoints[4*(i - k)], (int)waypoints[4*(i - k) + 1], k);
-            k = 3;
-            printf("%d (%d, %d) -> (%d, %d) (-%d)\n", i, x, z, (int)waypoints[4*(i - k)], (int)waypoints[4*(i - k) + 1], k);
-        }
-
         waypoints[pos + 3] = 1;
 
-        if (x >= this->lower_bound_x && x <= this->upper_bound_x && z >= this->upper_bound_z && z <= this->lower_bound_z) {
+        if (x >= this->lower_bound_x && x <= this->upper_bound_x && z >= this->upper_bound_z && z <= this->lower_bound_z)
+        {
             // printf("Inbound (%d, %d)\n", x, z);
             continue;
         }
 
         bool valid = false;
-
         float heading = __CPU__compute_mean_heading(waypoints, i, &valid, width, height);
-       
 
-        if (z == 32)
-        printf("CPU computed heading for (%d, %d) = %f\n", x, z, heading);
-
-        if (!valid) {
-            if (z == 32)
-            printf("INVALID\n");
+        if (!valid)
             continue;
-        }
 
         // if (x == 131 && z == 45)
         //     printf("pos = %d, x = %d, z = %d computed heading = %f\n", i, x, z, heading);

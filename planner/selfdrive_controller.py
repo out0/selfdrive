@@ -69,12 +69,15 @@ class SelfDriveController(DiscreteComponent):
     _collision_detector: CollisionDetector
     _last_planning_data: PlanningData
     _coord: CoordinateConverter
+    
+    _exec_mission_seq: int
 
     SELF_DRIVE_CONTROLLER_PERIOD_MS = 1
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
     PLAN_TIMEOUT=-1
+    
 
 
     def __init__(self, 
@@ -128,6 +131,8 @@ class SelfDriveController(DiscreteComponent):
         self._driving_path_pos = 0
        
         self._planning_data_builder = planning_data_builder
+        
+        self._exec_mission_seq = 1
     
     def destroy(self) -> None:
         self._run = False
@@ -136,7 +141,9 @@ class SelfDriveController(DiscreteComponent):
         self._local_planner.destroy()
         
     def __on_collision_detected(self) -> None:
-        Telemetry.log(1, self._NAME, f"Collision ahead detected. Performing replan on path pos: {self._driving_path_pos}")
+        msg = f"Collision ahead detected. Performing replan on path pos: {self._driving_path_pos}"
+        Telemetry.log(1, self._NAME, msg)
+        print(msg)
         self.__replan()
     
     def __on_finished_motion(self, motion_controller: MotionController) -> None:
@@ -249,7 +256,8 @@ class SelfDriveController(DiscreteComponent):
     def __execute_mission(self) -> ControllerState:
         res = self._local_planner.get_result()
         
-        Telemetry.dump_planning_data(level=2, seq=self._driving_path_pos, res=res, data=self._last_planning_data)
+        Telemetry.dump_planning_data(level=2, seq=self._exec_mission_seq, res=res, data=self._last_planning_data)
+        self._exec_mission_seq += 1
         
         match res.result_type:
             case PlannerResultType.NONE:

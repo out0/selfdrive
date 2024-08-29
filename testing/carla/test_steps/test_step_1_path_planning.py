@@ -56,7 +56,7 @@ def execute_plan (seq: int) -> None:
     outp.write(f"test_output_{seq}.png")
 
 def main(argc: int, argv: List[str]) -> int:
-    execute_plan(1)
+    execute_plan(4)
     return 0
 
 if __name__ == "__main__":

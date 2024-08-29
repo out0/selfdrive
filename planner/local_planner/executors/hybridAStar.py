@@ -10,7 +10,7 @@ from planner.physical_model import ModelCurveGenerator
 import cv2
 from queue import PriorityQueue
 
-MAX_FLOAT = sys.float_info.max - 10
+MAX_FLOAT = 100000000
 
 DIR_TOP = 0
 DIR_TOP_LEFT = 1

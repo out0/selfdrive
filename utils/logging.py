@@ -46,7 +46,7 @@ class Telemetry:
             return PlanningResult.from_str(f.read())
 
     @classmethod
-    def read_planning_bev(cls, seq: int) -> PlanningData:
+    def read_planning_bev(cls, seq: int) -> np.ndarray:
         file = f"{PLANNING_DATA_PATH}/bev_{seq}.png"
 
         if not os.path.exists (file):
