@@ -1,9 +1,24 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.26)
+
+
+#set_property(TARGET ${PROJECT_NAME} PROPERTY CUDA_ARCHITECTURES native)
+
+# CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
+# string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
+# string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
+# string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+# message(${INSTALLED_GPU_CCS_1})
+# SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
+set(CMAKE_CUDA_ARCHITECTURES "native")
+SET(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
+
 project(driveless-cudac LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "CUDA Compute for OG")
 
 include(GNUInstallDirs)
 option(CUDA_LIB_JETSON "true" OFF)
 find_package(Threads REQUIRED)
+
+include(FindCUDA/select_compute_arch)
 
 find_package(CUDA REQUIRED)
 include_directories("${CUDA_INCLUDE_DIRS}")
@@ -14,7 +29,11 @@ endif(CUDA_LIB_JETSON)
 
 include(FindPackageHandleStandardArgs)
 
-SET(CUDACXX /usr/local/cuda-12.2/bin/nvcc)
+
+
+
+
+
 
 SET(TARGET_H
     # cuda_frame.h
@@ -22,30 +41,30 @@ SET(TARGET_H
     # class_def.h
 )
  
-add_library(driveless-cudac SHARED
+add_library( ${CMAKE_PROJECT_NAME} SHARED
     driveless_cuda_frame.cpp
     driveless_cuda_frame.cu
     python_bind.cpp
 )
 
 if(CUDA_LIB_JETSON)
-    target_link_libraries(driveless-cudac 
+    target_link_libraries( ${PROJECT_NAME}
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
             jetson-utils)
 else()
-    target_link_libraries(driveless-cudac 
+    target_link_libraries( ${PROJECT_NAME} 
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
             cuda
     )
 endif(CUDA_LIB_JETSON)
 
-set_target_properties(driveless-cudac PROPERTIES
+set_target_properties( ${PROJECT_NAME} PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
 )
-install(TARGETS driveless-cudac
+install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     

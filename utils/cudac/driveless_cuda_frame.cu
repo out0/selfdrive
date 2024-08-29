@@ -140,11 +140,50 @@ __global__ static void __CUDA_KERNEL_ComputeCost(float3 *frame, int *params, int
         }
 }
 
-__device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2)
+__device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2, bool *valid)
 {
+    if (p1.x == p2.x && p1.y == p2.y)
+    {
+        *valid = false;
+        return 0.0;
+    }
+
+    *valid = true;
     float dx = p2.x - p1.x;
     float dz = p2.y - p1.y;
-    return CUDART_PI_F / 2 - atan2f(-dz, dx);
+    
+    float heading = CUDART_PI_F / 2 - atan2f(-dz, dx);
+
+    if (heading > CUDART_PI_F) // greater than 180 deg
+        heading = heading - 2*CUDART_PI_F;
+
+    return heading;
+}
+
+#define NUM_POINTS_ON_MEAN 3
+
+__device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, bool *valid)
+{
+    float heading = 0.0;
+    int count = 0;
+
+    for (int j = 0; j < NUM_POINTS_ON_MEAN; j++)
+    {
+        int pos1 = pos - j - 1;
+        if (pos1 < 0) continue;
+
+        bool v = false;
+        heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos1], waypoints[pos], &v);
+        if (v)
+            count++;
+    }
+
+    *valid = count > 0;
+
+    if (*valid)
+        return heading / count;
+
+    return 0.0;
 }
 
 __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *params, int *classCost, float4 *waypoints, int count)
@@ -159,13 +198,9 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
 
     int x = waypoints[pos].x;
     int z = waypoints[pos].y;
-    //float heading = waypoints[pos].z;
+    // float heading = waypoints[pos].z;
 
-    float heading = 0;
-    if (pos < count - 1)
-        heading = __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos + 1]);
-    else
-        heading = __CUDA_KERNEL_ComputeHeading(waypoints[pos - 1], waypoints[pos]);
+    waypoints[pos].w = 1;
 
 #ifdef MINIMAL_DISTANCE_X
     int min_dist_x = MINIMAL_DISTANCE_X;
@@ -185,12 +220,15 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
     int upper_bound_ego_z = params[7];
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
-    {
-        waypoints[pos].w = 1;
         return;
-    }
 
-    waypoints[pos].w = 1;
+
+    bool valid = false;
+    float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, &valid);
+
+    if (!valid)
+        return;
+
 
     // if (x == DEBUG_X && z == DEBUG_Z)
     // {
@@ -278,7 +316,7 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
     if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         v = v | HEADING_MINUS_45;
 
-    angle = 2*CUDART_PI_F - atan2f(-dz, dx);
+    angle = 2 * CUDART_PI_F - atan2f(-dz, dx);
     // if (x == DEBUG_X && z == DEBUG_Z)
     // {
     //     printf("angle = %f\n", angle);

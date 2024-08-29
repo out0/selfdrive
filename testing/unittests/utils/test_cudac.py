@@ -563,9 +563,9 @@ class TestPathFeasible(unittest.TestCase):
         for i in range(len(path)):
             if i >= 11: break
             if i == 2 or i == 5 or i == 9: 
-                self.assertFalse(feasible[i])
+                self.assertFalse(feasible[i], f"pos {i} should be not feasible")
             else:
-                self.assertTrue(feasible[i])
+                self.assertTrue(feasible[i], f"pos {i} should be feasible")
 
 
 
