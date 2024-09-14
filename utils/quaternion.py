@@ -13,6 +13,7 @@ class Quaternion(object):
         self.y = y
         self.z = z
     
+    
     @classmethod
     def angle_normalize(cls, a):
         """Normalize angles to lie in range -pi < a[i] <= pi."""
@@ -37,6 +38,10 @@ class Quaternion(object):
             y = imag[1].item()
             z = imag[2].item()
         return Quaternion(w, x, y, z)
+
+    @classmethod
+    def build_from_vector(cls, arr: np.ndarray) -> 'Quaternion':
+        return Quaternion(arr[0], arr[1], arr[2], arr[3])
 
 
     def __add__(self, other) -> 'Quaternion':
@@ -108,7 +113,10 @@ class Quaternion(object):
         return self
 
     def __mul__(self, other):
-        return Quaternion.q_mul(self, other)
+        if isinstance(other, Quaternion):
+            return Quaternion.q_mul(self, other)
+        else:
+            return Quaternion(w = self.w, x = self.x * other, y = self.y * other, z = self.z * other)
 
     def inv(self) -> 'Quaternion':
         return self.conj() * self.size()
@@ -141,6 +149,9 @@ class Quaternion(object):
 
     def duplicate(self) -> 'Quaternion':
         return Quaternion(self.w, self.x, self.y, self.z)
+    
+    def to_matrix(self) -> np.ndarray:
+        return np.array([self.w, self.x, self.y, self.z])
 
     def get_rotation_matrix(self, angle_rad: float) -> np.ndarray:
         

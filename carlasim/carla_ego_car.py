@@ -8,9 +8,8 @@ import numpy as np
 
 
 
-GPS_PERIOD_ms = 50
-IMU_PERIOD_ms = 50
-
+GPS_PERIOD_ms = 100
+IMU_PERIOD_ms = 10
 
 
 class CarlaEgoCar(EgoCar):

@@ -56,15 +56,27 @@ class TestKalmanFilter(unittest.TestCase):
     
     
     def __convert_data (self, raw: str) -> tuple[GpsData, IMUData, MapPose, float, float]:
-        dict = json.loads(raw)
-        return (
-            GpsData.from_str(dict['gps']),
-            IMUData.from_str(dict['imu']),
-            MapPose.from_str(dict['pose']),
-            float(dict['velocity']),
-            float(dict['timestamp'])
-        )
         
+        dict = json.loads(raw[4:])
+        
+        if raw[0:3] == "gps":
+            return (
+                GpsData.from_str(dict['gps']),
+                None,
+                MapPose.from_str(dict['pose']),
+                float(dict['velocity']),
+                float(dict['timestamp'])
+            )
+        else:     
+            return (
+                None,
+                IMUData.from_str(dict['imu']),
+                MapPose.from_str(dict['pose']),
+                float(dict['velocity']),
+                float(dict['timestamp'])
+            )
+    
+
     def add_noise(arr: np.ndarray, std_dev: float) -> np.ndarray:
         noise = np.random.normal(0, std_dev, arr.shape) 
         return arr + noise
@@ -73,10 +85,10 @@ class TestKalmanFilter(unittest.TestCase):
     def calibrate(self, filter: ExtendedKalmanFilter,  lines: list[str]) -> int:
         for i in range(len(lines)):
             location, imu, pose, vel, dt = self.__convert_data(lines[i])
-            if (vel != 0):
+            if (imu != None):
                 filter.calibrate()
                 return i
-            filter.add_calibration_gnss_data(pose)
+            filter.add_calibration_gnss_data(location)
     
     def test_ekf(self):
         f = open("location.log", "r")
@@ -89,13 +101,14 @@ class TestKalmanFilter(unittest.TestCase):
         
             
         for i in range(init, len(lines)):
-            location, imu, pose, vel, dt = self.__convert_data(lines[i])
+            gps, imu, expected_pose, vel, dt = self.__convert_data(lines[i])
             filter.predict_state_with_imu(imu, dt)
-            filter.correct_state_with_gnss(pose)
+            l = filter.get_location()
+            filter.correct_state_with_gnss(gps)
             l = filter.get_location()            
             last_dt = dt
         
         p = 1
 
-# if __name__ == "__main__":
-#     unittest.main()
+if __name__ == "__main__":
+    unittest.main()

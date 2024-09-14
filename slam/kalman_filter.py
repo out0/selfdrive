@@ -7,17 +7,22 @@
 #   self-driving cars in general.
 
 import numpy as np
-from slam.rotations import Quaternion, omega, skew_symmetric, angle_normalize
+from utils.quaternion import Quaternion
 from model.sensor_data import GpsData
 from model.sensor_data import IMUData
 from model.map_pose import MapPose
+from model.world_pose import WorldPose
+from data.coordinate_converter import CoordinateConverter
 
 class ExtendedKalmanFilter:
+    
+    _coord_converter: CoordinateConverter
+    
     def __init__(self):
         # State (position, velocity and orientation)
         self.p = np.zeros([3, 1])
         self.v = np.zeros([3, 1])
-        self.q = np.array([1, 0, 0, 0]).reshape(4,1)  # quaternion
+        self.q = Quaternion(1, 0, 0, 0)
 
         # State covariance
         self.p_cov = np.zeros([9, 9])
@@ -47,28 +52,36 @@ class ExtendedKalmanFilter:
 
         # Initialized
         self.n_gnss_taken = 0
-        self.gnss_init_xyz = None
+        self.gnss_init = None
         self.initialized = False
+        self._coord_converter = None
 
     def is_initialized(self):
         return self.initialized
     
-    def add_calibration_gnss_data(self, gnss: MapPose):
-        if self.gnss_init_xyz is None:
-            self.gnss_init_xyz = np.array([gnss.x, gnss.y, gnss.z])
+    def add_calibration_gnss_data(self, gnss: GpsData):
+        if self.gnss_init is None:
+            self.gnss_init = np.array([gnss.latitude, gnss.longitude, gnss.altitude])
             self.n_gnss_taken = 1
         else:
-            self.gnss_init_xyz[0] += gnss.x
-            self.gnss_init_xyz[1] += gnss.y
-            self.gnss_init_xyz[2] += gnss.z
+            self.gnss_init[0] += gnss.latitude
+            self.gnss_init[1] += gnss.longitude
+            self.gnss_init[2] += gnss.altitude
             self.n_gnss_taken += 1
     
     def calibrate(self):
-        self.gnss_init_xyz /= self.n_gnss_taken
-        # self.p[:, 0] = self.gnss_init_xyz
-        # self.q[:, 0] = Quaternion().to_numpy()
-        self.p = self.gnss_init_xyz
-
+        # mean lat, lon, alt values for first initialization
+        self.gnss_init /= self.n_gnss_taken
+        
+        self._coord_converter = CoordinateConverter(
+            world_origin=WorldPose(
+                lat=self.gnss_init[0],
+                lon=self.gnss_init[1],
+                alt=self.gnss_init[2],
+                heading=0.0
+            )
+        )
+        
         # Low uncertainty in position estimation and high in orientation and 
         # velocity
         pos_var = 1
@@ -108,23 +121,33 @@ class ExtendedKalmanFilter:
         :type imu: IMU blueprint instance (Carla)
         """
         # IMU acceleration and velocity
-        imu_f = np.array([imu.accel_x, imu.accel_y, imu.accel_z]).reshape(3, 1)
-        imu_w = np.array([imu.gyro_x, imu.gyro_y, imu.gyro_z]).reshape(3, 1)
+        imu_f = np.array([imu.accel_x, imu.accel_y, imu.accel_z])
+        imu_w = np.array([imu.gyro_x, imu.gyro_y, imu.gyro_z])
 
         # IMU sampling time
         #delta_t = imu.timestamp - self.last_ts
         #self.last_ts = imu.timestamp
 
         # Update state with imu
-        R = Quaternion(*self.q).to_mat()
+        R = Quaternion.build_mult_matrix(self.q)
         self.p = self.p + delta_t * self.v + 0.5 * delta_t * delta_t * (R @ imu_f + self.g)
         self.v = self.v + delta_t * (R @ imu_f + self.g)
-        self.q = omega(imu_w, delta_t) @ self.q
+        
+        theta = imu_w * delta_t
+        self.q = self.q * Quaternion.build_from_angles(theta)
 
         # Update covariance
         F = self._calculate_motion_model_jacobian(R, imu_f, delta_t)
         Q = self._calculate_imu_noise(delta_t)
         self.p_cov = F @ self.p_cov @ F.T + self.l_jac @ Q @ self.l_jac.T
+
+
+    def skew_symmetric(v):
+        """Skew symmetric form of a 3x1 vector."""
+        return np.array(
+            [[0, -v[2], v[1]],
+            [v[2], 0, -v[0]],
+            [-v[1], v[0], 0]], dtype=np.float64)
 
     def _calculate_motion_model_jacobian(self, R, imu_f, delta_t):
         """derivative of the motion model function with respect to the state
@@ -136,7 +159,7 @@ class ExtendedKalmanFilter:
         """
         F = np.eye(9)
         F[:3, 3:6] = np.eye(3) * delta_t
-        F[3:6, 6:] = -skew_symmetric(R @ imu_f) * delta_t
+        F[3:6, 6:] = -ExtendedKalmanFilter.skew_symmetric(R @ imu_f) * delta_t
 
         return F
 
@@ -154,17 +177,20 @@ class ExtendedKalmanFilter:
 
         return Q
 
-    def correct_state_with_gnss(self, gnss: MapPose):
+    def correct_state_with_gnss(self, gnss: GpsData):
         """Given the estimated global location by gnss, correct
         the vehicle state
 
         :param gnss: global xyz position
         :type x: Gnss class (see car.py)
         """
+        
+        map_pose = self._coord_converter.convert_world_to_map_pose(gnss)
+        
         # Global position
-        x = gnss.x
-        y = gnss.y
-        z = gnss.z
+        x = map_pose.x
+        y = map_pose.y
+        z = map_pose.z
 
         # Kalman gain
         K = self.p_cov @ self.h_jac.T @ (np.linalg.inv(self.h_jac @ self.p_cov @ self.h_jac.T + self.var_gnss))
@@ -175,8 +201,9 @@ class ExtendedKalmanFilter:
         # Correction
         self.p = self.p + delta_x[:3]
         self.v = self.v + delta_x[3:6]
-        delta_q = Quaternion(axis_angle=angle_normalize(delta_x[6:]))
-        self.q = delta_q.quat_mult_left(self.q)
+        delta_q = Quaternion.build_from_angles(delta_x[6:])
+        self.q = delta_q * self.q
 
         # Corrected covariance
         self.p_cov = (np.identity(9) - K @ self.h_jac) @ self.p_cov
+

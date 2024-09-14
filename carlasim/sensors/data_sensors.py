@@ -6,12 +6,13 @@ from model.sensors.gps import GPS
 from model.sensors.imu import IMU
 from model.sensors.odometer import Odometer
 from model.sensor_data import *
-
+import time
 
 class PeriodicDataSensor:
     _sensor: any
     _last_sensor_data: any
-    _lock: threading.Lock    
+    _lock: threading.Lock
+    _last_timestamp: float
     
     def __init__(self, bp: str, client: CarlaClient, vehicle: any, capture_period_in_seconds: float) -> None:
         sensor_bp = client.get_blueprint(bp)
@@ -23,6 +24,7 @@ class PeriodicDataSensor:
         self._sensor.listen(self.__new_data)
         self._lock = threading.Lock()
         self._last_sensor_data = None
+        self._last_timestamp = 0
 
     def destroy(self) -> None:
         if self._sensor is None:
@@ -33,6 +35,7 @@ class PeriodicDataSensor:
     def __new_data(self, sensor_data: any):
         if self._lock.acquire(blocking=False):
             self._last_sensor_data = sensor_data
+            self._last_timestamp = time.time()
             self._lock.release()
     
     def read(self) -> any:
@@ -43,6 +46,9 @@ class PeriodicDataSensor:
                 return f
         return None
 
+    def last_read_timestamp(self) -> float:
+        return self._last_timestamp
+        
 
 
 class CarlaGps (PeriodicDataSensor, GPS):    
@@ -57,7 +63,7 @@ class CarlaGps (PeriodicDataSensor, GPS):
         carla_gps = super().read()
         if carla_gps is None:
             return None
-        return GpsData(carla_gps.latitude, carla_gps.longitude, carla_gps.altitude)
+        return GpsData(carla_gps.latitude, carla_gps.longitude, carla_gps.altitude) 
         
 class CarlaIMU (PeriodicDataSensor, IMU):    
     def __init__(self, client: CarlaClient, vehicle: any, capture_period_in_seconds: float) -> None:
