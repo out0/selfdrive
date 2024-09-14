@@ -11,7 +11,7 @@ import numpy as np
 
 
 DEBUG = True
-COLLISION_DETECT = False
+COLLISION_DETECT = True
 
 class CollisionDetector(DiscreteComponent):
     

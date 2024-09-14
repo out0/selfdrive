@@ -137,8 +137,6 @@ void CudaFrame::checkFeasibleWaypoints(float *points, int count)
     if (count == 0)
         return;
 
-    // computeHeadings(points, count);
-
     if (count <= PATH_FEASIBLE_CPU_THRESHOLD)
     {
         checkFeasibleWaypointsCPU(
@@ -231,70 +229,12 @@ static int __CPU_computeFeasibleForAngle(
 
             if (classCost[segmentation_class] < 0)
             {
-                // if (x == 131 && z == 45)
-                //     printf("(%d, %d) not feasible because of position: (%d, %d) min_dist_x = %d \n", x, z, xl, z, min_dist_x);
-
-                // if (x == DEBUG_X && z == DEBUG_Z)
-                // {
-                //     printf("(%d, %d) not feasible because of position: (%d, %d)\n", x, z, xl, zl);
-                // }
                 return 0;
             }
         }
 
     return 1;
 }
-
-/*
-void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
-{
-    for (int i = 0; i < count; i++)
-    {
-        int pos = 4 * i;
-        float heading = 0; // waypoints[pos + 2];
-
-        float dz;
-        float dx;
-        float x1 = waypoints[4 * i];
-        float z1 = waypoints[4 * i + 1];
-        float x2 = waypoints[4 * (i + 1)];
-        float z2 = waypoints[4 * (i + 1) + 1];
-
-        if (i == 0)
-        {
-            dz = z2 - z1;
-            dx = x2 - x1;
-        }
-        else
-        {
-            float x0 = waypoints[4 * (i - 1)];
-            float z0 = waypoints[4 * (i - 1) + 1];
-            if (i == count - 1)
-            {
-                dz = z1 - z0;
-                dx = x1 - x0;
-            } else {
-                dz = z2 - z0;
-                dx = x2 - x0;
-            }
-        }
-
-        heading = 3.141592654F / 2 - atan2f(-dz, dx);
-        waypoints[pos + 2] = heading;
-        waypoints[pos + 3] = 1;
-
-        if (x1 == 134 && z1 == 14) {
-            printf("heading = %f\n", heading);
-        }
-
-        if (x1 >= this->lower_bound_x && x1 <= this->upper_bound_x && z1 >= this->upper_bound_z && z1 <= this->lower_bound_z)
-            continue;
-
-        waypoints[pos + 3] = __CPU_computeFeasibleForAngle(this->frame, (int *)segmentationClassCost, x1, z1, heading,
-                                                           this->width, this->height, this->min_dist_x, this->min_dist_z, this->lower_bound_x, this->lower_bound_z,
-                                                           this->upper_bound_x, this->upper_bound_z);
-    }
-}*/
 
 static float __CPU_compute_heading(float *waypoints, int pos1, int pos2, bool *valid, int width, int height)
 {
@@ -396,22 +336,3 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
                                                            this->upper_bound_x, this->upper_bound_z);
     }
 }
-
-// void CudaFrame::computeHeadings(float *points, int count)
-// {
-//     points[3] = 0.0;
-
-//     for (int i = 1; i < count - 1; i++)
-//     {
-//         int pos = 4 * (i - 1);
-//         int pos2 = 4 * (i + 1);
-
-//         float x1 = points[pos];
-//         float z1 = points[pos + 1];
-//         float x2 = points[pos2];
-//         float z2 = points[pos2 + 1];
-//         points[pos2 + 3] = __CPU_compute_heading(x1, z1, x2, z2);
-//     }
-
-//     points[4 * (count - 1) + 2] = points[4 * (count - 2) + 2];
-// }

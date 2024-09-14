@@ -15,8 +15,9 @@ def main ():
         time.sleep(0.01)
 
     while True:
-        arr = link.read_uint8_np((10, 10))
-        print (arr)
+        if link.has_data():
+            arr = link.read_uint8_np((10, 10))
+            print (arr.shape)
 
     # while True:
     #     if not link.is_connected():

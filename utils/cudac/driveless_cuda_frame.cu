@@ -140,42 +140,57 @@ __global__ static void __CUDA_KERNEL_ComputeCost(float3 *frame, int *params, int
         }
 }
 
-__device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2, bool *valid)
+__device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2, bool *valid, int width, int height)
 {
+    *valid = false;
     if (p1.x == p2.x && p1.y == p2.y)
-    {
-        *valid = false;
         return 0.0;
-    }
 
-    *valid = true;
+    if (p1.x < 0 || p1.y < 0 || p2.x < 0 || p2.y < 0)
+        return 0.0;
+
+    if (p1.x >= width || p1.y >= height || p2.x >= width || p2.y >= height)
+        return 0.0;
+
     float dx = p2.x - p1.x;
     float dz = p2.y - p1.y;
-    
+    *valid = true;
     float heading = CUDART_PI_F / 2 - atan2f(-dz, dx);
 
     if (heading > CUDART_PI_F) // greater than 180 deg
-        heading = heading - 2*CUDART_PI_F;
+        heading = heading - 2 * CUDART_PI_F;
 
     return heading;
 }
 
 #define NUM_POINTS_ON_MEAN 3
 
-__device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, bool *valid)
+__device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, bool *valid, int width, int height)
 {
     float heading = 0.0;
     int count = 0;
 
-    for (int j = 0; j < NUM_POINTS_ON_MEAN; j++)
+    for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
-        int pos1 = pos - j - 1;
-        if (pos1 < 0) continue;
-
         bool v = false;
-        heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos1], waypoints[pos], &v);
-        if (v)
+        heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos + j], &v, width, height);
+        if (!v)
+            break;
+        count++;
+    }
+
+    if (count != NUM_POINTS_ON_MEAN)
+    {
+        count = 0;
+        // compute in reverse
+        for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
+        {
+            bool v = false;
+            heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos - j], &v, width, height);
+            if (!v)
+                break;
             count++;
+        }
     }
 
     *valid = count > 0;
@@ -222,13 +237,11 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
 
-
     bool valid = false;
-    float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, &valid);
+    float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, &valid, width, height);
 
     if (!valid)
         return;
-
 
     // if (x == DEBUG_X && z == DEBUG_Z)
     // {
