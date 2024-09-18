@@ -92,8 +92,9 @@ def drive_scenario (client: CarlaClient, file: str):
     ego.init_fake_bev_seg_camera()
     ego.set_brake(1.0)
     
-    follower = ExpectatorCameraAutoFollow(client)
-    follower.follow(ego.get_carla_ego_car_obj())
+    follower = None
+    # follower = ExpectatorCameraAutoFollow(client)
+    # follower.follow(ego.get_carla_ego_car_obj())
     
     print(f"Self-driving EGO vehicle through a global path with #{len(path)} goals")
     
@@ -118,7 +119,7 @@ print ("press enter to destroy")
 input()
 
 controller.destroy()
-follower.destroy()
+#follower.destroy()
 ego.destroy()
 
 print ("the simulation has ended")
