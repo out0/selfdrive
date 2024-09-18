@@ -165,7 +165,7 @@ __device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2, boo
 
 #define NUM_POINTS_ON_MEAN 3
 
-__device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, bool *valid, int width, int height)
+__device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, int waypoints_count, bool *valid, int width, int height)
 {
     float heading = 0.0;
     int count = 0;
@@ -173,6 +173,8 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
     for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
         bool v = false;
+        if (pos + j >= waypoints_count) 
+            break;
         heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos + j], &v, width, height);
         if (!v)
             break;
@@ -186,6 +188,10 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
         for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
         {
             bool v = false;
+            if (pos - j < 0)  {
+                *valid = false;
+                return 0.0;
+            }
             heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos - j], &v, width, height);
             if (!v)
                 break;
@@ -238,7 +244,12 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
         return;
 
     bool valid = false;
-    float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, &valid, width, height);
+    float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, count, &valid, width, height);
+
+    // if (x == 112 && z == 1)
+    // {
+    //     printf("\n[GPU] heading for 112,1 = %f\n\n", heading);
+    // }
 
     if (!valid)
         return;

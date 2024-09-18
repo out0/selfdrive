@@ -236,11 +236,14 @@ static int __CPU_computeFeasibleForAngle(
     return 1;
 }
 
-static float __CPU_compute_heading(float *waypoints, int pos1, int pos2, bool *valid, int width, int height)
+static float __CPU_compute_heading(float *waypoints, int pos1, int pos2, int waypoints_count, bool *valid, int width, int height)
 {
     *valid = false;
 
     if (pos1 < 0 || pos2 < 0)
+        return 0.0;
+
+    if (pos1 > waypoints_count || pos2 > waypoints_count)
         return 0.0;
 
     int x1 = waypoints[pos1 * 4];
@@ -268,7 +271,7 @@ static float __CPU_compute_heading(float *waypoints, int pos1, int pos2, bool *v
 
 #define NUM_POINTS_ON_MEAN 3
 
-static float __CPU__compute_mean_heading(float *waypoints, int pos, bool *valid, int width, int height)
+static float __CPU__compute_mean_heading(float *waypoints, int pos, int waypoints_count, bool *valid, int width, int height)
 {
     float heading = 0.0;
     int count = 0;
@@ -276,7 +279,7 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, bool *valid,
     for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
         bool v = false;
-        heading += __CPU_compute_heading(waypoints, pos, pos + j, &v, width, height);
+        heading += __CPU_compute_heading(waypoints, pos, pos + j, waypoints_count, &v, width, height);
         if (!v)
             break;
         count++;
@@ -289,7 +292,7 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, bool *valid,
         for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
         {
             bool v = false;
-            heading += __CPU_compute_heading(waypoints, pos - j, pos, &v, width, height);
+            heading += __CPU_compute_heading(waypoints, pos - j, pos, waypoints_count, &v, width, height);
             if (!v)
                 break;
             count++;
@@ -321,7 +324,7 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
         }
 
         bool valid = false;
-        float heading = __CPU__compute_mean_heading(waypoints, i, &valid, width, height);
+        float heading = __CPU__compute_mean_heading(waypoints, i, count, &valid, width, height);
 
         if (!valid)
             continue;
