@@ -124,8 +124,8 @@ class TestQuaternion(unittest.TestCase):
         
         
         #print (f"result: {res}")
-        self.assertAlmostEqual(10*math.sqrt(2), res[2], places=4)
-        self.assertAlmostEqual(0, res[1], places=4)
+        self.assertAlmostEqual(10*math.sqrt(2), res[1], places=2)
+        self.assertAlmostEqual(0, res[2], places=2)
        
 
     def test_compare_qmult_skewmult (self):

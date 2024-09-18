@@ -153,6 +153,15 @@ class Quaternion(object):
     def to_matrix(self) -> np.ndarray:
         return np.array([self.w, self.x, self.y, self.z])
 
+    def get_yaw(self) -> float:
+        return math.atan2(2.0*(self.y*self.z + self.w*self.x), self.w*self.w - self.x*self.x - self.y*self.y + self.z*self.z)
+
+    def get_pitch(self) -> float:
+        return math.asin(-2.0*(self.x*self.z - self.w*self.y))
+    
+    def get_roll(self) -> float:
+        return math.atan2(2.0*(self.x*self.y + self.w*self.z), self.w*self.w + self.x*self.x - self.y*self.y - self.z*self.z)
+
     def get_rotation_matrix(self, angle_rad: float) -> np.ndarray:
         
         a = angle_rad / 2
