@@ -6,8 +6,10 @@ from data.coordinate_converter import CoordinateConverter
 from planner.physical_model import ModelCurveGenerator
 from model.physical_parameters import PhysicalParameters
 from slam.slam import SLAM
+from model.waypoint import Waypoint
 import cv2
 import numpy as np
+import json
 
 
 DEBUG = True
@@ -39,9 +41,9 @@ class CollisionDetector(DiscreteComponent):
         self._slam = slam
         self._on_detect_enable = False
     
-    def __check_subpath_feasible(self, path: list[MapPose], r_paths: np.ndarray) -> bool:
+    def __check_subpath_feasible(self, path: list[MapPose], r_paths: np.ndarray, start: int) -> bool:
         pos = 0
-        for i in range(len(path)):
+        for i in range(start, len(path)):
             if not r_paths[pos]:
                 return False
             pos += 1
@@ -72,6 +74,25 @@ class CollisionDetector(DiscreteComponent):
         if size > 4: p1 = path[size - 4]
         return self.__compute_mean_point_heading(p4, p3, p2, p1)
 
+    def __log_collision_detect(self, og: OccupancyGrid, p1: list[Waypoint], p2: list[Waypoint], p3: list[Waypoint]) -> None:
+    
+            f = og.get_color_frame()
+
+            for path in [p1, p2, p3]:           
+                for p in path:
+                    if (p.z < 0 or p.z > og.height()): continue
+                    if (p.x < 0 or p.x > og.width()): continue
+                    f[p.z, p.x, :] = [255, 255, 255]
+            
+            cv2.imwrite("colision_frame.png", f)
+            with open("collision_path.log", "w") as log:
+                data = {}
+                data['left'] = list(map(lambda p: str(p), p1))
+                data['center'] = list(map(lambda p: str(p), p2))
+                data['right'] = list(map(lambda p: str(p), p3))
+                log.write(json.dumps(data))
+
+
     def ___check_collision(self, og: OccupancyGrid, vel: float) -> bool:
         # TODO: fix - should not be from the current pose but from the final pose on the path
         current_pose = self._slam.estimate_ego_pose()
@@ -80,24 +101,24 @@ class CollisionDetector(DiscreteComponent):
         
         tl, t, tr = self._curve_gen.gen_possible_top_paths(watch_pose, vel, steps=15)
         paths = []
-        paths.extend(self._map_converter.convert_map_path_to_waypoint(current_pose, tl))
-        paths.extend(self._map_converter.convert_map_path_to_waypoint(current_pose, t))
-        paths.extend(self._map_converter.convert_map_path_to_waypoint(current_pose, tr))
+        p1 = self._map_converter.convert_map_path_to_waypoint(current_pose, tl)
+        p2 = self._map_converter.convert_map_path_to_waypoint(current_pose, t)
+        p3 = self._map_converter.convert_map_path_to_waypoint(current_pose, tr)
+        paths.extend(p1)
+        paths.extend(p2)
+        paths.extend(p3)
         r_paths = og.check_path_feasible(paths)
         
         if DEBUG:
-            f = og.get_color_frame()
-            for p in paths:
-                f[p.z, p.x, :] = [255, 255, 255]
-            cv2.imwrite("colision_frame.png", f)
+            self.__log_collision_detect(og, p1, p2, p3)
         
-        if self.__check_subpath_feasible(tl, r_paths):
+        if self.__check_subpath_feasible(tl, r_paths, start=0):
             return False
         
-        if self.__check_subpath_feasible(t, r_paths):
+        if self.__check_subpath_feasible(t, r_paths, start=len(tl)):
             return False
 
-        if self.__check_subpath_feasible(tr, r_paths):
+        if self.__check_subpath_feasible(tr, r_paths, start=len(tl) + len(t)):
             return False
 
         return True
