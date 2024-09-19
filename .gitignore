@@ -24,3 +24,4 @@ seg_unet_carla/
 .Xauthority
 build/
 testing/carla/planning_data/
+venv/
