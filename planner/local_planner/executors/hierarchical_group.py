@@ -32,7 +32,7 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
         
         super().__init__(max_exec_time_ms)
         self._interpolator = InterpolatorPlanner(map_converter, max_exec_time_ms)
-        self._overtaker = OvertakerPlanner(max_exec_time_ms, 10)
+        self._overtaker = OvertakerPlanner(max_exec_time_ms, map_converter)
         self._hybrid_astar = HybridAStarPlanner(max_exec_time_ms, map_converter, 10)
         self._astar = VectorialAStarPlanner(max_exec_time_ms)
         # self._dubins = DubinsPathPlanner(max_exec_time_ms, map_converter, )
@@ -104,7 +104,14 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
                 self._overtaker.cancel()
                 self._exec_plan = False
                 return
-            
+        
+        if not self.__got_timeout(start_time, lambda: self._overtaker.is_planning()):
+            self._plan_result = self._overtaker.get_result()
+        
+            if self._plan_result.result_type == PlannerResultType.VALID:
+                self._astar.cancel()
+                self._exec_plan = False
+                return
             
         # if not self.__got_timeout(start_time, lambda: self._dubins.is_planning()):
         #     self._plan_result = self._dubins.get_result()
@@ -123,13 +130,7 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
                 self._exec_plan = False
                 return
     
-        if not self.__got_timeout(start_time, lambda: self._overtaker.is_planning()):
-            self._plan_result = self._overtaker.get_result()
-        
-            if self._plan_result.result_type == PlannerResultType.VALID:
-                self._astar.cancel()
-                self._exec_plan = False
-                return
+
     
         if not self.__got_timeout(start_time, lambda: self._astar.is_planning()):
             self._plan_result = self._astar.get_result()

@@ -13,7 +13,7 @@ from planner.physical_model import ModelCurveGenerator
 from data.coordinate_converter import CoordinateConverter
 from model.map_pose import MapPose
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 class OvertakerPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread
@@ -65,7 +65,6 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         dx = goal.x - start.x
         location: MapPose = self._planner_data.ego_location      
         map_start: MapPose = self._coord_conv.convert_waypoint_to_map_pose(location, start)
-        map_goal: MapPose = self._planner_data.goal
         velocity: float = 2
                 
         if dx < 0:
@@ -104,7 +103,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
 
 
         if self.__try_direct_path(goal):
-            dump_result(self._og, self._result)
+            if DEBUG_DUMP:
+                dump_result(self._og, self._result)
             self._result.result_type = PlannerResultType.VALID
             self._result.total_exec_time_ms = self.get_execution_time()
             self._search = False

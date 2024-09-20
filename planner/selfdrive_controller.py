@@ -237,7 +237,7 @@ class SelfDriveController(DiscreteComponent):
         plan_data.goal = p2
         plan_data.next_goal = p3
         # TODO: velocity could be automatic. for now its fixed
-        plan_data.velocity = 10.0
+        plan_data.velocity = 5.0
         #plan_data.velocity = 30.0
         
         self._last_planning_data = plan_data

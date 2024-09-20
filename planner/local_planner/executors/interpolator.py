@@ -8,7 +8,7 @@ from planner.local_planner.executors.waypoint_interpolator import WaypointInterp
 from scipy.ndimage import gaussian_filter
 from .debug_dump import dump_result
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 class InterpolatorPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread

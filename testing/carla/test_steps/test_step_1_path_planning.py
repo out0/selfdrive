@@ -46,6 +46,11 @@ def execute_plan (seq: int) -> None:
         time.sleep(0.01)
 
     res = local_planner.get_result()
+    
+    if res.result_type == PlannerResultType.VALID:
+        print (f"Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
+    else:
+        print (f"invalid plan for the selected local planner {res.planner_name}")
 
     outp = PlannerTestOutput(
         frame=data.og.get_color_frame(),

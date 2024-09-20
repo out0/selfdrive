@@ -4,10 +4,8 @@ from planner.local_planner.local_planner_executor import LocalPathPlannerExecuto
 from planner.local_planner.local_planner import PlanningData, PlanningResult, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
 from threading import Thread
-import sys, math, numpy as np
 from vision.occupancy_grid_cuda import OccupancyGrid
 from planner.physical_model import ModelCurveGenerator
-import cv2
 from queue import PriorityQueue
 from .debug_dump import dump_result
 
@@ -25,22 +23,22 @@ DIR_BOTTOM_RIGHT = 7
 TURNING_COST = 5
 
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
-SAFE_W = 10
-SAFE_H = 20
+# SAFE_W = 10
+# SAFE_H = 20
 
-def draw_safe_square(frame: np.ndarray, pos: tuple[int, int], angle: float):
-    r = angle
-    c = math.cos(r)
-    s = math.sin(r)
-    for z in range(-SAFE_H, SAFE_H + 1):
-        for x in range(-SAFE_W, SAFE_W + 1):
-            (xo, zo) = pos
-            xl = round(x * c - z * s) + xo
-            zl = round(x * s + z * c) + zo
-            frame[zl, xl, :] = [255, 255, 0]
-    frame[pos[1], pos[0], :] = [0, 0, 255]
+# def draw_safe_square(frame: np.ndarray, pos: tuple[int, int], angle: float):
+#     r = angle
+#     c = math.cos(r)
+#     s = math.sin(r)
+#     for z in range(-SAFE_H, SAFE_H + 1):
+#         for x in range(-SAFE_W, SAFE_W + 1):
+#             (xo, zo) = pos
+#             xl = round(x * c - z * s) + xo
+#             zl = round(x * s + z * c) + zo
+#             frame[zl, xl, :] = [255, 255, 0]
+#     frame[pos[1], pos[0], :] = [0, 0, 255]
 
 
 class Node:
