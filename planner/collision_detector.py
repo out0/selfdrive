@@ -131,7 +131,7 @@ class CollisionDetector(DiscreteComponent):
         if not COLLISION_DETECT or not self._on_detect_enable:
             return
         
-        if self._planned_path is None:
+        if self._planned_path is None or len(self._planned_path) < 5:
             return
         
         planning_data = self._planning_data_builder.build_planning_data()

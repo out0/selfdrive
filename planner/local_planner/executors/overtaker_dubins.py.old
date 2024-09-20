@@ -9,31 +9,33 @@ from planner.local_planner.executors.dubins_curves import Dubins
 from planner.local_planner.executors.waypoint_interpolator import WaypointInterpolator
 from model.physical_parameters import PhysicalParameters
 from .debug_dump import dump_result
-from planner.physical_model import ModelCurveGenerator
-from data.coordinate_converter import CoordinateConverter
-from model.map_pose import MapPose
 
 DEBUG_DUMP = True
 
 class OvertakerPlanner(LocalPathPlannerExecutor):
+
+    INSIDE = 0  # 0000
+    LEFT = 1    # 0001
+    RIGHT = 2   # 0010
+    BOTTOM = 4  # 0100
+    TOP = 8     # 1000
+
     _plan_task: Thread
     _search: bool
     _planner_data: PlanningData
     _result: PlanningResult
+    _step_size: int
     _dubins: Dubins
-    _kinematics: ModelCurveGenerator
-    _coord_conv: CoordinateConverter
 
     NAME = "overtaker"
 
     def __init__(self, 
                  max_exec_time_ms: int, 
-                 coord_converter: CoordinateConverter) -> None:
+                 step_size: int) -> None:
         
         super().__init__(max_exec_time_ms)
+        self._step_size = step_size
         self._dubins = Dubins(40, 4)
-        self._kinematics = ModelCurveGenerator(0.05)
-        self._coord_conv = coord_converter
 
 
     def plan(self, planner_data: PlanningData, partial_result: PlanningResult) -> None:
@@ -60,37 +62,18 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         
         return self._planner_data.og.check_all_path_feasible(path)
     
-    def __build_overtake_path(self, start: Waypoint, goal: Waypoint) -> list[Waypoint]:
-        
-        dx = goal.x - start.x
-        location: MapPose = self._planner_data.ego_location      
-        map_start: MapPose = self._coord_conv.convert_waypoint_to_map_pose(location, start)
-        map_goal: MapPose = self._planner_data.goal
-        velocity: float = 2
+    # def __dump_to_tmp(frame: np.ndarray, path: List[Waypoint], color = [255, 255, 255]):
+    #     new_f = np.zeros(frame.shape)
+    #     for i in range (frame.shape[0]):
+    #         for j in range (frame.shape[1]):
+    #             new_f[i, j, 0] = frame[i, j, 0]
+    #             new_f[i, j, 1] = frame[i, j, 1]
+    #             new_f[i, j, 2] = frame[i, j, 2]
                 
-        if dx < 0:
-            steering_angle = -PhysicalParameters.MAX_STEERING_ANGLE
-        elif dx > 0:
-            steering_angle = PhysicalParameters.MAX_STEERING_ANGLE
+    #     for p in path:
+    #         frame[p.z, p.x, :] = color
+    #     cv2.imwrite("overtake_tmp.png", frame)
 
-        lr = self._kinematics.get_lr()
-
-        steer = math.tan(math.radians(steering_angle))
-        beta = math.atan(steer / lr)
-        dt = abs((dx * PhysicalParameters.OG_HEIGHT_PX_TO_METERS_RATE) / (velocity * math.cos(beta)))
-        
-        path1 = self._kinematics.gen_path_cg_by_driving_time(map_start, steering_angle, velocity, 2.5*dt, 10)
-        #path2 = self._kinematics.gen_path_cg_by_driving_time(path1[-1], -steering_angle, velocity, 0.6*dt, 10)
-        #path1.extend(path2)
-        path = self._coord_conv.convert_map_path_to_waypoint(location, path1)
-        
-        path3 = WaypointInterpolator.interpolate_straight_line_path2(
-            path[-1], goal,  self._planner_data.og.width(), self._planner_data.og.height(), 20)
-        
-        path.extend(path3)
-        
-        return path
-  
 
     def __perform_local_planning(self) -> None:
         self._result.planner_name = OvertakerPlanner.NAME
@@ -108,7 +91,6 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
             self._result.result_type = PlannerResultType.VALID
             self._result.total_exec_time_ms = self.get_execution_time()
             self._search = False
-            return
         
         # if fails, try relocating the goal point       
         try_left_first = self._result.local_goal.x < start.x
@@ -152,11 +134,14 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     
     def __try_direct_path(self, goal: Waypoint):
         start = self._result.local_start
-        
-        self._result.path = self.__build_overtake_path(start, goal)
+        if start.x == goal.x:
+            # try going straight first        
+            self._result.path = WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._og.width, self._og.height, 20)
+        else:
+            self._result.path = self._dubins.build_path(start, goal, self._og.width(), self._og.height())
         
         if DEBUG_DUMP:
-            dump_result(self._og, self._result)
+                dump_result(self._og, self._result)
         
         return self.__check_path_feasible(self._result.path)
     
@@ -172,9 +157,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x < x_min or x > goal.x:
             return False
 
-        start = self._result.local_start
         new_goal = Waypoint(x, goal.z, 0)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self._result.path = self._dubins.build_path(self._result.local_start, new_goal, self._og.width(), self._og.height())
         
         if DEBUG_DUMP:
             dump_result(self._og, self._result)
@@ -196,9 +180,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x < goal.x or x > x_max:
             return False
 
-        start = self._result.local_start
         new_goal = Waypoint(x, goal.z, 0)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self._result.path = self._dubins.build_path(self._result.local_start, new_goal, self._og.width(), self._og.height())
         
         if DEBUG_DUMP:
             dump_result(self._og, self._result)
@@ -218,9 +201,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x < x_min:
             return False
 
-        start = self._result.local_start
         new_goal = Waypoint(x, goal.z, 0)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self._result.path = self._dubins.build_path(self._result.local_start, new_goal, self._og.width(), self._og.height())
         
         if DEBUG_DUMP:
             dump_result(self._og, self._result)
@@ -240,9 +222,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x >= x_max:
             return False
 
-        start = self._result.local_start
-        new_goal = Waypoint(x, goal.z, 0)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        new_goal = Waypoint(x, goal.z, 0)      
+        self._result.path = self._dubins.build_path(self._result.local_start, new_goal, self._og.width(), self._og.height())
         
         if DEBUG_DUMP:
             dump_result(self._og, self._result)

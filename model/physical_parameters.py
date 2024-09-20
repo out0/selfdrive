@@ -6,6 +6,9 @@ class PhysicalParameters:
     OG_WIDTH: int = 256
     OG_HEIGHT: int = 256
     
+    OG_WIDTH_PX_TO_METERS_RATE: float = OG_REAL_WIDTH / OG_WIDTH
+    OG_HEIGHT_PX_TO_METERS_RATE: float = OG_REAL_HEIGHT / OG_HEIGHT
+    
     MIN_DISTANCE_WIDTH_M: float = 3
     MIN_DISTANCE_HEIGHT_M: float = 6
     

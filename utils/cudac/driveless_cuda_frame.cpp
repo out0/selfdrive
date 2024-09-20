@@ -7,7 +7,7 @@
 #include "class_def.h"
 #include "cuda_frame.h"
 
-#define PATH_FEASIBLE_CPU_THRESHOLD 20
+#define PATH_FEASIBLE_CPU_THRESHOLD 2000
 
 extern uchar3 *CUDA_convertFrameColors(float3 *frame, int width, int height);
 
@@ -163,6 +163,7 @@ void CudaFrame::checkFeasibleWaypoints(float *points, int count)
 
     for (int c = 0; c < count; c++)
     {
+        points[4 * c + 2] = res[c].z;
         points[4 * c + 3] = res[c].w;
     }
 
@@ -279,6 +280,8 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, int waypoint
     for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
         bool v = false;
+        if (pos + j >= waypoints_count) 
+            break;
         heading += __CPU_compute_heading(waypoints, pos, pos + j, waypoints_count, &v, width, height);
         if (!v)
             break;
@@ -292,6 +295,10 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, int waypoint
         for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
         {
             bool v = false;
+            if (pos - j < 0)  {
+                *valid = false;
+                return 0.0;
+            }
             heading += __CPU_compute_heading(waypoints, pos - j, pos, waypoints_count, &v, width, height);
             if (!v)
                 break;
@@ -325,6 +332,8 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
 
         bool valid = false;
         float heading = __CPU__compute_mean_heading(waypoints, i, count, &valid, width, height);
+
+        waypoints[pos + 2] = heading;
 
         if (!valid)
             continue;

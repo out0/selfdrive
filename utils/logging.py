@@ -29,7 +29,7 @@ class Telemetry:
         if not os.path.exists (PLANNING_DATA_PATH):
             os.mkdir(PLANNING_DATA_PATH)
             
-        with open(f"{PLANNING_DATA_PATH}/planning_result_{seq}.dat", "w") as f:
+        with open(f"{PLANNING_DATA_PATH}/planning_result_{seq}.json", "w") as f:
             f.write(str(res))
 
         cv2.imwrite(f"{PLANNING_DATA_PATH}/bev_{seq}.png", data.bev)   
@@ -37,7 +37,7 @@ class Telemetry:
 
     @classmethod
     def read_planning_result(cls, seq: int) -> PlanningResult:
-        file = f"{PLANNING_DATA_PATH}/planning_result_{seq}.dat"
+        file = f"{PLANNING_DATA_PATH}/planning_result_{seq}.json"
 
         if not os.path.exists (file):
             return None

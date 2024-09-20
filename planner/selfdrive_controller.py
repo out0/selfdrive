@@ -101,7 +101,7 @@ class SelfDriveController(DiscreteComponent):
         
         self._local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
-            local_planner_type=LocalPlannerType.HybridAStar,
+            local_planner_type=LocalPlannerType.Ensemble,
             map_coordinate_converter=self._coord
         )
         
@@ -238,6 +238,7 @@ class SelfDriveController(DiscreteComponent):
         plan_data.next_goal = p3
         # TODO: velocity could be automatic. for now its fixed
         plan_data.velocity = 10.0
+        #plan_data.velocity = 30.0
         
         self._last_planning_data = plan_data
         self._local_planner.plan(plan_data)
@@ -348,5 +349,5 @@ class SelfDriveController(DiscreteComponent):
 
     def __perform_motion(self, path: list[MapPose]) -> None:
         # TODO: must convert path
-        self._motion_controller.set_path(path, velocity=2.0)
+        self._motion_controller.set_path(path, velocity=4.0)
         self._collision_detector.watch_path(path)

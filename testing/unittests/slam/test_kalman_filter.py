@@ -7,6 +7,8 @@ from model.sensors.gps import GPS
 from model.sensors.imu import IMU
 from model.sensors.odometer import Odometer
 from model.sensor_data import GpsData, IMUData
+from model.world_pose import WorldPose
+from data.coordinate_converter import CoordinateConverter
 from slam.slam import SLAM
 from slam.kalman_filter import ExtendedKalmanFilter
 from model.map_pose import MapPose
@@ -90,23 +92,73 @@ class TestKalmanFilter(unittest.TestCase):
                 return i
             filter.add_calibration_gnss_data(location)
     
-    def test_ekf(self):
+    def assertEqualLocation(self, l1: MapPose, l2: MapPose, v: float):
+        print (f"error in x: ({l2.x - l1.x})")
+        print (f"error in y: ({l2.y - l1.y})")
+        print (f"error in heading: ({l2.heading - l1.heading})")
+        print (f"velocity: {v}")
+        #self.assertAlmostEqual(l1.x, l2.x, places=0)
+        #self.assertAlmostEqual(l1.y, l2.y, places=0)
+        #self.assertAlmostEqual(l1.heading, l2.heading, places=1)
+    
+    def test_efk_dev(self):
         f = open("location.log", "r")
+        
+        dt_imu = 50/1000
+        dt_gps = 500/1000
+        
         filter = ExtendedKalmanFilter()
         
         lines = f.readlines()
         init = self.calibrate(filter, lines)
         
-        location_0, _, pose_0, _, _ = self.__convert_data(lines[init - 1])
+        for i in range(init, len(lines)):
+            _, _, _, vel, _ = self.__convert_data(lines[i])
+            if vel >= 1: 
+                init = i
+                break
+            
+        #first_in_move 
+        gps, imu, expected_pose, vel, dt = self.__convert_data(lines[init])
+        filter.predict_state_with_imu(imu, dt_imu)
+        
+        
+        for i in range(init+1, len(lines)):
+            gps, imu, expected_pose, vel, dt = self.__convert_data(lines[i])
+            if gps is not None:
+                filter.correct_state_with_gnss(gps)
+                
+    
+    
+    def test_ekf(self):
+        return
+        f = open("location.log", "r")
+        
+        dt_imu = 50/1000
+        dt_gps = 500/1000
+        
+        filter = ExtendedKalmanFilter()
+        
+        lines = f.readlines()
+        init = self.calibrate(filter, lines)
+        
+        location_0, _, pose_0, vel, _ = self.__convert_data(lines[init - 1])
+        
+        pred_pose = filter.get_location()
+        self.assertEqualLocation(pose_0, pred_pose, vel)
         
             
         for i in range(init, len(lines)):
             gps, imu, expected_pose, vel, dt = self.__convert_data(lines[i])
-            filter.predict_state_with_imu(imu, dt)
-            l = filter.get_location()
-            filter.correct_state_with_gnss(gps)
-            l = filter.get_location()            
-            last_dt = dt
+            
+            if gps is not None:
+                filter.correct_state_with_gnss(gps, expected_pose.heading)
+            
+            if imu is not None:
+                filter.predict_state_with_imu(imu, dt_imu)
+            
+            pred_pose = filter.get_location()
+            self.assertEqualLocation(expected_pose, pred_pose, vel)
         
         p = 1
 

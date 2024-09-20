@@ -1,10 +1,8 @@
-# Author: Shing-Yan Loo (yan99033@gmail.com)
-# Run extended Kalman filter to calculate the real-time vehicle location
-# 
-# Credit: State Estimation and Localization for Self-Driving Cars by Coursera
-#   Please consider enrolling the course if you find this tutorial helpful and  
-#   would like to learn more about Kalman filter and state estimation for 
-#   self-driving cars in general.
+#
+# EKF - sensor fusion of IMU and GPS
+#
+# mapping over MapPose
+#
 
 import numpy as np
 from utils.quaternion import Quaternion
@@ -13,6 +11,7 @@ from model.sensor_data import IMUData
 from model.map_pose import MapPose
 from model.world_pose import WorldPose
 from data.coordinate_converter import CoordinateConverter
+import math
 
 class ExtendedKalmanFilter:
     
@@ -20,8 +19,8 @@ class ExtendedKalmanFilter:
     
     def __init__(self):
         # State (position, velocity and orientation)
-        self.p = np.zeros([3, 1])
-        self.v = np.zeros([3, 1])
+        self.p = np.zeros(3)
+        self.v = np.zeros(3)
         self.q = Quaternion(1, 0, 0, 0)
 
         # State covariance
@@ -33,7 +32,7 @@ class ExtendedKalmanFilter:
         self.last_ts = 0
 
         # Gravity
-        self.g = np.array([0, 0, -9.81]).reshape(3, 1)
+        self.g = np.array([0, 0, -9.81])
 
         # Sensor noise variances
         self.var_imu_acc = 0.01
@@ -60,27 +59,62 @@ class ExtendedKalmanFilter:
         return self.initialized
     
     def add_calibration_gnss_data(self, gnss: GpsData):
+        
+        # gnss_converted_to_map = self._coord_converter.convert_world_to_map_pose(
+        #     WorldPose(
+        #         lat=gnss.latitude,
+        #         lon=gnss.longitude,
+        #         alt=gnss.altitude,
+        #         heading=0.0
+        #     )
+        # )
+        
         if self.gnss_init is None:
-            self.gnss_init = np.array([gnss.latitude, gnss.longitude, gnss.altitude])
+            self.gnss_init = np.array([
+                gnss.latitude,
+                gnss.longitude,
+                gnss.altitude
+            ])
             self.n_gnss_taken = 1
         else:
             self.gnss_init[0] += gnss.latitude
-            self.gnss_init[1] += gnss.longitude
+            self.gnss_init[1] += gnss.longitude                
             self.gnss_init[2] += gnss.altitude
             self.n_gnss_taken += 1
     
-    def calibrate(self):
-        # mean lat, lon, alt values for first initialization
-        self.gnss_init /= self.n_gnss_taken
+    def calibrate(self, map_init_pos: MapPose = None):
+        """_summary_
+
+        Args:
+            map_init_pos (MapPose, optional): sets an initial relative position.
+        """
+        self.gnss_init = self.gnss_init / self.n_gnss_taken
         
-        self._coord_converter = CoordinateConverter(
-            world_origin=WorldPose(
+        world_origin = WorldPose(
                 lat=self.gnss_init[0],
                 lon=self.gnss_init[1],
                 alt=self.gnss_init[2],
-                heading=0.0
+                heading=90.0
             )
-        )
+        
+        # first position computed from gnss mean
+        self._coord_converter = CoordinateConverter(world_origin)
+        if map_init_pos is None:
+            map_init_pos = self._coord_converter.convert_world_to_map_pose(world_origin)
+            
+        self.p = np.array([
+            map_init_pos.x,
+            map_init_pos.y,
+            0.0
+        ])
+        # self.p = np.array([
+        #     map_init_pos.x,
+        #     map_init_pos.y,
+        #     map_init_pos.z
+        # ])
+        
+        self.q = Quaternion.build_from_angles(np.array([0, 0, map_init_pos.heading]))       
+        #self.q.rotate(0, 0, 1, math.radians(map_init_pos.heading))
         
         # Low uncertainty in position estimation and high in orientation and 
         # velocity
@@ -93,13 +127,19 @@ class ExtendedKalmanFilter:
         self.initialized = True
 
 
-    def get_location(self):
-        """Return the estimated vehicle location
+    def get_location(self) -> MapPose:
+        return MapPose(
+            x=self.p[0],
+            y=self.p[1],
+            z=self.p[2],
+            heading=self.q.get_yaw()
+        )
+        # """Return the estimated vehicle location
 
-        :return: x, y, z position
-        :rtype: list
-        """
-        return self.p.reshape(-1).tolist()
+        # :return: x, y, z position
+        # :rtype: list
+        # """
+        # return self.p.reshape(-1).tolist()
 
     def predict_state_with_imu(self, imu: IMUData, delta_t: float):
         """Use the IMU reading to update the car location (dead-reckoning)
@@ -121,8 +161,10 @@ class ExtendedKalmanFilter:
         :type imu: IMU blueprint instance (Carla)
         """
         # IMU acceleration and velocity
-        imu_f = np.array([imu.accel_x, imu.accel_y, imu.accel_z])
-        imu_w = np.array([imu.gyro_x, imu.gyro_y, imu.gyro_z])
+        imu_f = np.array([imu.accel_x, imu.accel_y, imu.accel_z, 1])
+        #imu_w = np.array([imu.gyro_x, imu.gyro_y, imu.gyro_z, 1])
+        
+        imu_w = np.array([0.0, 0.0, imu.gyro_z, 1])
 
         # IMU sampling time
         #delta_t = imu.timestamp - self.last_ts
@@ -130,8 +172,16 @@ class ExtendedKalmanFilter:
 
         # Update state with imu
         R = Quaternion.build_mult_matrix(self.q)
-        self.p = self.p + delta_t * self.v + 0.5 * delta_t * delta_t * (R @ imu_f + self.g)
-        self.v = self.v + delta_t * (R @ imu_f + self.g)
+        
+        f = (imu_f @ R)[0:3]
+        # f_no_gravity = f + self.g        
+        # self.p = self.p + delta_t * self.v + 0.5 * delta_t * delta_t * f_no_gravity
+        # self.v = self.v + delta_t * f_no_gravity
+
+        f[2] = 0.0
+        self.p = self.p + delta_t * self.v + 0.5 * delta_t * delta_t * f
+        self.v = self.v + delta_t * f
+
         
         theta = imu_w * delta_t
         self.q = self.q * Quaternion.build_from_angles(theta)
@@ -159,7 +209,7 @@ class ExtendedKalmanFilter:
         """
         F = np.eye(9)
         F[:3, 3:6] = np.eye(3) * delta_t
-        F[3:6, 6:] = -ExtendedKalmanFilter.skew_symmetric(R @ imu_f) * delta_t
+        F[3:6, 6:] = -ExtendedKalmanFilter.skew_symmetric((R @ imu_f)[0:3] * delta_t)
 
         return F
 
@@ -177,7 +227,7 @@ class ExtendedKalmanFilter:
 
         return Q
 
-    def correct_state_with_gnss(self, gnss: GpsData):
+    def correct_state_with_gnss(self, gnss: GpsData, heading: float):
         """Given the estimated global location by gnss, correct
         the vehicle state
 
@@ -185,7 +235,12 @@ class ExtendedKalmanFilter:
         :type x: Gnss class (see car.py)
         """
         
-        map_pose = self._coord_converter.convert_world_to_map_pose(gnss)
+        map_pose = self._coord_converter.convert_world_to_map_pose(WorldPose(
+            lat=gnss.latitude,
+            lon=gnss.longitude,
+            alt=gnss.altitude,
+            heading=heading
+        ))
         
         # Global position
         x = map_pose.x
@@ -196,7 +251,8 @@ class ExtendedKalmanFilter:
         K = self.p_cov @ self.h_jac.T @ (np.linalg.inv(self.h_jac @ self.p_cov @ self.h_jac.T + self.var_gnss))
 
         # Compute the error state
-        delta_x = K @ (np.array([x, y, z])[:, None] - self.p)
+        delta_x = K @ (np.array([x, y, z]) - self.p).reshape((3,1))
+        delta_x = delta_x.reshape(9)
 
         # Correction
         self.p = self.p + delta_x[:3]

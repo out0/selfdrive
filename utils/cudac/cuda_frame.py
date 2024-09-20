@@ -152,7 +152,7 @@ class CudaFrame:
         lib.get_color_frame(self._cuda_frame, color_f)
         return color_f.reshape(self._orig_shape)
     
-    def compute_feasible_path(self, path: list[Waypoint]) -> np.ndarray:
+    def compute_feasible_path(self, path: list[Waypoint], save_heading: bool = False) -> np.ndarray:
         count = len(path)
         wp = np.ndarray((count, 4), dtype=np.float32)
         res = np.ndarray(count, dtype=np.int8)
@@ -171,6 +171,12 @@ class CudaFrame:
         for p in wp:
             res[i] = round(wp[i, 3])
             i += 1
+
+        if save_heading:
+            i = 0
+            for p in path:
+                p.heading = wp[i,2]
+                i += 1
             
         return res
     

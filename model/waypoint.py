@@ -58,3 +58,15 @@ class Waypoint:
         
         if dx == 0 and dz == 0: return 0
         return math.degrees(math.pi/2 - math.atan2(-dz, dx))
+    
+    @classmethod
+    def distance_to_line(cls, line_p1: 'Waypoint', line_p2: 'Waypoint', p: 'Waypoint') -> float:
+        dx = line_p2.x - line_p1.x
+        dz = line_p2.z - line_p1.z
+
+        if dx == 0 and dz == 0:
+            return 0
+       
+        num = dx*(line_p1.z - p.z) - (line_p1.x - p.x)*dz
+        den = math.sqrt((dx ** 2 + dz ** 2))
+        return num / den

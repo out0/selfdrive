@@ -74,7 +74,7 @@ class LocalPlanner:
             case LocalPlannerType.Overtaker:
                 return OvertakerPlanner(
                     self._plan_timeout_ms,
-                    10,
+                    self._map_coordinate_converter,
                 )
             case LocalPlannerType.VectorialAStar:
                 return VectorialAStarPlanner(

@@ -6,6 +6,9 @@ from data.coordinate_converter import CoordinateConverter
 from threading import Thread
 from planner.local_planner.executors.waypoint_interpolator import WaypointInterpolator
 from scipy.ndimage import gaussian_filter
+from .debug_dump import dump_result
+
+DEBUG_DUMP = True
 
 class InterpolatorPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread
@@ -47,7 +50,7 @@ class InterpolatorPlanner(LocalPathPlannerExecutor):
 
 
     def __perform_local_planning(self) -> None:
-        
+        self._result.planner_name = InterpolatorPlanner.NAME
         self.set_exec_started()
         path: list[Waypoint] = None
         
@@ -91,4 +94,8 @@ class InterpolatorPlanner(LocalPathPlannerExecutor):
        
         self._result.total_exec_time_ms = self.get_execution_time()
         self._search = False
+        
+        if DEBUG_DUMP:
+            dump_result(self._planner_data.og, self._result)
+        
 

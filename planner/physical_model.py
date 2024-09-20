@@ -14,6 +14,9 @@ class ModelCurveGenerator:
         self._pixel_ratio = PhysicalParameters.OG_HEIGHT / PhysicalParameters.OG_REAL_HEIGHT
         self._L_m = (PhysicalParameters.EGO_LOWER_BOUND.z - PhysicalParameters.EGO_UPPER_BOUND.z) / self._pixel_ratio
         self._lr = 0.5 * self._L_m
+        
+    def get_lr(self) -> float:
+        return self._lr
     
     @classmethod
     def get_min_radius(cls) -> float:
@@ -43,6 +46,55 @@ class ModelCurveGenerator:
             path.append(next_point)
             
         return path
+    
+    def gen_path_cg_by_driving_time(self, pos: MapPose, steering_angle: int, velocity_meters_per_s: float, driving_time: float, steps: int) -> list[MapPose]:
+        """ Generate path from the center of gravity
+        """
+        steer = math.tan(math.radians(steering_angle))
+        beta = math.degrees(math.atan(steer / self._lr))
+
+        x = pos.x
+        y = pos.y
+        v = velocity_meters_per_s
+        heading = pos.heading
+        path = []
+        
+        dt = driving_time / steps
+
+        for _ in range (steps):
+            x = x + v * math.cos(math.radians(heading + beta)) * dt
+            y = y + v * math.sin(math.radians(heading + beta)) * dt
+            heading = math.degrees(math.radians(heading) + v * math.cos(math.radians(beta)) * steer * self._delta_t / (2*self._lr))
+            next_point = MapPose(x, y, pos.z, heading=heading)
+            path.append(next_point)
+            
+        return path
+    
+    # def gen_path_cg_by_driving_time(self, pos: MapPose, steering_angle: int, velocity_meters_per_s: float, driving_time: float, dt: float) -> list[MapPose]:
+    #     """ Generate path from the center of gravity
+    #     """
+    #     steer = math.tan(math.radians(steering_angle))
+    #     beta = math.degrees(math.atan(steer / self._lr))
+
+    #     x = pos.x
+    #     y = pos.y
+    #     v = velocity_meters_per_s
+    #     heading = pos.heading
+    #     path = []
+        
+    #     steps = math.ceil(driving_time / dt)
+
+    #     for _ in range (steps):
+    #         x = x + v * math.cos(math.radians(heading + beta)) * self._delta_t
+    #         y = y + v * math.sin(math.radians(heading + beta)) * self._delta_t
+    #         heading = math.degrees(math.radians(heading) + v * math.cos(math.radians(beta)) * steer * self._delta_t / (2*self._lr))
+    #         next_point = MapPose(x, y, pos.z, heading=heading)
+    #         path.append(next_point)
+            
+    #     return path
+    
+        
+       
     
     def gen_possible_top_paths(self, pos: MapPose, velocity_meters_per_s: float, steps: int = 20) -> list[list[MapPose]]:
         p_top_left = self.gen_path_cg(pos, velocity_meters_per_s, -PhysicalParameters.MAX_STEERING_ANGLE, steps)

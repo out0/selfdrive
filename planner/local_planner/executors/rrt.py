@@ -130,6 +130,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         return True
     
     def __perform_planning(self) -> None:
+        self._result.planner_name = RRTPlanner.NAME
         self.set_exec_started()
         self._node_list.append(RRTNode(self._result.local_start.x, self._result.local_start.z, None))
         

@@ -192,7 +192,7 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
                 *valid = false;
                 return 0.0;
             }
-            heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos - j], &v, width, height);
+            heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos - j], waypoints[pos], &v, width, height);
             if (!v)
                 break;
             count++;
@@ -246,10 +246,12 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
     bool valid = false;
     float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, count, &valid, width, height);
 
-    // if (x == 112 && z == 1)
+    // if (x == 116 && z == 3)
     // {
-    //     printf("\n[GPU] heading for 112,1 = %f\n\n", heading);
-    // }
+    //      printf("\n[GPU] heading for %d, %d = %f, pos = %d\n\n", x, z, heading, pos);
+    //  }
+
+    waypoints[pos].z = heading;
 
     if (!valid)
         return;

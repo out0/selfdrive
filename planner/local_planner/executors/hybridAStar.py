@@ -9,6 +9,7 @@ from vision.occupancy_grid_cuda import OccupancyGrid
 from planner.physical_model import ModelCurveGenerator
 import cv2
 from queue import PriorityQueue
+from .debug_dump import dump_result
 
 MAX_FLOAT = 100000000
 
@@ -24,7 +25,7 @@ DIR_BOTTOM_RIGHT = 7
 TURNING_COST = 5
 
 
-DEBUG_OUTP = False
+DEBUG_DUMP = True
 
 SAFE_W = 10
 SAFE_H = 20
@@ -142,16 +143,16 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
     def __build_child_nodes(self, parent: Node, path: list[MapPose], rel_dir: int) -> list[Node]:
         path_w = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, path)
         
-        if DEBUG_OUTP:
-            self.show_path(path_w, color=[0, 0, 255])
+        # if DEBUG_OUTP:
+        #     self.show_path(path_w, color=[0, 0, 255])
         
         first_unfeasible = self.__find_first_unfeasible(path_w)
        
         if first_unfeasible == 0:
             return []
 
-        if DEBUG_OUTP:
-            self.show_path(path_w[:first_unfeasible], color=[255, 0, 0])
+        # if DEBUG_OUTP:
+        #     self.show_path(path_w[:first_unfeasible], color=[255, 0, 0])
         
         res = []
 
@@ -215,52 +216,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         self._plan_task = None
         self._og = None
         
-    def show_point (self, p: Waypoint,  color = [255, 255, 255]):
-        frame = cv2.imread("plan_debug_outp.png")
-    
-        if p.x < 0:
-            p.x = 0
-        if p.z < 0:
-            p.z = 0
-        
-        if p.x > 0:
-            frame[p.z, p.x - 1, :] = color
-        if p.x < frame.shape[1] - 1:
-            frame[p.z, p.x + 1, :] = color
-        if p.z > 0:
-            frame[p.z - 1, p.x, :] = color
-        if p.z < frame.shape[0] - 1:
-            frame[p.z + 1, p.x, :] = color
-    
-    
-        frame[p.z, p.x, :] = color
-        cv2.imwrite("plan_debug_outp.png", frame)
-        
-    def show_path (self, path: list[Waypoint],  color = [255, 255, 255]):
-        if (len(path) == 0): return
-        frame = np.array(cv2.imread("plan_debug_outp.png"))
 
-        for p in path:
-            # angle = math.atan2(p.z - before.z, p.x - before.x)+  math.radians(-90)
-            # draw_safe_square(frame, (p.x, p.z), angle) 
-            if p.x < 0 or p.x >= frame.shape[1]:
-                continue
-            if p.z < 0 or p.z >= frame.shape[0]:
-                continue
-            
-            if p.x > 0:
-                frame[p.z, p.x - 1, :] = color
-            if p.x < frame.shape[1] - 1:
-                frame[p.z, p.x + 1, :] = color
-            if p.z > 0:
-                frame[p.z - 1, p.x, :] = color
-            if p.z < frame.shape[0] - 1:
-                frame[p.z + 1, p.x, :] = color
-    
-            frame[p.z, p.x, :] = color
-            
-            
-        cv2.imwrite("plan_debug_outp.png", frame)
     
     def plan(self, planner_data: PlanningData, partial_result: PlanningResult):
         self._search = True
@@ -281,6 +237,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         return Waypoint(p1.x + p2.x, p1.z + p2.z)
 
     def __perform_planning(self) -> None:
+        self._result.planner_name = HybridAStarPlanner.NAME
         self.set_exec_started()
         self._search = True
         
@@ -304,11 +261,9 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         best_distance_to_goal: float = MAX_FLOAT
         closed: dict[str, Node] = {}
 
-        if DEBUG_OUTP:
-            frame = self._og.get_color_frame()
-            cv2.imwrite("plan_debug_outp.png", frame)
-            self.show_point(self._result.local_goal, color=[255, 0, 0])
-
+        if DEBUG_DUMP:
+            dump_result(self._og, self._result)
+ 
 
         perform_search = self._search
         while perform_search and not open_list.empty():

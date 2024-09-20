@@ -132,13 +132,13 @@ class WaypointInterpolator:
             while z > p2.z:
                 x = x + dx
                 z = z + dz
-                p = WaypointInterpolator.__create_waypoint(x, z, og_width(), og_height())
+                p = WaypointInterpolator.__create_waypoint(x, z, og_width, og_height)
                 path.append(p)
         else:
             while z < p2.z:
                 x = x + dx
                 z = z + dz
-                p = WaypointInterpolator.__create_waypoint(x, z, og_width(), og_height())
+                p = WaypointInterpolator.__create_waypoint(x, z, og_width, og_height)
                 path.append(p)
                         
         return path
