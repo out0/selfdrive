@@ -17,7 +17,7 @@ class CudaFrame
     int upper_bound_z;
     void copyToCpuPointer(float3 *source, float *target);
     void copyToCpuPointer(uchar3 *source, u_char *target);
-    void checkFeasibleWaypointsCPU(float *points, int count);
+    void checkFeasibleWaypointsCPU(float *points, int count, bool computeHeadings);
     //void computeHeadings(float *points, int count);
 
 public:
@@ -32,7 +32,7 @@ public:
     /// @brief Check which waypoints are feasible
     /// @param points a four-position float array, where the first 3 channels represent x,z,heading pose and the last channel is to be rewritten carrying 1 for feasible or 0 for not-feasible
     /// @param count how many points are in the array (total float * should be count * sizeof(float) * 4)
-    void checkFeasibleWaypoints(float *points, int count);
+    void checkFeasibleWaypoints(float *points, int count, bool computeHeadings);
 
     static int get_class_cost(int segmentation_class);
 };

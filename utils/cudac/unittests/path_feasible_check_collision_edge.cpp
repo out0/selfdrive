@@ -103,7 +103,7 @@ TEST(PathFeasibleCheck, TestEgdeCollision)
 
     int count_l = 0;
     float * points_l = read_waypoint_list(j["left"], count_l);
-    f.checkFeasibleWaypoints(points_l, count_l);
+    f.checkFeasibleWaypoints(points_l, count_l, true);
     //printf ("not feasible: \n");
     for (int i = 0; i < count_l; i++) {
         if (points_l[4*i + 3] == 0) {
@@ -119,7 +119,7 @@ TEST(PathFeasibleCheck, TestEgdeCollision)
     int count_c = 0;
     float * points_c = read_waypoint_list(j["center"], count_c);
 
-    f.checkFeasibleWaypoints(points_c, count_c);
+    f.checkFeasibleWaypoints(points_c, count_c, true);
     for (int i = 0; i < count_c; i++) {
         if (points_c[4*i + 3] == 0) {
             int x = (int)points_c[4*i];
@@ -132,7 +132,7 @@ TEST(PathFeasibleCheck, TestEgdeCollision)
     
     int count_r = 0;
     float * points_r = read_waypoint_list(j["right"], count_r);
-    f.checkFeasibleWaypoints(points_r, count_r);
+    f.checkFeasibleWaypoints(points_r, count_r, true);
     for (int i = 0; i < count_r; i++) {
         if (points_r[4*i + 3] == 0) {
             int x = (int)points_r[4*i];
@@ -158,7 +158,7 @@ TEST(PathFeasibleCheck, TestEgdeCollision)
             all[4*pos + j] = points_r[4*i + j];
     }
 
-    f.checkFeasibleWaypoints(all, pos);
+    f.checkFeasibleWaypoints(all, pos, true);
     for (int i = 0; i < pos; i++) {
         if (all[4*i + 3] == 0) {
             int x = (int)all[4*i];

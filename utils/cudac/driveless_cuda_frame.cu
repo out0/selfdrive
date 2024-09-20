@@ -173,7 +173,7 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
     for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
         bool v = false;
-        if (pos + j >= waypoints_count) 
+        if (pos + j >= waypoints_count)
             break;
         heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos + j], &v, width, height);
         if (!v)
@@ -188,7 +188,8 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
         for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
         {
             bool v = false;
-            if (pos - j < 0)  {
+            if (pos - j < 0)
+            {
                 *valid = false;
                 return 0.0;
             }
@@ -207,7 +208,7 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
     return 0.0;
 }
 
-__global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *params, int *classCost, float4 *waypoints, int count)
+__global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *params, int *classCost, float4 *waypoints, int count, bool computeHeadings)
 {
     int width = params[0];
     int height = params[1];
@@ -243,18 +244,26 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
 
-    bool valid = false;
-    float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, count, &valid, width, height);
+    float heading = 0.0;
+    if (computeHeadings)
+    {
+        bool valid = false;
+        
+        float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, count, &valid, width, height);
+        
+        waypoints[pos].z = heading;
+        
+        if (!valid)
+            return;
+
+    } else {
+        heading = waypoints[pos].z;
+    }
 
     // if (x == 116 && z == 3)
     // {
     //      printf("\n[GPU] heading for %d, %d = %f, pos = %d\n\n", x, z, heading, pos);
     //  }
-
-    waypoints[pos].z = heading;
-
-    if (!valid)
-        return;
 
     // if (x == DEBUG_X && z == DEBUG_Z)
     // {
@@ -437,7 +446,8 @@ float4 *CUDA_checkFeasibleWaypoints(
     int lower_bound_x,
     int lower_bound_z,
     int upper_bound_x,
-    int upper_bound_z)
+    int upper_bound_z,
+    bool computeHeadings)
 {
     const int numClasses = 29;
     int size = width * height;
@@ -490,7 +500,7 @@ float4 *CUDA_checkFeasibleWaypoints(
 
     int numBlocks = floor(size / 256) + 1;
 
-    __CUDA_KERNEL_checkFeasibleWaypoints<<<numBlocks, 256>>>(frame, params, costs, waypoints, count);
+    __CUDA_KERNEL_checkFeasibleWaypoints<<<numBlocks, 256>>>(frame, params, costs, waypoints, count, computeHeadings);
 
     CUDA(cudaDeviceSynchronize());
     cudaFreeHost(params);

@@ -7,7 +7,7 @@
 #include "class_def.h"
 #include "cuda_frame.h"
 
-#define PATH_FEASIBLE_CPU_THRESHOLD 2000
+#define PATH_FEASIBLE_CPU_THRESHOLD 20
 
 extern uchar3 *CUDA_convertFrameColors(float3 *frame, int width, int height);
 
@@ -35,7 +35,8 @@ extern float4 *CUDA_checkFeasibleWaypoints(
     int lower_bound_x,
     int lower_bound_z,
     int upper_bound_x,
-    int upper_bound_z);
+    int upper_bound_z,
+    bool computeHeadings);
 
 extern void CUDA_setGoalVectorized(
     float3 *frame,
@@ -132,7 +133,7 @@ void CudaFrame::copyBack(float *img)
 /// @brief Check which waypoints are feasible
 /// @param points a four-position float array, where the first 3 channels represent x,z,heading pose and the last channel is to be rewritten carrying 1 for feasible or 0 for not-feasible
 /// @param count how many points are in the array (total float * should be count * sizeof(float) * 4)
-void CudaFrame::checkFeasibleWaypoints(float *points, int count)
+void CudaFrame::checkFeasibleWaypoints(float *points, int count, bool computeHeadings)
 {
     if (count == 0)
         return;
@@ -141,7 +142,8 @@ void CudaFrame::checkFeasibleWaypoints(float *points, int count)
     {
         checkFeasibleWaypointsCPU(
             points,
-            count);
+            count,
+            computeHeadings);
         return;
     }
 
@@ -156,7 +158,8 @@ void CudaFrame::checkFeasibleWaypoints(float *points, int count)
         this->lower_bound_x,
         this->lower_bound_z,
         this->upper_bound_x,
-        this->upper_bound_z);
+        this->upper_bound_z,
+        computeHeadings);
 
     if (res == nullptr)
         return;
@@ -314,7 +317,7 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, int waypoint
     return 0.0;
 }
 
-void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
+void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count, bool computeHeadings)
 {
     for (int i = 0; i < count; i++)
     {
@@ -330,13 +333,18 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count)
             continue;
         }
 
-        bool valid = false;
-        float heading = __CPU__compute_mean_heading(waypoints, i, count, &valid, width, height);
+        float heading = 0.0;
 
-        waypoints[pos + 2] = heading;
+        if (computeHeadings) {
+            bool valid = false;
+            heading = __CPU__compute_mean_heading(waypoints, i, count, &valid, width, height);
+            waypoints[pos + 2] = heading;
+            if (!valid)
+                continue;
+        } else {
+            heading = waypoints[pos + 2];
+        }
 
-        if (!valid)
-            continue;
 
         // if (x == 131 && z == 45)
         //     printf("pos = %d, x = %d, z = %d computed heading = %f\n", i, x, z, heading);

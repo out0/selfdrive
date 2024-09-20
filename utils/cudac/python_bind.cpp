@@ -49,7 +49,7 @@ extern "C"
     void compute_feasible_path(void *self, float *waypoints, int count)
     {
         CudaFrame *f = (CudaFrame *)self;
-        f->checkFeasibleWaypoints(waypoints, count);
+        f->checkFeasibleWaypoints(waypoints, count, true);
     }
 
     int get_class_cost(int segmentation_class) {

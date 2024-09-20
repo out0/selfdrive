@@ -58,7 +58,8 @@ lib.compute_feasible_path.restype = None
 lib.compute_feasible_path.argtypes = [
     ctypes.c_void_p, 
     np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1),
-    ctypes.c_int # count
+    ctypes.c_int, # count
+    ctypes.c_bool
 ]
 
 lib.get_class_cost.restype = ctypes.c_int
@@ -152,7 +153,7 @@ class CudaFrame:
         lib.get_color_frame(self._cuda_frame, color_f)
         return color_f.reshape(self._orig_shape)
     
-    def compute_feasible_path(self, path: list[Waypoint], save_heading: bool = False) -> np.ndarray:
+    def compute_feasible_path(self, path: list[Waypoint], compute_heading: bool = False ) -> np.ndarray:
         count = len(path)
         wp = np.ndarray((count, 4), dtype=np.float32)
         res = np.ndarray(count, dtype=np.int8)
@@ -165,14 +166,14 @@ class CudaFrame:
             i += 1
         
         if (count > 0):
-            lib.compute_feasible_path(self._cuda_frame, wp.reshape(4*count), count)
+            lib.compute_feasible_path(self._cuda_frame, wp.reshape(4*count), count, compute_heading)
         
         i = 0
         for p in wp:
             res[i] = round(wp[i, 3])
             i += 1
 
-        if save_heading:
+        if compute_heading:
             i = 0
             for p in path:
                 p.heading = wp[i,2]

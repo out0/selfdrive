@@ -18,7 +18,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       heading=0)
 
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.HybridAStar
+PLANNER_TYPE = LocalPlannerType.Overtaker
 
 def execute_plan (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
