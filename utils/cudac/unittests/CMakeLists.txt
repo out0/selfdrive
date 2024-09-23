@@ -5,7 +5,7 @@ project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "CUDA Compute for 
 include(GNUInstallDirs)
 
 set(CMAKE_CUDA_ARCHITECTURES "native")
-SET(CMAKE_CUDA_COMPILER /usr/local/cuda-12.6/bin/nvcc)
+SET(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED) 
@@ -45,11 +45,12 @@ SET(TARGET_H
 add_executable(
   unittest
   unittests.cpp
-  #path_feasible_check_collision_edge.cpp
+#  path_feasible_check_collision_edge.cpp
   set_goal_vectorized_test.cpp
   ../driveless_cuda_frame.cpp
   ../python_bind.cpp
   ../driveless_cuda_frame.cu
+  test_frame.cpp
   # utils/data_convert_test.cpp
   # model/frame_test.cpp
   # model/planning_waypoint_test.cpp

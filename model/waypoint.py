@@ -15,6 +15,7 @@ class Waypoint:
     
     
     def __eq__(self, other):
+        if other is None: return False
         return  self.x == other.x and \
                 self.z == other.z and \
                 self.heading == other.heading
@@ -70,3 +71,17 @@ class Waypoint:
         num = dx*(line_p1.z - p.z) - (line_p1.x - p.x)*dz
         den = math.sqrt((dx ** 2 + dz ** 2))
         return num / den
+    
+    @classmethod
+    def clip(cls, p: 'Waypoint', width: int, height: int) -> 'Waypoint':
+        res = Waypoint(p.x, p.z, p.heading)
+        
+        if res.x < 0:
+            res.x = 0
+        if res.x >= width:
+            res.x = width - 1
+        if res.z < 0:
+            res.z = 0
+        if res.z >= height:
+            res.z = height - 1            
+        return res

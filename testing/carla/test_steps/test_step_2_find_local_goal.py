@@ -42,7 +42,7 @@ def show_planned_location_relative_to_projection(
     
     h = Waypoint.compute_heading(local_start, result_goal)
     print(f"direct heading:{h:.4} degrees")
-    print(f"chosen heading: {result_goal.heading:.4} degrees")
+    print(f"chosen heading: {result_goal.heading:} degrees")
     
     if projected_goal.x == result_goal.x and projected_goal.z == result_goal.z:
         outp.add_point(projected_goal, color=[0, 255, 0])
@@ -73,9 +73,13 @@ def execute_plan (seq: int) -> None:
     res = local_goal_discover.find_goal(
         og=og,
         current_pose=result.ego_location,
-        goal_pose=result.map_goal
+        goal_pose=result.map_goal,
+        next_goal_pose=result.map_next_goal
     )
     
+    if res is None:
+        print(f"no goal was found for seq: {seq}")
+        return
     
     show_planned_location_relative_to_projection(
         file=f"goal_point_res_{seq}.png",
@@ -88,9 +92,10 @@ def execute_plan (seq: int) -> None:
 
 
 def main(argc: int, argv: List[str]) -> int:
-    # for i in range(1,12):
-    #     execute_plan(i)
-    execute_plan(11)
+    for i in range(1,25):
+         execute_plan(i)
+    
+    # execute_plan(11)
     # execute_plan(3)
     # execute_plan(4)
     # execute_plan(5)

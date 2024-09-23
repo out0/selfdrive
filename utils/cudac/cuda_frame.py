@@ -67,13 +67,15 @@ lib.get_class_cost.argtypes = [ctypes.c_int]
 
 
 class GridDirection (Enum):
-    ALL = 0x0f
-    HEADING_0 = 0x08
-    HEADING_90 = 0x04
-    HEADING_45 = 0x02 # TL, BR
-    HEADING_MINUS_45 = 0x01  # TR, BL 
-    HEADING_FROM_START = 0x10
-
+    ALL = 0xff
+    HEADING_0 = 0x01
+    HEADING_22_5 = 0x02
+    HEADING_45 = 0x04
+    HEADING_67_5 = 0x08
+    HEADING_90 = 0x10
+    HEADING_MINUS_22_5 = 0x20
+    HEADING_MINUS_45 = 0x40
+    HEADING_MINUS_67_5 = 0x80
 
 
 class CudaFrame:

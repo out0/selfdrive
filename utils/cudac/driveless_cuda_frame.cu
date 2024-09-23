@@ -359,38 +359,36 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
     }
 
     int v = 0;
-    float angle = 0;
+
 
     // REMOVER
 #ifdef DEBUG_SET_GOAL_VECTOR
     __CUDA_KERNEL_FrameColor_Debug(frame, width, height, classColorsDebug);
 #endif
 
-    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_0, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         v = v | HEADING_0;
 
-    angle = CUDART_PI_F / 2; // 90
-    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-        v = v | HEADING_90;
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_22_5, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        v = v | HEADING_22_5;
 
-    angle = CUDART_PI_F / 4; // 45
-    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_45, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         v = v | HEADING_45;
 
-    angle = -CUDART_PI_F / 4; // -45
-    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_67_5, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        v = v | HEADING_67_5;
+
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_90, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        v = v | HEADING_90;
+
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_MINUS_22_5, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        v = v | HEADING_MINUS_22_5;
+
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_MINUS_45, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         v = v | HEADING_MINUS_45;
 
-    angle = 2 * CUDART_PI_F - atan2f(-dz, dx);
-    if (angle > CUDART_PI_F) // greater than 180 deg
-        angle = angle - 2 * CUDART_PI_F;
-
-    // if (x == DEBUG_X && z == DEBUG_Z)
-    // {
-    //     printf("angle = %f\n", angle);
-    // }
-    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-        v = v | HEADING_FROM_START;
+    if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, ANGLE_HEADING_MINUS_67_5, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        v = v | HEADING_MINUS_67_5;
 
     frame[pos].z = v;
 }

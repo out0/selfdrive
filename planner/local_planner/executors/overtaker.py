@@ -71,6 +71,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
             steering_angle = -PhysicalParameters.MAX_STEERING_ANGLE
         elif dx > 0:
             steering_angle = PhysicalParameters.MAX_STEERING_ANGLE
+        else:
+            return WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._planner_data.og.width(), self._planner_data.og.height(), 30)
 
         lr = self._kinematics.get_lr()
 
