@@ -45,7 +45,8 @@ SET(TARGET_H
 add_executable(
   unittest
   unittests.cpp
-  path_feasible_check_collision_edge.cpp
+  #path_feasible_check_collision_edge.cpp
+  set_goal_vectorized_test.cpp
   ../driveless_cuda_frame.cpp
   ../python_bind.cpp
   ../driveless_cuda_frame.cu

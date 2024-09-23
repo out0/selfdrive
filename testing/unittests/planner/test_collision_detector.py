@@ -17,7 +17,7 @@ from model.sensors.gps import GPS
 from model.sensors.imu import IMU
 from model.sensors.odometer import Odometer
 from model.sensor_data import GpsData, IMUData
-from test_utils import TestFrame
+from testing.test_utils import TestFrame
 
 
 class TestPlanDataBuilder(PlanningDataBuilder):

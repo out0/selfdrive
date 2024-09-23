@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(cudac-test LANGUAGES CXX CUDA VERSION 1.0.0 DESCRIPTION "CUDA Compute for OG testing")
+project(bevconv LANGUAGES CXX CUDA VERSION 1.0.0 DESCRIPTION "CUDA Compute for OG testing")
 
 include(GNUInstallDirs)
 
@@ -22,21 +22,21 @@ SET(TARGET_H
     driveless_cudac.h
 )
  
-add_executable(cudactst
-    test.cpp
+add_executable(${PROJECT_NAME}
+    img_conv.cpp
     ../driveless_cuda_frame.cpp
     ../driveless_cuda_frame.cu
     ../python_bind.cpp
 )
 
 if(CUDA_LIB_JETSON)
-    target_link_libraries(cudactst 
+    target_link_libraries(${PROJECT_NAME} 
         ${CMAKE_THREAD_LIBS_INIT}
         ${CUDA_LIBRARIES}
         jetson-utils
         ${OpenCV_LIBS})
 else()
-    target_link_libraries(cudactst 
+    target_link_libraries(${PROJECT_NAME} 
         ${CMAKE_THREAD_LIBS_INIT}
         ${CUDA_LIBRARIES}
         cuda
@@ -45,11 +45,9 @@ else()
 endif(CUDA_LIB_JETSON)
 
 
-set_target_properties(cudactst PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
 )
-install(TARGETS cudactst
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
     

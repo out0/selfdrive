@@ -60,7 +60,7 @@ void writeRGBToPNG(const unsigned char *data, int width, int height, const std::
     cv::imwrite(filename, image);
 }
 
-bool test_convert_image(const char *file, const char *outp_file)
+bool convert_image(const char *file, const char *outp_file)
 {
 
     int width, height, channels;
@@ -81,55 +81,61 @@ bool test_convert_image(const char *file, const char *outp_file)
     return true;
 }
 
-bool test_set_goal(const char *file)
+
+// bool test_set_goal(const char *file)
+// {
+//     int width, height, channels;
+//     float *img = readPNGToFloatArray(file, width, height, channels);
+//     if (!img)
+//     {
+//         fprintf(stderr, "unable to read %s\n", file);
+//         return false;
+//     }
+//     auto f = std::make_unique<CudaFrame>(img, width, height, 0, 0, 119, 148, 137, 108);
+
+//     int goal_x = 0;
+//     int goal_z = 0;
+
+//     float *img2 = new float[height * width * 3];
+
+//     f->setGoal(goal_x, goal_z);
+//     f->copyBack(img2);
+
+//     for (int i = 0; i < height; i++)
+//         for (int j = 0; j < width; j++)
+//         {
+//             float dz = (i - goal_z);
+//             float dx = (j - goal_x);
+//             auto expected = sqrt( dx * dx + dz * dz);
+//             auto obtained = img2[3 * (i * width + j) + 1];
+
+//             if (expected != obtained)
+//             {
+//                 printf("computeEuclidianCostToGoal values mismatch at (x,z) %d, %d:  expected: %f obtainded %f\n", j, i, expected, obtained);
+//                 return false;
+//             }
+//         }
+
+//     delete []img2;
+//     delete []img;
+
+//     return true;
+// }
+
+
+int main(int argc, char **argv)
 {
-    int width, height, channels;
-    float *img = readPNGToFloatArray(file, width, height, channels);
-    if (!img)
-    {
-        fprintf(stderr, "unable to read %s\n", file);
-        return false;
+    if (argc < 2) {
+        fprintf(stderr, "please use %s <image.png>", argv[0]);
+        return 1;
     }
-    auto f = std::make_unique<CudaFrame>(img, width, height, 0, 0, 119, 148, 137, 108);
 
-    int goal_x = 0;
-    int goal_z = 0;
-
-    float *img2 = new float[height * width * 3];
-
-    f->setGoal(goal_x, goal_z);
-    f->copyBack(img2);
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-        {
-            float dz = (i - goal_z);
-            float dx = (j - goal_x);
-            auto expected = sqrt( dx * dx + dz * dz);
-            auto obtained = img2[3 * (i * width + j) + 1];
-
-            if (expected != obtained)
-            {
-                printf("computeEuclidianCostToGoal values mismatch at (x,z) %d, %d:  expected: %f obtainded %f\n", j, i, expected, obtained);
-                return false;
-            }
-        }
-
-    delete []img2;
-    delete []img;
-
-    return true;
-}
-
-int main()
-{
-    if (!test_convert_image("img_0.png", "img_0_conv.png"))
-    {
-        return -1;
-    }
-    if (!test_set_goal("img_0.png"))
-    {
-        return -1;
-    }
+    if (!convert_image(argv[1], "converted.png")) 
+        return 1;
+    
+    // if (!test_set_goal("img_0.png"))
+    // {
+    //     return -1;
+    // }
     return 0;
 }

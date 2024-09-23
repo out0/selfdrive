@@ -61,6 +61,8 @@ class GoalPointDiscover:
             self._ego_start = Waypoint(
                 og.width() / 2, PhysicalParameters.EGO_UPPER_BOUND.z - 1)
 
+        og.set_goal_vectorized(goal)
+
         if self._check_goal_is_in_range_and_feasible(og, goal):
             return GoalPointDiscoverResult(og, self._ego_start, goal, 0, self._check_too_close(og, goal))
         
@@ -74,9 +76,7 @@ class GoalPointDiscover:
 
         if dist >= TOO_FAR_THRESHOLD:
             direction = self._degenerate_direction(direction)
-
-        og.set_goal_vectorized(out_of_range_goal)
-        
+       
         # boundaries means that the goal is feasible a waypoint at the border of the BEV
         goal = self._find_best_goal_on_boundaries(og, out_of_range_goal, direction, BORDER_CHECK_DEPTH)
         if goal is not None:
@@ -304,8 +304,16 @@ class GoalPointDiscover:
         if goal.x < 0 or goal.x >= og.width() or goal.z < 0 or goal.z >= og.height():
             return False
 
-        goal.heading = OccupancyGrid.compute_heading(self._ego_start, goal)
-        return og.check_waypoint_feasible(goal)
+        #goal.heading = OccupancyGrid.compute_heading(self._ego_start, goal)
+        
+        return og.check_any_direction_allowed(goal.x, goal.z)
+        
+        # if not og.check_waypoint_feasible(goal):
+        #     if abs(goal.heading) < 5: 
+        #         goal.heading = 0
+        #         return og.check_waypoint_feasible(goal)
+        #     return False
+        # return True
     
     ### TESTED
     def _check_too_close(self, og: OccupancyGrid, goal: Waypoint) -> bool:
@@ -339,7 +347,9 @@ class GoalPointDiscover:
             z_range=( 0, round(height/2 - 2 * min_dist_z)),
             z_range_cols= (0, border_depth),
             relative_heading=relative_heading,
-            allowed_directions=(HEADING_FROM_START | HEADING_0 | HEADING_45)
+            allowed_directions=(
+                #HEADING_FROM_START | HEADING_0 | HEADING_45
+            )
         )
         return goal
 

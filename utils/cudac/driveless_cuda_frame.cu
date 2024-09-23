@@ -2,8 +2,9 @@
 #include "class_def.h"
 #include <math_constants.h>
 
-#define DEBUG_X 131
-#define DEBUG_Z 78
+//#define DEBUG_X 31
+//#define DEBUG_Z 100
+//#define DEBUG_SET_GOAL_VECTOR 1
 
 __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
     float3 *frame,
@@ -45,6 +46,7 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
                 // if (x == DEBUG_X && z == DEBUG_Z)
                 // {
                 //     printf("(%d, %d) not feasible on angle %f because of position: (%d, %d)\n", x, z, angle_radians * 180 / CUDART_PI_F, xl, zl);
+                //     printf("(%d, %d) min distances: W: %d  H: %d\n",  x, z, min_dist_x, min_dist_z);
                 // }
                 return false;
             }
@@ -56,6 +58,7 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
     // }
     return true;
 }
+
 
 __global__ static void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, int width, int height, uchar3 *classColors)
 {
@@ -75,6 +78,27 @@ __global__ static void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, i
     output[pos].y = classColors[segClass].y;
     output[pos].z = classColors[segClass].z;
 }
+
+#ifdef DEBUG_SET_GOAL_VECTOR
+__device__ static void __CUDA_KERNEL_FrameColor_Debug(float3 *frame, int width, int height, uchar3 *classColors)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int y = pos / width;
+    int x = pos - y * width;
+
+    if (y >= height)
+        return;
+    if (x >= width)
+        return;
+
+    int segClass = frame[pos].x;
+
+    frame[pos].x = classColors[segClass].x;
+    frame[pos].y = classColors[segClass].y;
+    frame[pos].z = classColors[segClass].z;
+}
+#endif
 
 __global__ static void __CUDA_KERNEL_ComputeCost(float3 *frame, int *params, int *classCost)
 {
@@ -248,15 +272,16 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
     if (computeHeadings)
     {
         bool valid = false;
-        
+
         float heading = __CUDA_KERNEL_compute_mean_heading(waypoints, pos, count, &valid, width, height);
-        
+
         waypoints[pos].z = heading;
-        
+
         if (!valid)
             return;
-
-    } else {
+    }
+    else
+    {
         heading = waypoints[pos].z;
     }
 
@@ -274,7 +299,7 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
         waypoints[pos].w = 0;
 }
 
-__global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *params, int *classCost)
+__global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *params, int *classCost, uchar3 *classColorsDebug)
 {
     int width = params[0];
     int height = params[1];
@@ -336,6 +361,11 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
     int v = 0;
     float angle = 0;
 
+    // REMOVER
+#ifdef DEBUG_SET_GOAL_VECTOR
+    __CUDA_KERNEL_FrameColor_Debug(frame, width, height, classColorsDebug);
+#endif
+
     if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         v = v | HEADING_0;
 
@@ -352,6 +382,9 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
         v = v | HEADING_MINUS_45;
 
     angle = 2 * CUDART_PI_F - atan2f(-dz, dx);
+    if (angle > CUDART_PI_F) // greater than 180 deg
+        angle = angle - 2 * CUDART_PI_F;
+
     // if (x == DEBUG_X && z == DEBUG_Z)
     // {
     //     printf("angle = %f\n", angle);
@@ -547,7 +580,23 @@ void CUDA_setGoalVectorized(float3 *frame, int width, int height, int goal_x, in
 
     int numBlocks = floor(size / 256) + 1;
 
-    __CUDA_KERNEL_SetGoalVectorized<<<numBlocks, 256>>>(frame, params, costs);
+    uchar3 *classColors = nullptr;
+
+#ifdef DEBUG_SET_GOAL_VECTOR
+    if (!cudaAllocMapped(&classColors, sizeof(uchar3) * numClasses))
+    {
+        return;
+    }
+
+    for (int i = 0; i < numClasses; i++)
+    {
+        classColors[i].x = segmentationClassColors[i][0];
+        classColors[i].y = segmentationClassColors[i][1];
+        classColors[i].z = segmentationClassColors[i][2];
+    }
+#endif
+
+    __CUDA_KERNEL_SetGoalVectorized<<<numBlocks, 256>>>(frame, params, costs, classColors);
 
     CUDA(cudaDeviceSynchronize());
     cudaFreeHost(params);

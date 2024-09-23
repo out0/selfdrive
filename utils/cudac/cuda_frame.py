@@ -189,9 +189,12 @@ class CudaFrame:
 
         width = self._orig_shape[1]
         height = self._orig_shape[0]
+        
+        min_dist_x = round(self._min_dist_x / 2)
+        min_dist_z = round(self._min_dist_z / 2)
 
-        for z in range (-self._min_dist_z, self._min_dist_z + 1):
-            for x in range (-self._min_dist_x, self._min_dist_x + 1):
+        for z in range (-min_dist_z, min_dist_z + 1):
+            for x in range (-min_dist_x, min_dist_x + 1):
 
                 xl = round(x * c - z * s) + p.x
                 zl = round(x * s + z * c) + p.z
