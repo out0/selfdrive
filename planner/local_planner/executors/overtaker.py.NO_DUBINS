@@ -13,7 +13,7 @@ from planner.physical_model import ModelCurveGenerator
 from data.coordinate_converter import CoordinateConverter
 from model.map_pose import MapPose
 
-DEBUG_DUMP = False
+DEBUG_DUMP = True
 
 class OvertakerPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread
@@ -62,7 +62,35 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     
     def __build_overtake_path(self, start: Waypoint, goal: Waypoint) -> list[Waypoint]:
         
-        return self._dubins.build_path(start, goal, self._og.width() - 1, self._og.height() - 1)
+        dx = goal.x - start.x
+        location: MapPose = self._planner_data.ego_location      
+        map_start: MapPose = self._coord_conv.convert_waypoint_to_map_pose(location, start)
+        velocity: float = 2
+                
+        if dx < 0:
+            steering_angle = -PhysicalParameters.MAX_STEERING_ANGLE
+        elif dx > 0:
+            steering_angle = PhysicalParameters.MAX_STEERING_ANGLE
+        else:
+            return WaypointInterpolator.interpolate_straight_line_path2(start, goal,  self._planner_data.og.width(), self._planner_data.og.height(), 30)
+
+        lr = self._kinematics.get_lr()
+
+        steer = math.tan(math.radians(steering_angle))
+        beta = math.atan(steer / lr)
+        dt = abs((dx * PhysicalParameters.OG_HEIGHT_PX_TO_METERS_RATE) / (velocity * math.cos(beta)))
+        
+        path1 = self._kinematics.gen_path_cg_by_driving_time(map_start, steering_angle, velocity, 2.5*dt, 10)
+        #path2 = self._kinematics.gen_path_cg_by_driving_time(path1[-1], -steering_angle, velocity, 0.6*dt, 10)
+        #path1.extend(path2)
+        path = self._coord_conv.convert_map_path_to_waypoint(location, path1)
+        
+        path3 = WaypointInterpolator.interpolate_straight_line_path2(
+            path[-1], goal,  self._planner_data.og.width(), self._planner_data.og.height(), 20)
+        
+        path.extend(path3)
+        
+        return path
   
 
     def __perform_local_planning(self) -> None:

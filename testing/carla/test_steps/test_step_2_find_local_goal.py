@@ -94,10 +94,10 @@ def execute_plan (seq: int) -> None:
 
 
 def main(argc: int, argv: List[str]) -> int:
-    # for i in range(1,25):
-    #     execute_plan(i)
+    for i in range(1,25):
+        execute_plan(i)
     
-    execute_plan(10)
+    #execute_plan(10)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

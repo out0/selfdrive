@@ -56,16 +56,21 @@ void TestFrame::addGreenPoint(int x, int z)
     addPoint(x, z, 0, 255, 0);
 }
 
-float * TestFrame::getImgPtr() {
+float *TestFrame::getImgPtr()
+{
     return data;
 }
 
-    float getDistanceCost(int x, int z) {
-        int pos = get
-    }
-    int getAllowedHeadings(int x, int z) {
-
-    }
+float TestFrame::getDistanceCost(int x, int z)
+{
+    int pos = getVectorPos(x, z);
+    return data[pos + 1];
+}
+int TestFrame::getAllowedHeadings(int x, int z)
+{
+    int pos = getVectorPos(x, z);
+    return (int)data[pos + 2];
+}
 
 void TestFrame::addPoint(int x, int z, int r, int g, int b)
 {

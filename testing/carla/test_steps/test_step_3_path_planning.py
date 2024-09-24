@@ -18,7 +18,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       heading=0)
 
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.Interpolator
+PLANNER_TYPE = LocalPlannerType.Overtaker
 
 def execute_plan (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -61,7 +61,7 @@ def execute_plan (seq: int) -> None:
     outp.write(f"test_output_{seq}.png")
 
 def main(argc: int, argv: List[str]) -> int:
-    execute_plan(10)
+    execute_plan(14)
     # execute_plan(2)
     # execute_plan(3)
     # execute_plan(4)

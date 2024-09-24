@@ -55,8 +55,8 @@ class Dubins:
 
     def build_path(self, start: Waypoint, goal: Waypoint, max_width: int, max_height: int) -> list[Waypoint]:
         res = self.__dubins_path(
-            (start.x, start.z, -90 + start.heading),
-            (goal.x, goal.z, -90 + goal.heading)
+            (start.x, start.z, math.radians(-90 + start.heading)),
+            (goal.x, goal.z, math.radians(-90 + goal.heading))
         )
         
         path = []

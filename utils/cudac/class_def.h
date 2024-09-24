@@ -39,7 +39,7 @@ const int segmentationClassCost[29] = {
     -1,
     -1,
     0,
-    -1,
+    0,   // LAMP? investigate...
     -1,
     -1,
     -1,

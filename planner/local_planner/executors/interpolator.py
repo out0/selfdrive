@@ -53,11 +53,12 @@ class InterpolatorPlanner(LocalPathPlannerExecutor):
         self._result.planner_name = InterpolatorPlanner.NAME
         self.set_exec_started()
         path: list[Waypoint] = None
-        
+               
         path = [
             self._result.local_start,
             self._result.local_goal
         ]
+        
 
         if self._result.map_next_goal is not None:
             next_possible_local_goal = self._map_coordinate_converter.convert_map_to_waypoint(
