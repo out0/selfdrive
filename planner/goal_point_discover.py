@@ -39,6 +39,26 @@ INSIDE = 0  # 0000
 TOO_FAR_THRESHOLD = 150
 
 
+class SearchParameters:
+    start: Waypoint
+    g1: Waypoint
+    g2: Waypoint
+    direction: int
+    distance_to_goal: float
+    
+    def __init__(self,
+        start: Waypoint,
+        goal_candidate: Waypoint,
+        next_goal_candidate: Waypoint,
+        direction: int,
+        distance_to_goal: float
+    ) -> None:
+        self.start = start
+        self.g1 = goal_candidate
+        self.g2 = next_goal_candidate
+        self.direction = direction
+        self.distance_to_goal = distance_to_goal
+
 class GoalPointDiscover:
 
     _map_coordinate_converter: CoordinateConverter
@@ -50,44 +70,57 @@ class GoalPointDiscover:
                  map_coordinate_converter: CoordinateConverter) -> None:
         self._map_coordinate_converter = map_coordinate_converter
         self._ego_start = None
-
-
-    def find_goal(self, og: OccupancyGrid, current_pose: MapPose, goal_pose: MapPose, next_goal_pose: MapPose) -> GoalPointDiscoverResult:
-
-        goal_candidate = self._map_coordinate_converter.convert_map_to_waypoint(current_pose, goal_pose)
-        next_goal_candidate = None
         
-        if next_goal_pose is not None:
-            next_goal_candidate = self._map_coordinate_converter.convert_map_to_waypoint(current_pose, next_goal_pose)
-
+    def __compute_initial_parameters(self, og: OccupancyGrid, current_pose: MapPose, goal_pose: MapPose, next_goal_pose: MapPose) -> SearchParameters:
         if self._ego_start is None:
             self._ego_start = Waypoint(
                 og.width() / 2, PhysicalParameters.EGO_UPPER_BOUND.z - 1)
-
-        direction = self.__compute_direction(self._ego_start, goal_candidate)
-        distance = Waypoint.distance_between(self._ego_start, goal_candidate)
         
-        if direction & BOTTOM:
+        
+        goal_candidate = self._map_coordinate_converter.convert_map_to_waypoint(current_pose, goal_pose)
+        
+        params = SearchParameters(
+            start=self._ego_start,
+            goal_candidate=goal_candidate,
+            next_goal_candidate=None,
+            direction=self.__compute_direction(self._ego_start, goal_candidate),
+            distance_to_goal=Waypoint.distance_between(self._ego_start, goal_candidate)
+        )
+        
+        if next_goal_pose is not None:
+            params.g2 = self._map_coordinate_converter.convert_map_to_waypoint(current_pose, next_goal_pose)
+
+        return params
+
+    def find_goal(self, og: OccupancyGrid, current_pose: MapPose, goal_pose: MapPose, next_goal_pose: MapPose) -> GoalPointDiscoverResult:
+
+        params = self.__compute_initial_parameters(og, current_pose, goal_pose, next_goal_pose)
+        
+        if params.direction & BOTTOM:
             return None
 
-        og.set_goal_vectorized(goal_candidate)
+        og.set_goal_vectorized(params.g1)
 
-        goal = self.__try_direct_goal(og, self._ego_start, goal_candidate, next_goal_candidate,  direction, distance)        
+        goal = self.__try_direct_goal(og, params)
         
         if goal is None:
-            goal = self.__find_best_goal(og, self._ego_start, goal_candidate, next_goal_candidate, direction, distance)
-            goal.heading = self.__find_best_heading(og, self._ego_start, goal_candidate, next_goal_candidate, direction)
+            goal = self.__find_local_goal_to_reach(og, params, params.g1)
         
-        if goal is None: return None        
+            if goal is None: 
+                return None
+            
+            goal.heading = self.__find_best_alternative_heading_to_goal(og, params, goal)
         
+        
+        direction = self.__compute_direction_from_heading_angle(goal.heading)
         
         return GoalPointDiscoverResult(
             og=og,
             start=self._ego_start,
             goal=goal,
             direction=direction,
-            too_close=False
-            #too_close=self._check_too_close(og, goal)
+            #too_close=False
+            too_close=self._check_too_close(og, goal)
         )
 
     def _check_too_close(self, og: OccupancyGrid, goal: Waypoint) -> bool:
@@ -98,44 +131,79 @@ class GoalPointDiscover:
         dist = math.sqrt(dx ** 2 + dz ** 2)
         return dist <= 2 * max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
 
-    def __try_direct_goal(self, og: OccupancyGrid, start: Waypoint, goal_candidate: Waypoint, next_goal_candidate: Waypoint, direction: int, distance: float) -> Waypoint:
+    # let g1 = goal
+    #     g2 = next goal
+    
+    def __try_projecting_g1(self, og: OccupancyGrid, params: SearchParameters) -> tuple[Waypoint, int]:
+        # project g1 locally
+        params.g1 = Waypoint.clip(params.g1, og.width(), og.height())
+        # set heading g1 --> g2
+                
+        params.g1.heading = Waypoint.compute_heading(params.g1, params.g2)
+        if og.check_waypoint_feasible(params.g1):
+            return params.g1
         
-        if self.__goal_in_range(og, goal_candidate):            
-            if next_goal_candidate != None:
-                goal_candidate.heading = Waypoint.compute_heading(goal_candidate, next_goal_candidate)
-                if og.check_waypoint_feasible(goal_candidate):
-                    return goal_candidate
-                else:
-                    if og.check_any_direction_allowed(goal_candidate.x, goal_candidate.z):
-                        goal_candidate.heading = self.__find_best_heading(og, start, goal_candidate, next_goal_candidate, direction)
-                    return goal_candidate
+        # if not feasible, then check if we can reach g1 with any heading 
+        if og.check_any_direction_allowed(params.g1.x, params.g1.z):
+            params.g1.heading = self.__find_best_alternative_heading_to_goal(og, params, params.g1)
+            return params.g1
+        
+        return None
 
-        if distance <= TOO_FAR_THRESHOLD:
-            goal = Waypoint.clip(goal_candidate, og.width(), og.height())
-            if og.check_any_direction_allowed(goal.x, goal.z):
-                goal_candidate.heading = self.__find_best_heading(og, start, goal_candidate, next_goal_candidate, direction)
-                return goal
+    def __try_direct_goal(self, og: OccupancyGrid, params: SearchParameters) -> Waypoint:
+        
+        if self.__goal_in_range(og, params.g1):            
+            if params.g2 is None:
+                return self.__find_direct_final_goal(og, params)
+            else:
+                return self.__find_direct_goal_with_next_goal(og, params)
+        
+        ## G1 is not in range
+        
+        if params.distance_to_goal > TOO_FAR_THRESHOLD:
+            # it is not good to go directly, because g1 is too far
+            return None
+        
+        goal = self.__try_projecting_g1(og, params)
+        if goal is not None:
+            return goal
 
+        # g1 is not reachable, lets keep searching for alternatives
+        return None
+        
+    def __find_direct_goal_with_next_goal(self, og: OccupancyGrid, params: SearchParameters) -> Waypoint:
+        # When g1 is in range and there's a g2, we want to (1) go towards g1 if possible and (2) arrive at g1 with heading g1 ---> g2
+        params.g1.heading = Waypoint.compute_heading(params.g1, params.g2)
+        if og.check_waypoint_feasible(params.g1):
+            return params.g1
+                
+        # if (1) is not possible, then g1 is not a good choice, we want to go directly to g2
+        goal = self.__find_local_goal_to_reach(og, params, params.g2)
+        
+        if goal is None: 
+            return None
+            
+        goal.heading = self.__find_best_alternative_heading_to_goal(og, params, goal)
+        return goal
+    
+    def __find_direct_final_goal(self, og: OccupancyGrid, params: SearchParameters) -> Waypoint:
+        # In case g2 is None, we reached the end of our path, so we just need to reach g1.
+        params.g1.heading = Waypoint.compute_heading(params.start , params.g2)
+        
+        if og.check_waypoint_feasible(params.g1):
+            return params.g1
+        
+        if og.check_any_direction_allowed(params.g1.x, params.g1.z):
+            params.g1.heading = self.__find_best_alternative_heading_to_goal(og, params, params.g1)
+            return params.g1
+        
         return None
     
-    def __find_best_heading(self, og: OccupancyGrid, start: Waypoint, goal_candidate: Waypoint, next_goal_candidate: Waypoint, direction: int) -> float:   
-        goal_candidate.heading = Waypoint.compute_heading(start, goal_candidate)
-        best_heading = 999999
+    def __find_best_alternative_heading_to_goal(self, og: OccupancyGrid, params: SearchParameters, goal: Waypoint) -> float:   
         
-        if og.check_waypoint_feasible(goal_candidate):
-            best_heading = goal_candidate.heading
-            
-        goal_candidate.heading = Waypoint.compute_heading(goal_candidate, next_goal_candidate)
-        if og.check_waypoint_feasible(goal_candidate):
-            best_heading = min(best_heading, goal_candidate.heading)
-        
-        if best_heading < 90:
-            return best_heading
-        
-        allowed_dirs = int(og.get_frame()[goal_candidate.z, goal_candidate.x, 2])
-        
-        best_heading = goal_candidate.heading
-        err = 99999999
+        best_heading =  Waypoint.compute_heading(params.start, goal)
+        allowed_dirs = int(og.get_frame()[goal.z, goal.x, 2])
+        heading_error = 99999999
         
         left_dirs = [
             GridDirection.HEADING_0.value,
@@ -160,36 +228,40 @@ class GoalPointDiscover:
             90
         ]
                 
-        if direction & LEFT:            
+        if params.direction & LEFT:            
             for i in range(len(left_dirs)):
                 if not allowed_dirs & left_dirs[i]: continue                
-                new_err = dir_angles[i] - abs(goal_candidate.heading)
-                if new_err < err:
+                new_err = dir_angles[i] - abs(params.g1.heading)
+                if new_err < heading_error:
                     best_heading = -dir_angles[i]
-                    err = new_err
+                    heading_error = new_err
         else:
             for i in range(len(right_dirs)):
                 if not allowed_dirs & right_dirs[i]: continue                
-                new_err = dir_angles[i] - abs(goal_candidate.heading)
-                if new_err < err:
+                new_err = dir_angles[i] - abs(params.g1.heading)
+                if new_err < heading_error:
                     best_heading = dir_angles[i]
-                    err = new_err
+                    heading_error = new_err
     
         return best_heading
     
-    def __find_best_goal(self, og: OccupancyGrid, start: Waypoint, goal_candidate: Waypoint, next_goal_candidate: Waypoint, direction: int, distance: float) -> Waypoint:
+    def __find_local_goal_to_reach(self, og: OccupancyGrid, params: SearchParameters, goal_to_reach: Waypoint) -> Waypoint:
+        
+        distance = Waypoint.distance_between(params.start, goal_to_reach)
+        direction = self.__compute_direction(params.start, goal_to_reach)
+        
         if distance > TOO_FAR_THRESHOLD:            
-            goal = self._find_goal_in_upper_border(og, start, direction)
+            goal = self._find_goal_in_upper_border(og, params.start, direction)
             if goal is not None:
                 return goal
 
-            goal = self._find_goal_forward(og, start, goal_candidate, distance)
+            goal = self._find_goal_forward(og, params.start, goal_to_reach, distance)
             if goal is not None:
                 return goal
         
-
-        return self._find_best_of_any_goal_in_direction(og, goal_candidate, direction)
-        
+        return self._find_best_of_any_goal_in_direction(og, params.start, direction)
+            
+    
     def _find_goal_in_upper_border(self, og: OccupancyGrid, start: Waypoint, direction: int) -> Waypoint:
 
         init = Waypoint(0, 0)
@@ -267,3 +339,22 @@ class GoalPointDiscover:
         return direction
 
 
+    def __compute_direction_from_heading_angle(self, heading: float) -> int:
+        
+        if heading >= -90 and heading <= 90:
+            
+            if heading < 0:
+                return TOP | LEFT
+            elif heading > 0:
+                return TOP | RIGHT
+            else:
+                return TOP
+        else:
+            if heading < -90:
+                return BOTTOM | LEFT
+            elif heading == 180:
+                return BOTTOM
+            else:
+                return BOTTOM | RIGHT
+            
+        

@@ -96,7 +96,8 @@ class LocalPlanner:
         
         goal_result = self._goal_point_discover.find_goal(og=planning_data.og,
                                                           current_pose=planning_data.ego_location,
-                                                          goal_pose=planning_data.goal)
+                                                          goal_pose=planning_data.goal,
+                                                          next_goal_pose=planning_data.next_goal)
     
         partial_result = LocalPlanner.__build_basic_response_data(planning_data, goal_result)
     

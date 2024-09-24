@@ -8,7 +8,7 @@ from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType
 from model.planning_data import PlanningData, PlanningResult, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
 from utils.logging import Telemetry
-from testing.unittests.test_utils import PlannerTestOutput
+from testing.test_utils import PlannerTestOutput
 
 import time
 
@@ -18,7 +18,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       heading=0)
 
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.Overtaker
+PLANNER_TYPE = LocalPlannerType.Interpolator
 
 def execute_plan (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -61,7 +61,7 @@ def execute_plan (seq: int) -> None:
     outp.write(f"test_output_{seq}.png")
 
 def main(argc: int, argv: List[str]) -> int:
-    execute_plan(1)
+    execute_plan(10)
     # execute_plan(2)
     # execute_plan(3)
     # execute_plan(4)

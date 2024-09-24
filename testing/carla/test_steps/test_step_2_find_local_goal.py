@@ -26,6 +26,7 @@ PLANNER_TYPE = LocalPlannerType.Overtaker
 
 def show_planned_location_relative_to_projection(
             file: str, 
+            seq: int,
             og: OccupancyGrid, 
             coord: CoordinateConverter,
             ego_location: MapPose, 
@@ -37,12 +38,12 @@ def show_planned_location_relative_to_projection(
     
     projected_goal = coord.clip(coord.convert_map_to_waypoint(ego_location, goal))
     
-    print(f"projected local goal: ({projected_goal.x}, {projected_goal.z})")
-    print(f"chosen local goal: ({result_goal.x}, {result_goal.z})")
+    print(f"[{seq}] projected local goal: ({projected_goal.x}, {projected_goal.z})")
+    print(f"[{seq}] chosen local goal: ({result_goal.x}, {result_goal.z})")
     
     h = Waypoint.compute_heading(local_start, result_goal)
-    print(f"direct heading:{h:.4} degrees")
-    print(f"chosen heading: {result_goal.heading:} degrees")
+    print(f"\tdirect heading:{h:.4} degrees")
+    print(f"\tchosen heading: {result_goal.heading:} degrees")
     
     if projected_goal.x == result_goal.x and projected_goal.z == result_goal.z:
         outp.add_point(projected_goal, color=[0, 255, 0])
@@ -83,6 +84,7 @@ def execute_plan (seq: int) -> None:
     
     show_planned_location_relative_to_projection(
         file=f"goal_point_res_{seq}.png",
+        seq=seq,
         og=og,
         coord=coord,
         local_start=result.local_start,
@@ -92,10 +94,11 @@ def execute_plan (seq: int) -> None:
 
 
 def main(argc: int, argv: List[str]) -> int:
-    for i in range(1,25):
-         execute_plan(i)
+    # for i in range(1,25):
+    #     execute_plan(i)
     
-    # execute_plan(11)
+    execute_plan(10)
+    #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
     # execute_plan(5)
