@@ -97,7 +97,13 @@ class GoalPointDiscover:
         params = self.__compute_initial_parameters(og, current_pose, goal_pose, next_goal_pose)
         
         if params.direction & BOTTOM:
-            return None
+            return GoalPointDiscoverResult(
+                    og=og,
+                    start=self._ego_start,
+                    goal=None,
+                    direction=BOTTOM,
+                    #too_close=False
+                    too_close=False)
 
         og.set_goal_vectorized(params.g1)
 
@@ -107,7 +113,14 @@ class GoalPointDiscover:
             goal = self.__find_local_goal_to_reach(og, params, params.g1)
         
             if goal is None: 
-                return None
+                return GoalPointDiscoverResult(
+                    og=og,
+                    start=self._ego_start,
+                    goal=None,
+                    direction=0,
+                    #too_close=False
+                    too_close=False
+        )
             
             goal.heading = self.__find_best_alternative_heading_to_goal(og, params, goal)
         
@@ -136,17 +149,17 @@ class GoalPointDiscover:
     
     def __try_projecting_g1(self, og: OccupancyGrid, params: SearchParameters) -> tuple[Waypoint, int]:
         # project g1 locally
-        params.g1 = Waypoint.clip(params.g1, og.width(), og.height())
+        goal_candidate = Waypoint.clip(params.g1, og.width(), og.height())
         # set heading g1 --> g2
                 
-        params.g1.heading = Waypoint.compute_heading(params.g1, params.g2)
-        if og.check_waypoint_feasible(params.g1):
-            return params.g1
+        goal_candidate.heading = Waypoint.compute_heading(params.g1, params.g2)
+        if og.check_waypoint_feasible(goal_candidate):
+            return goal_candidate
         
         # if not feasible, then check if we can reach g1 with any heading 
-        if og.check_any_direction_allowed(params.g1.x, params.g1.z):
-            params.g1.heading = self.__find_best_alternative_heading_to_goal(og, params, params.g1)
-            return params.g1
+        if og.check_any_direction_allowed(goal_candidate.x, goal_candidate.z):
+            goal_candidate.heading = self.__find_best_alternative_heading_to_goal(og, params, goal_candidate)
+            return goal_candidate
         
         return None
 
@@ -188,7 +201,7 @@ class GoalPointDiscover:
     
     def __find_direct_final_goal(self, og: OccupancyGrid, params: SearchParameters) -> Waypoint:
         # In case g2 is None, we reached the end of our path, so we just need to reach g1.
-        params.g1.heading = Waypoint.compute_heading(params.start , params.g2)
+        params.g1.heading = Waypoint.compute_heading(params.start , params.g1)
         
         if og.check_waypoint_feasible(params.g1):
             return params.g1
@@ -231,14 +244,14 @@ class GoalPointDiscover:
         if params.direction & LEFT:            
             for i in range(len(left_dirs)):
                 if not allowed_dirs & left_dirs[i]: continue                
-                new_err = dir_angles[i] - abs(params.g1.heading)
+                new_err = abs(dir_angles[i] - abs(params.g1.heading))
                 if new_err < heading_error:
                     best_heading = -dir_angles[i]
                     heading_error = new_err
         else:
             for i in range(len(right_dirs)):
                 if not allowed_dirs & right_dirs[i]: continue                
-                new_err = dir_angles[i] - abs(params.g1.heading)
+                new_err =  abs(dir_angles[i] - abs(params.g1.heading))
                 if new_err < heading_error:
                     best_heading = dir_angles[i]
                     heading_error = new_err
@@ -259,7 +272,12 @@ class GoalPointDiscover:
             if goal is not None:
                 return goal
         
-        return self._find_best_of_any_goal_in_direction(og, params.start, direction)
+        goal = self._find_best_of_any_goal_in_direction(og, params.start, direction)
+        
+        if goal is None:
+             return self._find_best_of_any_goal(og, params.start, direction)
+         
+        return goal
             
     
     def _find_goal_in_upper_border(self, og: OccupancyGrid, start: Waypoint, direction: int) -> Waypoint:
@@ -300,6 +318,13 @@ class GoalPointDiscover:
             end = Waypoint(og.width() - 1, start.z)
         
         return self._find_goal_in_grid(og, init, end)
+    
+    def _find_best_of_any_goal(self, og: OccupancyGrid,  start: Waypoint, direction: int) -> Waypoint:
+        init = Waypoint(0, 0)
+        end = Waypoint(og.width() - 1, og.height() - 1)
+        
+        return self._find_goal_in_grid(og, init, end)
+    
     
     def _find_goal_in_grid(self, og: OccupancyGrid, init: Waypoint, end: Waypoint) -> Waypoint:
         best_goal = None

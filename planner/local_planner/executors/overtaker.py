@@ -13,7 +13,7 @@ from planner.physical_model import ModelCurveGenerator
 from data.coordinate_converter import CoordinateConverter
 from model.map_pose import MapPose
 
-DEBUG_DUMP = False
+DEBUG_DUMP = True
 
 class OvertakerPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread
@@ -71,6 +71,13 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         self.set_exec_started()
         self._rst_timeout()
 
+        
+        self._result.local_start = Waypoint(
+            128,
+            128,
+            0
+        )
+        
         start = self._result.local_start
         goal = Waypoint(self._result.local_goal.x,
                         self._result.local_goal.z,
@@ -115,13 +122,13 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         self._result.total_exec_time_ms = self.get_execution_time()
         self._search = False
     
-    def __find_first_feasible_goal(self, z: int, x_init: int, x_limit: int) -> int:
+    def __find_first_feasible_goal(self, z: int, x_init: int, x_limit: int, heading: float) -> int:
         inc = 1
         if x_init > x_limit:
             inc = -1
         
         for i in range(x_init, x_limit, inc):
-            if self._og.check_direction_allowed(i, z, GridDirection.HEADING_0):
+            if self._og.check_waypoint_feasible(Waypoint(i, z, heading)):
                 return i
         return -1
     
@@ -137,7 +144,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     
     def __relocate_left(self, goal: Waypoint) -> bool:
         
-        x_min = self.__find_first_feasible_goal(goal.z, 0, goal.x)
+        x_min = self.__find_first_feasible_goal(goal.z, 0, goal.x, goal.heading)
         
         if x_min < 0:
             return False
@@ -148,7 +155,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
             return False
 
         start = self._result.local_start
-        new_goal = Waypoint(x, goal.z, 0)
+        new_goal = Waypoint(x, goal.z, goal.heading)
         self._result.path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:
@@ -161,7 +168,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     
     def __relocate_right(self, goal: Waypoint) -> bool:
         
-        x_max = self.__find_first_feasible_goal(goal.z, goal.x, self._og.width())
+        x_max = self.__find_first_feasible_goal(goal.z, goal.x, self._og.width(), goal.heading)
         
         if x_max < 0:
             return False
@@ -172,7 +179,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
             return False
 
         start = self._result.local_start
-        new_goal = Waypoint(x, goal.z, 0)
+        new_goal = Waypoint(x, goal.z, goal.heading)
         self._result.path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:

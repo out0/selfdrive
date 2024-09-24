@@ -51,7 +51,7 @@ def show_path(client: CarlaClient, path: list[MapPose]):
         world = client.get_world()
         for w in path:
             world.debug.draw_string(carla.Location(w.x, w.y, 2), 'O', draw_shadow=False,
-                                        color=carla.Color(r=255, g=0, b=0), life_time=12000.0,
+                                        color=carla.Color(r=255, g=0, b=0), life_time=120000.0,
                                         persistent_lines=True)
 
 def controller_response(res: SelfDriveControllerResponse) -> None:

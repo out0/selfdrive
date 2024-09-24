@@ -39,6 +39,10 @@ def show_planned_location_relative_to_projection(
     projected_goal = coord.clip(coord.convert_map_to_waypoint(ego_location, goal))
     
     print(f"[{seq}] projected local goal: ({projected_goal.x}, {projected_goal.z})")
+    if result_goal is None:
+        print(f"[{seq}] chosen local goal: NONE")
+        return
+    
     print(f"[{seq}] chosen local goal: ({result_goal.x}, {result_goal.z})")
     
     h = Waypoint.compute_heading(local_start, result_goal)
@@ -56,11 +60,14 @@ def show_planned_location_relative_to_projection(
     outp.write(file)
     
 
-def execute_plan (seq: int) -> None:
+def execute_plan (seq: int) -> bool:
     coord = CoordinateConverter(COORD_ORIGIN)
     local_goal_discover = GoalPointDiscover(coord)
 
     result = Telemetry.read_planning_result(seq)
+    if result is None:
+        return False
+    
     bev = Telemetry.read_planning_bev(seq)
 
     og = OccupancyGrid(
@@ -91,13 +98,20 @@ def execute_plan (seq: int) -> None:
         ego_location=result.ego_location,
         goal=result.map_goal,
         result_goal=res.goal)
+    
+    return True
 
+RUN_ALL = True
+RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
-    for i in range(1,25):
-        execute_plan(i)
     
-    #execute_plan(10)
+    if RUN_ALL:
+        for i in range(1,1000):
+            if not execute_plan(i): break
+        return
+    
+    execute_plan(21)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

@@ -241,6 +241,7 @@ class SelfDriveController(DiscreteComponent):
         #plan_data.velocity = 30.0
         
         self._last_planning_data = plan_data
+        Telemetry.dump_pre_planning_data(level=2, seq=self._exec_mission_seq, data=self._last_planning_data)
         self._local_planner.plan(plan_data)
         return ControllerState.WAIT_PLANNING
     

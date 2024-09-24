@@ -21,6 +21,27 @@ class Telemetry:
             f = open(LOGGING_FILE, "a")
             f.write(f"{msg}\n")
             f.close()
+     
+    @classmethod
+    def dump_pre_planning_data(cls, level: int, seq: int, data: PlanningData) -> None:
+        if level > LOGGING_LEVEL: return
+        
+        if not os.path.exists (PLANNING_DATA_PATH):
+            os.mkdir(PLANNING_DATA_PATH)
+    
+        res = PlanningResult()
+        res.local_start = None
+        res.local_goal = None
+        res.map_goal = data.goal
+        res.map_next_goal = data.next_goal
+        res.goal_direction = 0
+        res.ego_location = data.ego_location
+    
+        with open(f"{PLANNING_DATA_PATH}/planning_input_{seq}.json", "w") as f:
+            f.write(str(res))
+
+        cv2.imwrite(f"{PLANNING_DATA_PATH}/bev_{seq}.png", data.bev)   
+        pass
     
     @classmethod
     def dump_planning_data(cls, level: int, seq: int, data: PlanningData, res: PlanningResult) -> None:

@@ -261,10 +261,10 @@ class ScenarioBuilder:
         self._actors.append(p)
         self.__show_goal(p)
 
-    def __show_goal(self, actor: ScenarioActor) -> any:
+    def __show_goal(self, actor: ScenarioActor, i: int) -> any:
         world = self._client.get_world()
-        world.debug.draw_string(carla.Location(actor.x, actor.y, actor.z), 'X', draw_shadow=False,
-                                        color=carla.Color(r=0, g=0, b=255), life_time=60.0,
+        world.debug.draw_string(carla.Location(actor.x, actor.y, actor.z), f'{i}', draw_shadow=False,
+                                        color=carla.Color(r=0, g=0, b=255), life_time=1200.0,
                                         persistent_lines=True)
 
         
@@ -299,7 +299,9 @@ class ScenarioBuilder:
         ego: CarlaEgoCar = None
         path: list[MapPose] = []
         
+        i = 0
         for actor in self._actors:
+            i += 1
             if actor.type == ScenarioBuilder.TYPE_EGO:
                 if return_ego:
                     ego = CarlaEgoCar(self._client)
@@ -312,7 +314,7 @@ class ScenarioBuilder:
             elif actor.type == ScenarioBuilder.TYPE_CONE:
                 self._summoner.add_cone(actor.x, actor.y, actor.z)
             elif actor.type == ScenarioBuilder.TYPE_GOAL:
-                self.__show_goal(actor)
+                self.__show_goal(actor, i)
                 path.append(MapPose(
                     x = actor.x,
                     y = actor.y,
