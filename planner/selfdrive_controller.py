@@ -234,11 +234,8 @@ class SelfDriveController(DiscreteComponent):
         else:
             Telemetry.log(1, self._NAME, f"driving to goal {p2}, next goal {p3}")
         
-        plan_data.goal = p2
-        plan_data.next_goal = p3
-        # TODO: velocity could be automatic. for now its fixed
-        plan_data.velocity = 5.0
-        #plan_data.velocity = 30.0
+        
+        plan_data.set_goals(p2, p3, 5.0)
         
         self._last_planning_data = plan_data
         Telemetry.dump_pre_planning_data(level=2, seq=self._exec_mission_seq, data=self._last_planning_data)
