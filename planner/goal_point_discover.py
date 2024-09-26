@@ -14,19 +14,39 @@ from data.coordinate_converter import CoordinateConverter
 BORDER_CHECK_DEPTH = 0
 
 class GoalPointDiscoverResult:
-    start: Waypoint
-    goal: Waypoint
-    direction: int
-    too_close: bool
-    occupancy_grid: OccupancyGrid
+    __start: Waypoint
+    __goal: Waypoint
+    __direction: int
+    __too_close: bool
+    __occupancy_grid: OccupancyGrid
 
     def __init__(self, og: OccupancyGrid, start: Waypoint, goal: Waypoint, direction: int, too_close: bool) -> None:
-        self.direction = dir
-        self.start = start
-        self.goal = goal
-        self.direction = direction
-        self.too_close = too_close
-        self.occupancy_grid = og
+        self.__direction = dir
+        self.__start = start
+        self.__goal = goal
+        self.__direction = direction
+        self.__too_close = too_close
+        self.__occupancy_grid = og
+    
+    @property
+    def start (self) -> Waypoint:
+        return self.__start
+    
+    @property
+    def goal (self) -> Waypoint:
+        return self.__goal
+        
+    @property
+    def direction (self) -> int:
+        return self.__direction
+    
+    @property
+    def too_close (self) -> bool:
+        return self.__too_close
+    
+    @property
+    def occupancy_grid (self) -> OccupancyGrid:
+        return self.__occupancy_grid
 
 
 TOP = 8     # 1000

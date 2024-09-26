@@ -85,3 +85,10 @@ class Waypoint:
         if res.z >= height:
             res.z = height - 1            
         return res
+
+    def clone(self) -> 'Waypoint':
+        return Waypoint(
+            self.x,
+            self.z,
+            self.heading
+        )

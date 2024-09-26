@@ -12,6 +12,7 @@ from .debug_dump import dump_result
 from planner.physical_model import ModelCurveGenerator
 from data.coordinate_converter import CoordinateConverter
 from model.map_pose import MapPose
+from planner.goal_point_discover import GoalPointDiscoverResult
 
 DEBUG_DUMP = True
 
@@ -20,9 +21,11 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     _search: bool
     _planner_data: PlanningData
     _result: PlanningResult
+    _goal_result: GoalPointDiscoverResult
     _dubins: Dubins
     _kinematics: ModelCurveGenerator
     _coord_conv: CoordinateConverter
+    __path: list[Waypoint]
 
     NAME = "overtaker"
 
@@ -34,13 +37,27 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         self._dubins = Dubins(40, 4)
         self._kinematics = ModelCurveGenerator(0.05)
         self._coord_conv = coord_converter
+        self.__path = None
+        self._goal_result = None
 
 
-    def plan(self, planner_data: PlanningData, partial_result: PlanningResult) -> None:
+    def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult) -> None:
         self._og = planner_data.og
         self._planner_data = planner_data
+        self._result = None
+        self._goal_result = goal_result
         self._search = True
-        self._result = partial_result
+        
+        if goal_result.goal is None:
+            self._result = PlanningResult.build_basic_response_data(
+                OvertakerPlanner.NAME,
+                PlannerResultType.INVALID_GOAL,
+                planner_data,
+                goal_result
+            )
+            self._search = False
+            return
+        
         self._plan_task = Thread(target=self.__perform_local_planning)
         self._plan_task.start()
 
@@ -66,61 +83,81 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
   
 
     def __perform_local_planning(self) -> None:
-        self._result.planner_name = OvertakerPlanner.NAME
-        self._result.result_type = PlannerResultType.INVALID_PATH
         self.set_exec_started()
         self._rst_timeout()
-
         
-        self._result.local_start = Waypoint(
+        local_start = Waypoint(
             128,
             128,
             0
         )
         
-        start = self._result.local_start
-        goal = Waypoint(self._result.local_goal.x,
-                        self._result.local_goal.z,
-                        self._result.local_goal.heading)
+        goal = Waypoint(self._goal_result.goal.x,
+                        self._goal_result.goal.z,
+                        self._goal_result.goal.heading)
 
 
-        if self.__try_direct_path(goal):
+        if self.__try_direct_path(goal):                
+            self._result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
+            
             if DEBUG_DUMP:
                 dump_result(self._og, self._result)
-            self._result.result_type = PlannerResultType.VALID
-            self._result.total_exec_time_ms = self.get_execution_time()
+            
             self._search = False
             return
         
         # if fails, try relocating the goal point       
-        try_left_first = self._result.local_goal.x < start.x
+        try_left_first = self._goal_result.goal.x < local_start.x
+        
+        valid = False
         
         if try_left_first:
             if self.__relocate_left(goal):
-                self._result.result_type = PlannerResultType.VALID
-                self._result.total_exec_time_ms = self.get_execution_time()
-                self._search = False
-                return
-            if self.__relocate_right(goal):
-                self._result.result_type = PlannerResultType.VALID
-                self._result.total_exec_time_ms = self.get_execution_time()
-                self._search = False
-                return
+                valid = True
+            elif self.__relocate_right(goal):
+                valid = True
         else:
             if self.__relocate_right(goal):
-                self._result.result_type = PlannerResultType.VALID
-                self._result.total_exec_time_ms = self.get_execution_time()
-                self._search = False
-                return
-            if self.__relocate_left(goal):
-                self._result.result_type = PlannerResultType.VALID
-                self._result.total_exec_time_ms = self.get_execution_time()
-                self._search = False
-                return
+                valid = True
+            elif self.__relocate_left(goal):
+                valid = True
         
-        self._result.result_type = PlannerResultType.INVALID_PATH
-        self._result.total_exec_time_ms = self.get_execution_time()
+        if valid:
+            self._result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
+        else:
+            self._result = PlanningResult.build_basic_response_data(
+                OvertakerPlanner.NAME,
+                PlannerResultType.INVALID_GOAL,
+                self._planner_data,
+                self._goal_result,
+                total_exec_time_ms = self.get_execution_time()
+            )
         self._search = False
+
     
     def __find_first_feasible_goal(self, z: int, x_init: int, x_limit: int, heading: float) -> int:
         inc = 1
@@ -133,14 +170,27 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         return -1
     
     def __try_direct_path(self, goal: Waypoint):
-        start = self._result.local_start
+        start = self._goal_result.start
         
-        self._result.path = self.__build_overtake_path(start, goal)
+        self.__path = self.__build_overtake_path(start, goal)
         
         if DEBUG_DUMP:
-            dump_result(self._og, self._result)
+            result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
+            dump_result(self._og, result)
         
-        return self.__check_path_feasible(self._result.path)
+        return self.__check_path_feasible(self.__path)
     
     def __relocate_left(self, goal: Waypoint) -> bool:
         
@@ -154,14 +204,28 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x < x_min or x > goal.x:
             return False
 
-        start = self._result.local_start
+        start = self._goal_result.start
         new_goal = Waypoint(x, goal.z, goal.heading)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self.__path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:
-            dump_result(self._og, self._result)
+            result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
             
-        if self._og.check_all_path_feasible(self._result.path):
+            dump_result(self._og, result)
+            
+        if self._og.check_all_path_feasible(self.__path):
             return True
         
         return self.__relocate_step_left(goal, 2, x_min)
@@ -178,14 +242,29 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x < goal.x or x > x_max:
             return False
 
-        start = self._result.local_start
+        start = self._goal_result.start
         new_goal = Waypoint(x, goal.z, goal.heading)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self.__path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:
-            dump_result(self._og, self._result)
             
-        if self._og.check_all_path_feasible(self._result.path):
+            result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
+            
+            dump_result(self._og, result)
+            
+        if self._og.check_all_path_feasible(self.__path):
             return True
         
         return self.__relocate_step_right(goal, 2, x_max)
@@ -200,14 +279,28 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x < x_min:
             return False
 
-        start = self._result.local_start
+        start = self._goal_result.start
         new_goal = Waypoint(x, goal.z, 0)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self.__path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:
-            dump_result(self._og, self._result)
+            result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
             
-        if self._og.check_all_path_feasible(self._result.path):
+            dump_result(self._og, result)
+            
+        if self._og.check_all_path_feasible(self.__path):
             return True
         
         self.__relocate_step_left(new_goal, step, x_min)
@@ -222,14 +315,29 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if x >= x_max:
             return False
 
-        start = self._result.local_start
+        start = self._goal_result.start
         new_goal = Waypoint(x, goal.z, 0)
-        self._result.path = self.__build_overtake_path(start, new_goal)
+        self.__path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:
-            dump_result(self._og, self._result)
             
-        if self._og.check_all_path_feasible(self._result.path):
+            result = PlanningResult(
+                planner_name = OvertakerPlanner.NAME,
+                ego_location = self._planner_data.ego_location,
+                goal = self._planner_data.goal,
+                next_goal = self._planner_data.next_goal,
+                local_start = self._goal_result.start,
+                local_goal = self._goal_result.goal,
+                direction = self._goal_result.direction,
+                timeout = False,
+                path = self.__path,
+                result_type = PlannerResultType.VALID,
+                total_exec_time_ms = self.get_execution_time()
+            )
+            
+            dump_result(self._og, result)
+            
+        if self._og.check_all_path_feasible(self.__path):
             return True
         
         self.__relocate_step_right(new_goal, step, x_max)        

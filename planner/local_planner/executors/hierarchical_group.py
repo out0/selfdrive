@@ -11,6 +11,7 @@ from planner.local_planner.executors.interpolator import InterpolatorPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 # from planner.local_planner.executors.dubins_path import DubinsPathPlanner
+from planner.goal_point_discover import GoalPointDiscoverResult
 
 
 class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
@@ -23,6 +24,7 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
     _planner_data: PlanningData
     _exec_plan: bool
     _plan_result: PlanningResult
+    _goal_result: GoalPointDiscoverResult
     _plan_thr: Thread
 
 
@@ -41,12 +43,15 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
         self._planner_data = None
         self._og = None
         self._plan_result = None
+        self._goal_result = None
 
-    def plan(self, planner_data: PlanningData, partial_result: PlanningResult) -> None:
+    def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult) -> None:
         
         self._planner_data = planner_data
         self._exec_plan = True
-        self._plan_result = partial_result
+        self._plan_result = None
+        self._goal_result = goal_result
+        
         self._plan_thr = Thread(target=self.__execute_supervised_planning)
         self._plan_thr.start()
 
@@ -73,7 +78,6 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
         return 1000*(time.time() - start_time) > max_exec_time_ms
     
     def __on_full_cancelled_planning(self) -> PlanningResult:
-        self._plan_result.timeout = True
         self._exec_plan = False
 
     def __got_timeout(self, start_time: int, method: callable) -> bool:
@@ -86,11 +90,11 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
     
     def __execute_supervised_planning(self) -> None:
         self._exec_plan = True
-        self._interpolator.plan(self._planner_data, self._plan_result)
-        self._astar.plan(self._planner_data, self._plan_result)
-        self._hybrid_astar.plan(self._planner_data, self._plan_result)
-        # self._dubins.plan(self._planner_data, self._plan_result)
-        self._overtaker.plan(self._planner_data, self._plan_result)
+        self._interpolator.plan(self._planner_data, self._goal_result)
+        self._astar.plan(self._planner_data, self._goal_result)
+        self._hybrid_astar.plan(self._planner_data, self._goal_result)
+        # self._dubins.plan(self._planner_data, self._goal_result)
+        self._overtaker.plan(self._planner_data, self._goal_result)
 
         start_time = time.time()
 
@@ -143,8 +147,8 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
                     return
                 
                 if self._planner_data.og.check_path_feasible(smooth_path):
-                    self._plan_result.planner_name = f"{self._plan_result.planner_name}+Smooth"
-                    self._plan_result.path = smooth_path
+                    self._plan_result.update_path(smooth_path)
+                    self._plan_result.update_planner_name(f"{self._plan_result.planner_name}+Smooth")
 
         self._exec_plan = False
 

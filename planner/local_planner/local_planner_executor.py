@@ -2,6 +2,7 @@ from vision.occupancy_grid_cuda import OccupancyGrid
 from model.planning_data import PlanningResult, PlanningData
 import time, cv2
 from model.waypoint import Waypoint
+from planner.goal_point_discover import GoalPointDiscoverResult
 
 
 class LocalPathPlannerExecutor:
@@ -17,7 +18,7 @@ class LocalPathPlannerExecutor:
         self.__timeout = -1
         self._exec_start = 0
 
-    def plan(self, planner_data: PlanningData, partial_result: PlanningResult) -> None:
+    def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult) -> None:
         pass
 
     def cancel(self) -> None:

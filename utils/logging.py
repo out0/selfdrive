@@ -29,13 +29,19 @@ class Telemetry:
         if not os.path.exists (PLANNING_DATA_PATH):
             os.mkdir(PLANNING_DATA_PATH)
     
-        res = PlanningResult()
-        res.local_start = None
-        res.local_goal = None
-        res.map_goal = data.goal
-        res.map_next_goal = data.next_goal
-        res.goal_direction = 0
-        res.ego_location = data.ego_location
+        res = PlanningResult(
+            planner_name="-",
+            local_start = None,
+            local_goal = None,
+            goal = data.goal,
+            next_goal = data.next_goal,
+            direction = 0,
+            ego_location = data.ego_location,
+            timeout=False,
+            path=None,
+            result_type=PlannerResultType.NONE,
+            total_exec_time_ms=0
+        )
     
         with open(f"{PLANNING_DATA_PATH}/planning_input_{seq}.json", "w") as f:
             f.write(str(res))

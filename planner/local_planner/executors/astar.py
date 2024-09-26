@@ -6,6 +6,7 @@ import math, numpy as np, sys
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
 from queue import PriorityQueue
+from planner.goal_point_discover import GoalPointDiscoverResult
 
 
 MAX_FLOAT = sys.float_info.max - 10
@@ -113,9 +114,10 @@ class AStarPlanner (LocalPathPlannerExecutor):
     _search: bool
     _plan_task: Thread
     _planner_data: PlanningData
-    _result: PlanningResult
     _post_plan_smooth: bool
     _og: OccupancyGrid
+    _goal_result: GoalPointDiscoverResult
+    _result: PlanningResult
     
     def __init__(self, 
                  max_exec_time_ms: int) -> None:
@@ -123,6 +125,7 @@ class AStarPlanner (LocalPathPlannerExecutor):
         self._search = False
         self._plan_task = None
         self._result = None
+        self._goal_result = None
 
 
     def _checkObstacle(self, frame: np.array, point: Waypoint) -> bool:
@@ -195,15 +198,24 @@ class AStarPlanner (LocalPathPlannerExecutor):
         self._plan_task = None
         self._og = None
 
-    def plan(self, planner_data: PlanningData, partial_result: PlanningResult):
+    def plan(self, planning_data: PlanningData, goal_result: GoalPointDiscoverResult):
         
         self._search = True
-        self._planner_data = planner_data
-        self._result = partial_result
+        self._planner_data = planning_data
+        self._goal_result = goal_result
         
         self._og = self._planner_data.og.clone()
         
-        self._og.set_goal(partial_result.local_goal)
+        if self._goal_result.goal is None:
+            self._result = PlanningResult.build_basic_response_data(
+                AStarPlanner.NAME,
+                PlannerResultType.INVALID_GOAL,
+                planning_data, 
+                goal_result
+            )
+            return        
+        
+        self._og.set_goal(goal_result.goal)
         self._plan_task = Thread(target=self.__perform_planning)
         self._plan_task.start()
     
@@ -215,12 +227,6 @@ class AStarPlanner (LocalPathPlannerExecutor):
         self.set_exec_started()
         self._search = True
         
-        if self._result.local_goal is None:
-            self._result.result_type = PlannerResultType.INVALID_GOAL
-            self._result.total_exec_time_ms = self.get_execution_time()
-            self._search = False
-            return
-
         plan_grid = NpPlanGrid(self._og.width(), self._og.height())
         
         plan_grid.set_costs(self._result.local_start, [0, 0, 0])
@@ -285,9 +291,13 @@ class AStarPlanner (LocalPathPlannerExecutor):
                     plan_grid.set_parent(next_point, curr_point)
                     open_list.put(QueuedPoint(next_point, f))
 
-        if best_possible is None:
-            self._result.result_type = PlannerResultType.INVALID_GOAL
-            self._result.total_exec_time_ms = self.get_execution_time()
+        if best_possible is None:            
+            self._result = PlanningResult.build_basic_response_data(
+                AStarPlanner.NAME,
+                PlannerResultType.INVALID_PATH,
+                self._planner_data, 
+                self._goal_result
+            )
             self._search = False
             return
 
@@ -305,8 +315,18 @@ class AStarPlanner (LocalPathPlannerExecutor):
         path.append(self._result.local_start)
         path.reverse()
 
-        self._result.path = path
-        self._result.result_type = PlannerResultType.VALID
-        self._result.total_exec_time_ms = self.get_execution_time()
+        self._result = PlanningResult(
+            planner_name = AStarPlanner.NAME,
+            ego_location = self._planner_data.ego_location,
+            goal = self._planner_data.goal,
+            next_goal = self._planner_data.next_goal,
+            local_start = self._goal_result.start,
+            local_goal = self._goal_result.goal,
+            direction = self._goal_result.direction,
+            timeout = False,
+            path = path,
+            result_type = PlannerResultType.VALID,
+            total_exec_time_ms = self.get_execution_time()
+        )
         self._search = False
 

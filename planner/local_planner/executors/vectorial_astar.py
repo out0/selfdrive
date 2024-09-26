@@ -5,6 +5,7 @@ from threading import Thread
 from vision.occupancy_grid_cuda import GridDirection
 import numpy as np, sys, cv2
 from queue import PriorityQueue
+from planner.goal_point_discover import GoalPointDiscoverResult
 
 MAX_FLOAT = sys.float_info.max - 10
 
@@ -188,11 +189,23 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
         frame[p.z, p.x, :] = color
         cv2.imwrite("plan_debug_outp.png", frame)
 
-    def plan(self, planner_data: PlanningData, partial_result: PlanningResult):
+    def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult):
         self._og = planner_data.og
         self._search = True
         self._planner_data = planner_data
-        self._result = partial_result        
+        self._result = None
+        self._goal_result = goal_result    
+        
+        if goal_result.goal is None:
+            self._result = PlanningResult.build_basic_response_data(
+                VectorialAStarPlanner.NAME,
+                PlannerResultType.INVALID_GOAL,
+                planner_data,
+                goal_result
+            )
+            self._search = False
+            return
+            
         self._plan_task = Thread(target=self.__perform_planning)
         self._plan_task.start()
     
@@ -206,20 +219,14 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
     def __perform_planning(self) -> None:
         self.set_exec_started()
         self._search = True
-        
-        if self._result.local_goal is None:
-            self._result.total_exec_time_ms = self.get_execution_time()
-            self._result.result_type = PlannerResultType.INVALID_GOAL
-            self._search = False
-            return
 
         plan_grid = NpPlanGrid(self._og.width(), self._og.height())
         
-        plan_grid.set_costs(self._result.local_start, [0, 0, 0])
+        plan_grid.set_costs(self._goal_result.start, [0, 0, 0])
         #plan_grid.set_parent_by_coord(start, [-1, -1])
 
         open_list = PriorityQueue()
-        open_list.put(QueuedPoint(self._result.local_start, 0))
+        open_list.put(QueuedPoint(self._goal_result.start, 0))
 
         best_possible = None
         best_distance_to_goal: float = MAX_FLOAT
@@ -266,7 +273,7 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
                     best_distance_to_goal = distance_to_goal
                     best_possible = next_point
                 
-                if next_point.x == self._result.local_goal.x and next_point.z == self._result.local_goal.z:
+                if next_point.x == self._goal_result.goal.x and next_point.z == self._goal_result.goal.z:
                     best_possible = next_point
                     best_distance_to_goal = 0
                     perform_search = False
@@ -283,7 +290,12 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
                     open_list.put(QueuedPoint(next_point, f))
 
         if best_possible is None:
-            self._result.result_type = PlannerResultType.INVALID_GOAL
+            self._result = PlanningResult.build_basic_response_data(
+                VectorialAStarPlanner.NAME,
+                PlannerResultType.INVALID_PATH,
+                self._planner_data,
+                self._goal_result
+            )            
             self._search = False
             return
 
@@ -298,11 +310,21 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
             p = parent
             parent = plan_grid.get_parent(p)
 
-        path.append(self._result.local_start)
+        path.append(self._goal_result.start)
         path.reverse()
 
-        self._result.path = path
-        self._result.result_type = PlannerResultType.VALID
-        self._result.total_exec_time_ms = self.get_execution_time()
+        self._result = PlanningResult(
+            planner_name = VectorialAStarPlanner.NAME,
+            ego_location = self._planner_data.ego_location,
+            goal = self._planner_data.goal,
+            next_goal = self._planner_data.next_goal,
+            local_start = self._goal_result.start,
+            local_goal = self._goal_result.goal,
+            direction = self._goal_result.direction,
+            timeout = False,
+            path = path,
+            result_type = PlannerResultType.VALID,
+            total_exec_time_ms = self.get_execution_time()
+        )
         self._search = False
 

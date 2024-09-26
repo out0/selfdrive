@@ -8,6 +8,7 @@ from vision.occupancy_grid_cuda import OccupancyGrid
 from planner.physical_model import ModelCurveGenerator
 from queue import PriorityQueue
 from .debug_dump import dump_result
+from planner.goal_point_discover import GoalPointDiscoverResult
 
 MAX_FLOAT = 100000000
 
@@ -216,13 +217,22 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         
 
     
-    def plan(self, planner_data: PlanningData, partial_result: PlanningResult):
+    def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult):
         self._search = True
         self._planner_data = planner_data
-        self._result = partial_result.clone()
+        self._goal_result = goal_result
+        self._result = None
         self._og = planner_data.og
         
-        #self._og.set_goal_vectorized(planner_data.local_goal)
+        if goal_result.goal is None:
+            self._result = PlanningResult.build_basic_response_data(
+                HybridAStarPlanner.NAME,
+                PlannerResultType.INVALID_GOAL,
+                planner_data,
+                goal_result
+            )
+            self._search = False
+            return
         
         self._plan_task = Thread(target=self.__perform_planning)
         self._plan_task.start()
@@ -235,20 +245,13 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         return Waypoint(p1.x + p2.x, p1.z + p2.z)
 
     def __perform_planning(self) -> None:
-        self._result.planner_name = HybridAStarPlanner.NAME
         self.set_exec_started()
         self._search = True
         
-        if self._result.local_goal is None:
-            self._result.total_exec_time_ms = self.get_execution_time()
-            self._result.result_type = PlannerResultType.INVALID_GOAL
-            self._search = False
-            return
-        
         root = self.__create_node(
-            point=self._result.local_start,
+            point=self._goal_result.start,
             parent=None, 
-            pose=self._result.ego_location, 
+            pose=self._planner_data.ego_location, 
             rel_dir=0, 
             cost=0)
         
@@ -259,13 +262,25 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         best_distance_to_goal: float = MAX_FLOAT
         closed: dict[str, Node] = {}
 
-        if DEBUG_DUMP:
-            dump_result(self._og, self._result)
- 
-
         perform_search = self._search
         while perform_search and not open_list.empty():
             _, curr_point = open_list.get(block=False)
+
+            if DEBUG_DUMP:
+                result = PlanningResult(
+                    planner_name = HybridAStarPlanner.NAME,
+                    ego_location = self._planner_data.ego_location,
+                    goal = self._planner_data.goal,
+                    next_goal = self._planner_data.next_goal,
+                    local_start = self._goal_result.start,
+                    local_goal = self._goal_result.goal,
+                    direction = self._goal_result.direction,
+                    timeout = False,
+                    path = path,
+                    result_type = PlannerResultType.VALID,
+                    total_exec_time_ms = self.get_execution_time()
+                )
+                dump_result(self._og, result)
 
             if self._check_timeout():
                 perform_search = False
@@ -281,7 +296,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
                 perform_search = False
                 continue
             
-            if curr_point.local_pose.x == self._result.local_goal.x and curr_point.local_pose.z == self._result.local_goal.z:
+            if curr_point.local_pose.x == self._goal_result.goal.x and curr_point.local_pose.z == self._goal_result.goal.z:
                 best_candidate = curr_point
                 best_distance_to_goal = 0
                 perform_search = False
@@ -309,7 +324,12 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
                     
             
         if best_candidate is None:
-            self._result.result_type = PlannerResultType.INVALID_GOAL
+            self._result = PlanningResult.build_basic_response_data(
+                HybridAStarPlanner.NAME,
+                PlannerResultType.INVALID_PATH,
+                self._planner_data,
+                self._goal_result
+            )            
             self._search = False
             return
 
@@ -323,8 +343,18 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         #path.append(self._result.local_start)
         path.reverse()
 
-        self._result.path = path
-        self._result.result_type = PlannerResultType.VALID
-        self._result.total_exec_time_ms = self.get_execution_time()
+        self._result = PlanningResult(
+            planner_name = HybridAStarPlanner.NAME,
+            ego_location = self._planner_data.ego_location,
+            goal = self._planner_data.goal,
+            next_goal = self._planner_data.next_goal,
+            local_start = self._goal_result.start,
+            local_goal = self._goal_result.goal,
+            direction = self._goal_result.direction,
+            timeout = False,
+            path = path,
+            result_type = PlannerResultType.VALID,
+            total_exec_time_ms = self.get_execution_time()
+        )
         self._search = False
 

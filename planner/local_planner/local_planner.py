@@ -99,39 +99,37 @@ class LocalPlanner:
                                                           goal_pose=planning_data.goal,
                                                           next_goal_pose=planning_data.next_goal)
     
-        partial_result = LocalPlanner.__build_basic_response_data(planning_data, goal_result)
-    
         if goal_result.goal is None:
-            partial_result.result_type = PlannerResultType.INVALID_GOAL
-            return
+            return PlanningResult.build_basic_response_data(
+                "-",
+                PlannerResultType.INVALID_GOAL,
+                planning_data, 
+                goal_result
+            )
 
         if goal_result.too_close:
-            partial_result.result_type = PlannerResultType.TOO_CLOSE
-            return
+            return PlanningResult.build_basic_response_data(
+                "-",
+                PlannerResultType.TOO_CLOSE,
+                planning_data, 
+                goal_result
+            )
 
         if goal_result.start is None:
-            partial_result.result_type = PlannerResultType.INVALID_START
-            return
+            return PlanningResult.build_basic_response_data(
+                "-",
+                PlannerResultType.INVALID_START,
+                planning_data, 
+                goal_result
+            )
         
-        planning_data.og.set_goal_vectorized(partial_result.local_goal)
-               
-        self._path_planner.plan(planning_data, partial_result)
+        planning_data.og.set_goal_vectorized(goal_result.goal)       
+                
+        self._path_planner.plan(planning_data, goal_result)
 
 
-    @classmethod
-    def __build_basic_response_data(cls, planning_data: PlanningData, goal_result: GoalPointDiscoverResult) -> PlanningResult:
-        result = PlanningResult()
-        result.planner_name = "-"
-        result.ego_location = planning_data.ego_location
-        result.local_goal = goal_result.goal
-        result.local_start = goal_result.start
-        result.goal_direction = goal_result.direction
-        result.map_goal = planning_data.goal
-        result.map_next_goal = planning_data.next_goal
-        result.path = None
-        result.result_type = PlannerResultType.NONE
-        result.timeout = False
-        return result
+
+
 
     
     

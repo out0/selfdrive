@@ -48,6 +48,14 @@ class MapPose:
                 self.z - other,
                 self.heading
             )
+            
+    def clone(self) -> 'MapPose':
+        return MapPose(
+            self.x,
+            self.y,
+            self.z,
+            self.heading
+        )
 
 
     @classmethod    

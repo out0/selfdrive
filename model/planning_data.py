@@ -6,6 +6,12 @@ from io import StringIO
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
 import json
+from planner.goal_point_discover import GoalPointDiscoverResult
+from typing import Union
+
+def nullable_clone(p: Union[Waypoint, MapPose]) -> Waypoint:
+    if p is None: return None
+    return p.clone()
 
 
 class PrePlanningData:
@@ -64,23 +70,23 @@ class PlanningData:
         return self.__bev
     
     @property
-    def og(self) -> np.ndarray:
+    def og(self) -> OccupancyGrid:
         return self.__og
     
     @property
-    def ego_location(self) -> np.ndarray:
+    def ego_location(self) -> MapPose:
         return self.__ego_location
     
     @property
-    def velocity(self) -> np.ndarray:
+    def velocity(self) -> float:
         return self.__velocity
     
     @property
-    def goal(self) -> np.ndarray:
+    def goal(self) -> MapPose:
         return self.__goal
     
     @property
-    def next_goal(self) -> np.ndarray:
+    def next_goal(self) -> MapPose:
         return self.__next_goal
    
     def __frame_shape_to_str(self, frame: np.ndarray) -> str:
@@ -105,84 +111,118 @@ class PlannerResultType(Enum):
     TOO_CLOSE = 5
     pass
 
-
 class PlanningResult:
-    result_type: PlannerResultType
-    path: list[Waypoint]
-    timeout: bool
-    planner_name: str
-    total_exec_time_ms: int
-    local_start: Waypoint
-    local_goal: Waypoint
-    goal_direction: int
-    ego_location: MapPose
-    map_goal: MapPose
-    map_next_goal: MapPose
+    __result_type: PlannerResultType
+    __path: list[Waypoint]
+    __timeout: bool
+    __planner_name: str
+    __total_exec_time_ms: int
+    __local_start: Waypoint
+    __local_goal: Waypoint
+    __goal_direction: int
+    __ego_location: MapPose
+    __map_goal: MapPose
+    __map_next_goal: MapPose
     
-    def __init__(self) -> None:
-        self.result_type = PlannerResultType.NONE
-        self.path = None
-        self.timeout = False
-        self.planner_name = "-"
-        self.total_exec_time_ms = 0
-        self.local_start = None
-        self.local_goal  = None
-        self.goal_direction = 0
-        self.ego_location = None
-        self.map_goal = None
-        self.map_next_goal = None
+    def __init__(self, 
+                 planner_name: str,
+                 ego_location: MapPose,
+                 goal: MapPose,
+                 next_goal: MapPose,
+                 local_start: Waypoint,
+                 local_goal: Waypoint,
+                 direction: int,
+                 timeout: bool,
+                 path: list[Waypoint],
+                 result_type: PlannerResultType,
+                 total_exec_time_ms: float
+                 ) -> None:
+        self.__result_type = result_type
+        self.__path = path
+        self.__timeout = timeout
+        self.__planner_name = planner_name
+        self.__total_exec_time_ms = 0
+        self.__local_start = nullable_clone(local_start)
+        self.__local_goal  = nullable_clone(local_goal)
+        self.__goal_direction = direction
+        self.__ego_location = nullable_clone(ego_location)
+        self.__map_goal = nullable_clone(goal)
+        self.__map_next_goal = nullable_clone(next_goal)
+        self.__total_exec_time_ms = total_exec_time_ms
 
-    # def __str__(self) -> str:
-    #     str = StringIO()
-
-    #     if self.result_type == PlannerResultType.NONE:
-    #         return "-"
-    #     elif self.result_type == PlannerResultType.VALID:
-    #         return f"({self.ego_location} -> {self.map_goal}) valid plan to goal, waypoint: {self.local_goal}, timeout: {self.timeout}"
-    #     elif self.result_type == PlannerResultType.INVALID_START:
-    #         return f"({self.ego_location} -> {self.map_goal}) INVALID **start**, waypoint: {self.local_goal}, timeout: {self.timeout}"
-    #     elif self.result_type == PlannerResultType.INVALID_PATH:
-    #         return f"({self.ego_location} -> {self.map_goal}) INVALID **plan**, waypoint: {self.local_goal}, timeout: {self.timeout}"
-    #     elif self.result_type == PlannerResultType.INVALID_GOAL:
-    #         return f"({self.ego_location} -> {self.map_goal}) INVALID **goal**, waypoint: {self.local_goal}, timeout: {self.timeout}"
-    #     return str.getvalue()
+    @property
+    def result_type (self) -> PlannerResultType:
+        return self.__result_type
     
-    def clone(self) -> 'PlanningResult':
-        res = PlanningResult()
-        res.result_type = self.result_type
-        res.path = self.path
-        res.timeout = self.timeout
-        res.planner_name = self.planner_name
-        res.total_exec_time_ms = self.total_exec_time_ms
-        res.local_start = self.local_start
-        res.local_goal = self.local_goal
-        res.goal_direction = self.goal_direction
-        res.ego_location = self.ego_location
-        res.map_goal = self.map_goal
-        res.map_next_goal = self.map_next_goal
-        return res
+    @property
+    def path (self) -> list[Waypoint]:
+        return self.__path
+    
+    @property
+    def timeout (self) -> bool:
+        return self.__timeout
+    
+    @property
+    def planner_name (self) -> str:
+        return self.__planner_name
+    
+    @property
+    def total_exec_time_ms (self) -> int:
+        return self.__total_exec_time_ms
+    
+    @property
+    def local_start (self) -> Waypoint:
+        return self.__local_start
+    
+    @property
+    def local_goal (self) -> Waypoint:
+        return self.__local_goal
 
+    @property
+    def goal_direction (self) -> int:
+        return self.__goal_direction
 
-        
+    @property
+    def ego_location (self) -> MapPose:
+        return self.__ego_location
+
+    @property
+    def map_goal (self) -> MapPose:
+        return self.__map_goal
+
+    @property
+    def map_next_goal (self) -> MapPose:
+        return self.__map_next_goal
+    
+    @property
+    def total_exec_time_ms(self) -> float:
+        return self.__total_exec_time_ms
+
+    def update_path(self, smooth_path: list[Waypoint]) -> None:
+        self.path = smooth_path
+    
+    def update_planner_name(self, name: str) -> None:
+        self.planner_name = name
+
 
     def __str__(self) -> str:
         path = []
-        if self.path is not None:
-            for p in self.path:
+        if self.__path is not None:
+            for p in self.__path:
                 path.append(str(p))
         
         data = {
-            'result_type': int(self.result_type.value),
+            'result_type': int(self.__result_type.value),
             'path': path,
-            'timeout': self.timeout,
-            'planner_name': self.planner_name,
-            'total_exec_time_ms': self.total_exec_time_ms,
-            'local_start': str(self.local_start),
-            'local_goal': str(self.local_goal),
-            'goal_direction': self.goal_direction,
-            'ego_location': str(self.ego_location),
-            'map_goal': str(self.map_goal),
-            'map_next_goal': str(self.map_next_goal)
+            'timeout': self.__timeout,
+            'planner_name': self.__planner_name,
+            'total_exec_time_ms': self.__total_exec_time_ms,
+            'local_start': str(self.__local_start),
+            'local_goal': str(self.__local_goal),
+            'goal_direction': self.__goal_direction,
+            'ego_location': str(self.__ego_location),
+            'map_goal': str(self.__map_goal),
+            'map_next_goal': str(self.__map_next_goal)
         }
         return json.dumps(data)
     
@@ -192,22 +232,50 @@ class PlanningResult:
         
         data = json.loads(val)
         
-        res.result_type = PlannerResultType(int(data['result_type']))
+        result_type = PlannerResultType(int(data['result_type']))
         
-        res.path = []        
+        path = []        
         for str_p in data['path']:
-            res.path.append(
+            path.append(
                 Waypoint.from_str(str_p)
             )
         
-        res.timeout = bool(data['timeout'])
-        res.planner_name = data['planner_name']
-        res.total_exec_time_ms = float(data['total_exec_time_ms'])
-        res.local_start = Waypoint.from_str(data['local_start'])
-        res.local_goal = Waypoint.from_str(data['local_goal'])
-        res.goal_direction = int(data['goal_direction'])
-        res.ego_location = MapPose.from_str(data['ego_location'])
-        res.map_goal = MapPose.from_str(data['map_goal'])
-        res.map_next_goal = MapPose.from_str(data['map_next_goal'])        
-        return res
+        timeout = bool(data['timeout'])
+        planner_name = data['planner_name']
+        total_exec_time_ms = float(data['total_exec_time_ms'])
+        local_start = Waypoint.from_str(data['local_start'])
+        local_goal = Waypoint.from_str(data['local_goal'])
+        goal_direction = int(data['goal_direction'])
+        ego_location = MapPose.from_str(data['ego_location'])
+        map_goal = MapPose.from_str(data['map_goal'])
+        map_next_goal = MapPose.from_str(data['map_next_goal'])
         
+        return PlanningResult(
+            result_type=result_type,
+            path = path,
+            timeout = timeout,
+            planner_name = planner_name,
+            total_exec_time_ms = total_exec_time_ms,
+            local_start = local_start,
+            local_goal = local_goal,
+            goal_direction = goal_direction,
+            ego_location = ego_location,
+            map_goal = map_goal,
+            map_next_goal = map_next_goal
+        )
+    
+    @classmethod
+    def build_basic_response_data(cls, planner_name: str, result_type: PlannerResultType, planning_data: PlanningData, goal_result: GoalPointDiscoverResult, total_exec_time_ms: int = 0) -> 'PlanningResult':
+        return  PlanningResult(
+            planner_name = planner_name,
+            ego_location = nullable_clone(planning_data.ego_location),
+            goal = nullable_clone(planning_data.goal),
+            next_goal = nullable_clone(planning_data.next_goal),
+            local_start = nullable_clone(goal_result.start),
+            local_goal = nullable_clone(goal_result.goal),
+            direction = goal_result.direction,
+            timeout = 0,
+            path = None,
+            result_type = result_type,
+            total_exec_time_ms=total_exec_time_ms
+        )
