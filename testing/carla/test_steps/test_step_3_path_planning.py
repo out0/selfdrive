@@ -61,7 +61,7 @@ def execute_plan (seq: int) -> None:
     outp.write(f"test_output_{seq}.png")
 
 def main(argc: int, argv: List[str]) -> int:
-    execute_plan(21)
+    execute_plan(16)
     # execute_plan(2)
     # execute_plan(3)
     # execute_plan(4)

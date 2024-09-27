@@ -167,7 +167,7 @@ class WaypointInterpolator:
         path_candidate: List[Waypoint] = []
 
         if forward_movement:
-            while z > goal.z and z > 0:
+            while z > goal.z and z >= 0:
                 p = interpolate.splev(z, tck)
                 if p is None:
                     continue
