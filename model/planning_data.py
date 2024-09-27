@@ -227,9 +227,7 @@ class PlanningResult:
         return json.dumps(data)
     
     @classmethod
-    def from_str(cls, val: str) -> 'PlanningResult':
-        res = PlanningResult()
-        
+    def from_str(cls, val: str) -> 'PlanningResult':       
         data = json.loads(val)
         
         result_type = PlannerResultType(int(data['result_type']))
@@ -258,10 +256,10 @@ class PlanningResult:
             total_exec_time_ms = total_exec_time_ms,
             local_start = local_start,
             local_goal = local_goal,
-            goal_direction = goal_direction,
+            direction= goal_direction,
             ego_location = ego_location,
-            map_goal = map_goal,
-            map_next_goal = map_next_goal
+            goal = map_goal,
+            next_goal = map_next_goal
         )
     
     @classmethod

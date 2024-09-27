@@ -142,9 +142,7 @@ class GoalPointDiscover:
                     too_close=False
         )
             
-            goal.heading = self.__find_best_alternative_heading_to_goal(og, params, goal)
-        
-        
+        goal.heading = self.__find_best_alternative_heading_to_goal(og, params, goal)
         direction = self.__compute_direction_from_heading_angle(goal.heading)
         
         return GoalPointDiscoverResult(
@@ -234,6 +232,15 @@ class GoalPointDiscover:
     
     def __find_best_alternative_heading_to_goal(self, og: OccupancyGrid, params: SearchParameters, goal: Waypoint) -> float:   
         
+        best_theoretical_heading = Waypoint.compute_heading(goal, params.g2)
+        
+        if goal is not params.g2:
+            best_heading = best_theoretical_heading
+            
+        goal.heading = best_heading
+        if og.check_waypoint_feasible(goal):
+            return best_heading
+        
         best_heading =  Waypoint.compute_heading(params.start, goal)
         allowed_dirs = int(og.get_frame()[goal.z, goal.x, 2])
         heading_error = 99999999
@@ -264,14 +271,14 @@ class GoalPointDiscover:
         if params.direction & LEFT:            
             for i in range(len(left_dirs)):
                 if not allowed_dirs & left_dirs[i]: continue                
-                new_err = abs(dir_angles[i] - abs(params.g1.heading))
+                new_err = abs(dir_angles[i] - abs(best_theoretical_heading))
                 if new_err < heading_error:
                     best_heading = -dir_angles[i]
                     heading_error = new_err
         else:
             for i in range(len(right_dirs)):
                 if not allowed_dirs & right_dirs[i]: continue                
-                new_err =  abs(dir_angles[i] - abs(params.g1.heading))
+                new_err =  abs(dir_angles[i] - abs(best_theoretical_heading))
                 if new_err < heading_error:
                     best_heading = dir_angles[i]
                     heading_error = new_err
@@ -280,23 +287,26 @@ class GoalPointDiscover:
     
     def __find_local_goal_to_reach(self, og: OccupancyGrid, params: SearchParameters, goal_to_reach: Waypoint) -> Waypoint:
         
+        
+        best_heading = Waypoint.compute_heading(params.g1, params.g2)
+        
         distance = Waypoint.distance_between(params.start, goal_to_reach)
         direction = self.__compute_direction(params.start, goal_to_reach)
         
-        if distance > TOO_FAR_THRESHOLD:            
-            goal = self._find_goal_in_upper_border(og, params.start, direction)
-            if goal is not None:
-                return goal
+        # if distance > TOO_FAR_THRESHOLD:            
+        #     goal = self._find_goal_in_upper_border(og, params.start, direction)
+        #     if goal is not None:
+        #         return goal
 
-            goal = self._find_goal_forward(og, params.start, goal_to_reach, distance)
-            if goal is not None:
-                return goal
+        #     goal = self._find_goal_forward(og, params.start, goal_to_reach, distance)
+        #     if goal is not None:
+        #         return goal
         
         goal = self._find_best_of_any_goal_in_direction(og, params.start, direction)
         
-        if goal is None:
+        if goal is None or self._check_too_close(og, goal):
              return self._find_best_of_any_goal(og, params.start, direction)
-         
+                 
         return goal
             
     

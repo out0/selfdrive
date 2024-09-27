@@ -111,7 +111,7 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(21)
+    execute_plan(16)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

@@ -58,7 +58,7 @@ class SelfDriveControllerResponse:
     
 
 class SelfDriveController(DiscreteComponent):
-    _local_planner: LocalPlanner
+    __local_planner: LocalPlanner
     _motion_controller: MotionController
     _state: ControllerState
     _slam: SLAM
@@ -99,7 +99,7 @@ class SelfDriveController(DiscreteComponent):
                 
         self._coord = slam.get_coordinate_converter()
         
-        self._local_planner = LocalPlanner(
+        self.__local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
             local_planner_type=LocalPlannerType.Ensemble,
             map_coordinate_converter=self._coord
@@ -138,7 +138,7 @@ class SelfDriveController(DiscreteComponent):
         self._run = False
         self._collision_detector.destroy()
         self._motion_controller.destroy()
-        self._local_planner.destroy()
+        self.__local_planner.destroy()
         
     def __on_collision_detected(self) -> None:
         msg = f"Collision ahead detected. Performing replan on path pos: {self._driving_path_pos}"
@@ -161,7 +161,7 @@ class SelfDriveController(DiscreteComponent):
             self._motion_controller.cancel()
             self._motion_controller.brake()
 
-        self._local_planner.cancel()
+        self.__local_planner.cancel()
         self._state = ControllerState.ON_HOLD
         self._driving_path = None
         self._driving_path_pos = -1
@@ -180,7 +180,7 @@ class SelfDriveController(DiscreteComponent):
                 self._state = self.__plan_next()
                 return
             case ControllerState.WAIT_PLANNING:
-                if not self._local_planner.is_planning():
+                if not self.__local_planner.is_planning():
                     self._state = ControllerState.EXECUTE_MISSION
                 time.sleep(0.001)
                 return
@@ -239,7 +239,7 @@ class SelfDriveController(DiscreteComponent):
         
         self._last_planning_data = plan_data
         Telemetry.dump_pre_planning_data(level=2, seq=self._exec_mission_seq, data=self._last_planning_data)
-        self._local_planner.plan(plan_data)
+        self.__local_planner.plan(plan_data)
         return ControllerState.WAIT_PLANNING
     
     def __report_end_of_mission(self) -> None:
@@ -253,7 +253,7 @@ class SelfDriveController(DiscreteComponent):
         
     
     def __execute_mission(self) -> ControllerState:
-        res = self._local_planner.get_result()
+        res = self.__local_planner.get_result()
         
         Telemetry.dump_planning_data(level=2, seq=self._exec_mission_seq, res=res, data=self._last_planning_data)
         self._exec_mission_seq += 1

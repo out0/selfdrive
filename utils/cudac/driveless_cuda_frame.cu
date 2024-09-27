@@ -2,9 +2,9 @@
 #include "class_def.h"
 #include <math_constants.h>
 
-//#define DEBUG_X 31
-//#define DEBUG_Z 100
-//#define DEBUG_SET_GOAL_VECTOR 1
+// #define DEBUG_X 31
+// #define DEBUG_Z 100
+// #define DEBUG_SET_GOAL_VECTOR 1
 
 __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
     float3 *frame,
@@ -58,7 +58,6 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
     // }
     return true;
 }
-
 
 __global__ static void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, int width, int height, uchar3 *classColors)
 {
@@ -164,6 +163,29 @@ __global__ static void __CUDA_KERNEL_ComputeCost(float3 *frame, int *params, int
         }
 }
 
+__device__ static float __CUDA_KERNEL_ComputeHeading(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height)
+{
+    *valid = false;
+    if (p1_x == p2_x && p1_y == p2_y)
+        return 0.0;
+
+    if (p1_x < 0 || p1_y < 0 || p2_x < 0 || p2_y < 0)
+        return 0.0;
+
+    if (p1_x >= width || p1_y >= height || p2_x >= width || p2_y >= height)
+        return 0.0;
+
+    float dx = p2_x - p1_x;
+    float dz = p2_y - p1_y;
+    *valid = true;
+    float heading = CUDART_PI_F / 2 - atan2f(-dz, dx);
+
+    if (heading > CUDART_PI_F) // greater than 180 deg
+        heading = heading - 2 * CUDART_PI_F;
+
+    return heading;
+}
+/*
 __device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2, bool *valid, int width, int height)
 {
     *valid = false;
@@ -187,6 +209,8 @@ __device__ static float __CUDA_KERNEL_ComputeHeading(float4 &p1, float4 &p2, boo
     return heading;
 }
 
+*/
+
 #define NUM_POINTS_ON_MEAN 3
 
 __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, int waypoints_count, bool *valid, int width, int height)
@@ -199,7 +223,7 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
         bool v = false;
         if (pos + j >= waypoints_count)
             break;
-        heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos], waypoints[pos + j], &v, width, height);
+        heading += __CUDA_KERNEL_ComputeHeading((int)waypoints[pos].x, (int)waypoints[pos].y, (int)waypoints[pos + j].x, (int)waypoints[pos + j].y, &v, width, height);
         if (!v)
             break;
         count++;
@@ -217,7 +241,7 @@ __device__ float __CUDA_KERNEL_compute_mean_heading(float4 *waypoints, int pos, 
                 *valid = false;
                 return 0.0;
             }
-            heading += __CUDA_KERNEL_ComputeHeading(waypoints[pos - j], waypoints[pos], &v, width, height);
+            heading += __CUDA_KERNEL_ComputeHeading((int)waypoints[pos - j].x, (int)waypoints[pos - j].y,(int)waypoints[pos].x, (int)waypoints[pos].y, &v, width, height);
             if (!v)
                 break;
             count++;
@@ -360,8 +384,6 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
 
     int v = 0;
 
-
-    // REMOVER
 #ifdef DEBUG_SET_GOAL_VECTOR
     __CUDA_KERNEL_FrameColor_Debug(frame, width, height, classColorsDebug);
 #endif
@@ -391,6 +413,168 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
         v = v | HEADING_MINUS_67_5;
 
     frame[pos].z = v;
+}
+
+__global__ static void __CUDA_KERNEL_bestWaypointPosForHeading(float3 *frame, int *params, int *classCost, float angle, int *bestCost)
+{
+    int width = params[0];
+    int height = params[1];
+
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pos > width * height)
+        return;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    // if (x == DEBUG_X && z == DEBUG_Z)
+    // {
+    //     printf("(%d, %d) investigating set of headings\n", x, z);
+    // }
+
+    int goal_x = params[2];
+    int goal_z = params[3];
+
+#ifdef MINIMAL_DISTANCE_X
+    int min_dist_x = MINIMAL_DISTANCE_X;
+#else
+    int min_dist_x = params[4];
+#endif
+
+#ifdef MINIMAL_DISTANCE_Z
+    int min_dist_z = MINIMAL_DISTANCE_Z;
+#else
+    int min_dist_z = params[5];
+#endif
+
+    int lower_bound_ego_x = params[6];
+    int lower_bound_ego_z = params[7];
+    int upper_bound_ego_x = params[8];
+    int upper_bound_ego_z = params[9];
+
+    int dx = goal_x - x;
+    int dz = goal_z - z;
+
+    int cost = (dx * dx + dz * dz) % 10000000;
+
+    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
+        return;
+
+    if (classCost[(int)frame[pos].x] < 0)
+        return;
+
+#ifdef DEBUG_SET_GOAL_VECTOR
+    __CUDA_KERNEL_FrameColor_Debug(frame, width, height, classColorsDebug);
+#endif
+
+    if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        return;
+
+    atomicMin(bestCost, cost);
+}
+
+
+__global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params, int *classCost, int *bestCost)
+{
+    int width = params[0];
+    int height = params[1];
+
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pos > width * height)
+        return;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    // if (x == DEBUG_X && z == DEBUG_Z)
+    // {
+    //     printf("(%d, %d) investigating set of headings\n", x, z);
+    // }
+
+    int goal_x = params[2];
+    int goal_z = params[3];
+
+#ifdef MINIMAL_DISTANCE_X
+    int min_dist_x = MINIMAL_DISTANCE_X;
+#else
+    int min_dist_x = params[4];
+#endif
+
+#ifdef MINIMAL_DISTANCE_Z
+    int min_dist_z = MINIMAL_DISTANCE_Z;
+#else
+    int min_dist_z = params[5];
+#endif
+
+    int lower_bound_ego_x = params[6];
+    int lower_bound_ego_z = params[7];
+    int upper_bound_ego_x = params[8];
+    int upper_bound_ego_z = params[9];
+
+    int dx = goal_x - x;
+    int dz = goal_z - z;
+
+    int cost = (dx * dx + dz * dz) % 10000000;
+
+    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
+        return;
+
+    if (classCost[(int)frame[pos].x] < 0)
+        return;
+
+    bool valid = false;
+
+    float angle = __CUDA_KERNEL_ComputeHeading(x, z, goal_x, goal_z, &valid, width, height);
+
+    if (!valid) return;
+
+    if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        return;
+
+    atomicMin(bestCost, cost);
+}
+
+
+
+
+__global__ static void __CUDA_KERNEL_findPositionWithCostEqualOrLess(float3 *frame, int *params, int bestCost, int *posForCost)
+{
+    int width = params[0];
+    int height = params[1];
+
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pos > width * height)
+        return;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    // if (x == DEBUG_X && z == DEBUG_Z)
+    // {
+    //     printf("(%d, %d) investigating set of headings\n", x, z);
+    // }
+
+    int goal_x = params[2];
+    int goal_z = params[3];
+
+
+    int lower_bound_ego_x = params[6];
+    int lower_bound_ego_z = params[7];
+    int upper_bound_ego_x = params[8];
+    int upper_bound_ego_z = params[9];
+
+    int dx = goal_x - x;
+    int dz = goal_z - z;
+
+    int cost = (dx * dx + dz * dz) % 10000000;
+
+    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
+        return;
+
+    atomicCAS(posForCost, cost == bestCost, pos);
 }
 
 uchar3 *CUDA_convertFrameColors(float3 *frame, int width, int height)
@@ -424,6 +608,9 @@ uchar3 *CUDA_convertFrameColors(float3 *frame, int width, int height)
     cudaFreeHost(classColors);
     return resultImgPtr;
 }
+
+
+
 
 void CUDA_setGoal(float3 *frame, int width, int height, int goal_x, int goal_z, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
@@ -599,4 +786,110 @@ void CUDA_setGoalVectorized(float3 *frame, int width, int height, int goal_x, in
     CUDA(cudaDeviceSynchronize());
     cudaFreeHost(params);
     cudaFreeHost(costs);
+}
+
+int CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int goal_x, int goal_z, float angle, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+{
+    const int numClasses = 29;
+    int size = width * height;
+
+    int *params = nullptr;
+    if (!cudaAllocMapped(&params, sizeof(int) * 10))
+    {
+        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for params at checkFeasibleWaypoints()\n", sizeof(int) * numClasses);
+        return -1;
+    }
+
+    int *costs = nullptr;
+    if (!cudaAllocMapped(&costs, sizeof(int) * numClasses))
+    {
+        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for class costs at checkFeasibleWaypoints()\n", sizeof(int) * numClasses);
+        cudaFreeHost(params);
+        return -1;
+    }
+
+    params[0] = width;
+    params[1] = height;
+    params[2] = goal_x;
+    params[3] = goal_z;
+    params[4] = min_dist_x / 2;
+    params[5] = min_dist_z / 2;
+    params[6] = lower_bound_x;
+    params[7] = lower_bound_z;
+    params[8] = upper_bound_x;
+    params[9] = upper_bound_z;
+
+    // printf("bounds %d, %d -> %d, %d\n", lower_bound_x, lower_bound_z, upper_bound_x, upper_bound_z);
+
+    for (int i = 0; i < numClasses; i++)
+        costs[i] = segmentationClassCost[i];
+
+    int numBlocks = floor(size / 256) + 1;
+
+    int bestCost = 999999;
+
+    __CUDA_KERNEL_bestWaypointPosForHeading<<<numBlocks, 256>>>(frame, params, costs, angle, &bestCost);
+
+    int pos = -1;
+
+    __CUDA_KERNEL_findPositionWithCostEqualOrLess<<<numBlocks, 256>>>(frame, params, bestCost, &pos);
+
+    CUDA(cudaDeviceSynchronize());
+    cudaFreeHost(params);
+    cudaFreeHost(costs);
+    
+    return pos;
+}
+
+int CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int goal_z, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+{
+    const int numClasses = 29;
+    int size = width * height;
+
+    int *params = nullptr;
+    if (!cudaAllocMapped(&params, sizeof(int) * 10))
+    {
+        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for params at checkFeasibleWaypoints()\n", sizeof(int) * numClasses);
+        return -1;
+    }
+
+    int *costs = nullptr;
+    if (!cudaAllocMapped(&costs, sizeof(int) * numClasses))
+    {
+        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for class costs at checkFeasibleWaypoints()\n", sizeof(int) * numClasses);
+        cudaFreeHost(params);
+        return -1;
+    }
+
+    params[0] = width;
+    params[1] = height;
+    params[2] = goal_x;
+    params[3] = goal_z;
+    params[4] = min_dist_x / 2;
+    params[5] = min_dist_z / 2;
+    params[6] = lower_bound_x;
+    params[7] = lower_bound_z;
+    params[8] = upper_bound_x;
+    params[9] = upper_bound_z;
+
+    // printf("bounds %d, %d -> %d, %d\n", lower_bound_x, lower_bound_z, upper_bound_x, upper_bound_z);
+
+    for (int i = 0; i < numClasses; i++)
+        costs[i] = segmentationClassCost[i];
+
+    int numBlocks = floor(size / 256) + 1;
+
+    int bestCost = 999999;
+
+    __CUDA_KERNEL_bestWaypointPos<<<numBlocks, 256>>>(frame, params, costs, &bestCost);
+
+    int pos = -1;
+
+    __CUDA_KERNEL_findPositionWithCostEqualOrLess<<<numBlocks, 256>>>(frame, params, bestCost, &pos);
+
+    CUDA(cudaDeviceSynchronize());
+    cudaFreeHost(params);
+    cudaFreeHost(costs);
+    
+    return pos;
 }

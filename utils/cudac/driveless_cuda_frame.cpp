@@ -51,6 +51,33 @@ extern void CUDA_setGoalVectorized(
     int upper_bound_x,
     int upper_bound_z);
 
+extern int CUDA_bestWaypointPosForHeading(
+    float3 *frame,
+    int width,
+    int height,
+    int goal_x,
+    int goal_z,
+    float angle,
+    int min_dist_x,
+    int min_dist_z,
+    int lower_bound_x,
+    int lower_bound_z,
+    int upper_bound_x,
+    int upper_bound_z);
+
+extern int CUDA_bestWaypointPos(
+    float3 *frame,
+    int width,
+    int height,
+    int goal_x,
+    int goal_z,
+    int min_dist_x,
+    int min_dist_z,
+    int lower_bound_x,
+    int lower_bound_z,
+    int upper_bound_x,
+    int upper_bound_z);
+
 void CudaFrame::copyToCpuPointer(float3 *source, float *target)
 {
     for (int i = 0; i < height; i++)
@@ -192,6 +219,37 @@ int CudaFrame::get_class_cost(int segmentation_class)
     return segmentationClassCost[segmentation_class];
 }
 
+int CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading)
+{
+    return CUDA_bestWaypointPosForHeading(this->frame,
+                                          this->width,
+                                          this->height,
+                                          goal_x,
+                                          goal_z,
+                                          heading,
+                                          this->min_dist_x,
+                                          this->min_dist_z,
+                                          this->lower_bound_x,
+                                          this->lower_bound_z,
+                                          this->upper_bound_x,
+                                          this->upper_bound_z);
+}
+
+int CudaFrame::bestWaypointPos(int goal_x, int goal_z)
+{
+    return CUDA_bestWaypointPos(this->frame,
+                                this->width,
+                                this->height,
+                                goal_x,
+                                goal_z,
+                                this->min_dist_x,
+                                this->min_dist_z,
+                                this->lower_bound_x,
+                                this->lower_bound_z,
+                                this->upper_bound_x,
+                                this->upper_bound_z);
+}
+
 static int __CPU_computeFeasibleForAngle(
     float3 *frame,
     int *classCost,
@@ -219,15 +277,12 @@ static int __CPU_computeFeasibleForAngle(
 
             if (xl < 0 || xl >= width)
                 continue;
-            
 
             if (zl < 0 || zl >= height)
                 continue;
-            
 
             if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z)
                 continue;
-            
 
             int segmentation_class = round(frame[zl * width + xl].x);
 
@@ -283,7 +338,7 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, int waypoint
     for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
     {
         bool v = false;
-        if (pos + j >= waypoints_count) 
+        if (pos + j >= waypoints_count)
             break;
         heading += __CPU_compute_heading(waypoints, pos, pos + j, waypoints_count, &v, width, height);
         if (!v)
@@ -298,7 +353,8 @@ static float __CPU__compute_mean_heading(float *waypoints, int pos, int waypoint
         for (int j = 1; j <= NUM_POINTS_ON_MEAN; j++)
         {
             bool v = false;
-            if (pos - j < 0)  {
+            if (pos - j < 0)
+            {
                 *valid = false;
                 return 0.0;
             }
@@ -335,16 +391,18 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count, bool comp
 
         float heading = 0.0;
 
-        if (computeHeadings) {
+        if (computeHeadings)
+        {
             bool valid = false;
             heading = __CPU__compute_mean_heading(waypoints, i, count, &valid, width, height);
             waypoints[pos + 2] = heading;
             if (!valid)
                 continue;
-        } else {
+        }
+        else
+        {
             heading = waypoints[pos + 2];
         }
-
 
         // if (x == 131 && z == 45)
         //     printf("pos = %d, x = %d, z = %d computed heading = %f\n", i, x, z, heading);

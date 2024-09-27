@@ -8,6 +8,10 @@ from model.sensors.odometer import Odometer
 from model.ego_car import EgoCar
 from utils.logging import Telemetry
 
+
+DEBUG_LOG = False
+SHOW_DEBUG_MESSAGES = False
+
 class MotionController (DiscreteComponent):
     _longitudinal_controller: LongitudinalController
     _lateral_controller: LateralController
@@ -86,15 +90,17 @@ class MotionController (DiscreteComponent):
         
         pos = MapPose.find_nearest_goal_pose( pose , self._list, 0)
         
-        Telemetry.log(3, "Motion Controller", f"next goal pose: {pos} for position {pose}")
+        if DEBUG_LOG:
+            Telemetry.log(3, "Motion Controller", f"next goal pose: {pos} for position {pose}")
 
         if (pos < 0):
             self._on_finished_motion(self)
             self._search_state = False
             return
     
-   
-        print (f"[motion] controlling movement from {pos} to {pos+1}")            
+        if SHOW_DEBUG_MESSAGES:
+            print (f"[motion] controlling movement from {pos} to {pos+1}")            
+        
         self._last_pos = pos
         if pos >= len(self._list):
             self._on_finished_motion(self)

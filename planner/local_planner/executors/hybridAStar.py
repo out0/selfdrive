@@ -213,7 +213,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             self._plan_task.join()
 
         self._plan_task = None
-        self._og = None
+        #self._og = None
         
 
     
@@ -263,7 +263,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         closed: dict[str, Node] = {}
 
         perform_search = self._search
-        while perform_search and not open_list.empty():
+        while self._search and perform_search and not open_list.empty():
             _, curr_point = open_list.get(block=False)
 
             if DEBUG_DUMP:
