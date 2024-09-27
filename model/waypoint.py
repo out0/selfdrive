@@ -73,6 +73,10 @@ class Waypoint:
         return num / den
     
     @classmethod
+    def mid_point(cls, p1: 'Waypoint', p2: 'Waypoint') -> 'Waypoint':
+        return Waypoint(math.floor((p2.x + p1.x)/2),  math.floor((p2.z + p1.z)/2))
+    
+    @classmethod
     def clip(cls, p: 'Waypoint', width: int, height: int) -> 'Waypoint':
         res = Waypoint(p.x, p.z, p.heading)
         

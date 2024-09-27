@@ -62,19 +62,24 @@ lib.compute_feasible_path.argtypes = [
     ctypes.c_bool
 ]
 
-lib.best_waypoint_pos_for_heading.restype = ctypes.c_int
-lib.best_waypoint_pos_for_heading.argtypes = [
+lib.best_waypoint_for_heading.restype = ctypes.POINTER(ctypes.c_int * 2)
+lib.best_waypoint_for_heading.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # goal_x
     ctypes.c_int, # goal_z
     ctypes.c_float # heading
 ]
 
-lib.best_waypoint_pos.restype = ctypes.c_int
-lib.best_waypoint_pos.argtypes = [
+lib.best_waypoint.restype = ctypes.POINTER(ctypes.c_int * 2)
+lib.best_waypoint.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # goal_x
     ctypes.c_int # goal_z
+]
+
+lib.free_waypoint.restype = None
+lib.free_waypoint.argtypes = [
+    ctypes.POINTER(ctypes.c_int * 2)
 ]
 
 
@@ -236,23 +241,19 @@ class CudaFrame:
     
     def find_best_cost_waypoint_with_heading(self, goal_x: int, goal_z: int, heading: float) -> Waypoint:
         
-        pos = lib.best_waypoint_pos_for_heading(self._cuda_frame, goal_x, goal_z, heading)
-        
-        width = self._orig_shape[1]
-        
-        z = math.floor(pos / width)
-        x = pos - z * width
+        p = lib.best_waypoint_for_heading(self._cuda_frame, goal_x, goal_z, heading)
+        waypoint = p.contents
+        lib.free_waypoint(p)
             
-        return Waypoint(x, z, heading)
+        return Waypoint(waypoint[0], waypoint[1], heading)
     
     def find_best_cost_waypoint(self, goal_x: int, goal_z: int) -> Waypoint:
         
-        pos = lib.best_waypoint_pos(self._cuda_frame, goal_x, goal_z)
-        
-        width = self._orig_shape[1]
-        
-        z = math.floor(pos / width)
-        x = pos - z * width
+        p = lib.best_waypoint(self._cuda_frame, goal_x, goal_z)   
+        waypoint = p.contents
+        x = waypoint[0]
+        z = waypoint[1]
+        lib.free_waypoint(p)
         
         heading = Waypoint.compute_heading(Waypoint(x, z, 0), Waypoint(goal_x, goal_z, 0))
         

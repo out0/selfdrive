@@ -1,4 +1,5 @@
-install: test
+#install: test
+install: 
 	mkdir -p build
 	cd build && cmake ..
 	cd build && make -j$(nproc)

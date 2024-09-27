@@ -85,6 +85,8 @@ def execute_plan (seq: int) -> bool:
         next_goal_pose=result.map_next_goal
     )
     
+    #print(og.get_frame()[15, 128])
+    
     if res is None:
         print(f"no goal was found for seq: {seq}")
         return
@@ -111,7 +113,7 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(16)
+    execute_plan(18)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

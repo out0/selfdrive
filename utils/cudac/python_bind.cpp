@@ -56,14 +56,18 @@ extern "C"
         return CudaFrame::get_class_cost(segmentation_class);
     }
 
-    int best_waypoint_pos_for_heading(void *self, int goal_x, int goal_z, float heading) {
+    int * best_waypoint_for_heading(void *self, int goal_x, int goal_z, float heading) {
         CudaFrame *f = (CudaFrame *)self;
         return f->bestWaypointPosForHeading(goal_x, goal_z, heading);
     }
 
-    int best_waypoint_pos(void *self, int goal_x, int goal_z) {
+    int * best_waypoint(void *self, int goal_x, int goal_z) {
         CudaFrame *f = (CudaFrame *)self;
         return f->bestWaypointPos(goal_x, goal_z);
+    }
+
+    void free_waypoint(int* waypoint) {
+        delete []waypoint;
     }
 
 }

@@ -51,7 +51,7 @@ extern void CUDA_setGoalVectorized(
     int upper_bound_x,
     int upper_bound_z);
 
-extern int CUDA_bestWaypointPosForHeading(
+extern int * CUDA_bestWaypointPosForHeading(
     float3 *frame,
     int width,
     int height,
@@ -65,7 +65,7 @@ extern int CUDA_bestWaypointPosForHeading(
     int upper_bound_x,
     int upper_bound_z);
 
-extern int CUDA_bestWaypointPos(
+extern int * CUDA_bestWaypointPos(
     float3 *frame,
     int width,
     int height,
@@ -219,7 +219,7 @@ int CudaFrame::get_class_cost(int segmentation_class)
     return segmentationClassCost[segmentation_class];
 }
 
-int CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading)
+int * CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading)
 {
     return CUDA_bestWaypointPosForHeading(this->frame,
                                           this->width,
@@ -235,7 +235,7 @@ int CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading)
                                           this->upper_bound_z);
 }
 
-int CudaFrame::bestWaypointPos(int goal_x, int goal_z)
+int * CudaFrame::bestWaypointPos(int goal_x, int goal_z)
 {
     return CUDA_bestWaypointPos(this->frame,
                                 this->width,

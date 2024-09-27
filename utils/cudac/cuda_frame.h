@@ -36,7 +36,7 @@ public:
 
     static int get_class_cost(int segmentation_class);
 
-    int bestWaypointPosForHeading(int goal_x, int goal_z, float heading);
+    int * bestWaypointPosForHeading(int goal_x, int goal_z, float heading);
 
-    int bestWaypointPos(int goal_x, int goal_z);
+    int * bestWaypointPos(int goal_x, int goal_z);
 };
