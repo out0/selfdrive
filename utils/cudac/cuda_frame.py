@@ -239,13 +239,13 @@ class CudaFrame:
         
         return True
     
-    def find_best_cost_waypoint_with_heading(self, goal_x: int, goal_z: int, heading: float) -> Waypoint:
-        
+    def find_best_cost_waypoint_with_heading(self, goal_x: int, goal_z: int, heading: float) -> Waypoint:       
         p = lib.best_waypoint_for_heading(self._cuda_frame, goal_x, goal_z, heading)
         waypoint = p.contents
+        res = Waypoint(waypoint[0], waypoint[1], heading)
         lib.free_waypoint(p)
-            
-        return Waypoint(waypoint[0], waypoint[1], heading)
+        return res
+
     
     def find_best_cost_waypoint(self, goal_x: int, goal_z: int) -> Waypoint:
         

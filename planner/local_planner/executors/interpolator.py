@@ -65,24 +65,12 @@ class InterpolatorPlanner(LocalPathPlannerExecutor):
 
     def __perform_local_planning(self) -> None:
         self.set_exec_started()
-        path: list[Waypoint] = None
-               
-        path = [
-            self._goal_result.start,
-            self._goal_result.goal
-        ]
         
-
+        next_goal = None
         if self._planner_data.next_goal is not None:
-            next_possible_local_goal = self._map_coordinate_converter.convert_map_to_waypoint(
-                location=self._planner_data.ego_location,
-                target=self._planner_data.next_goal
-            )
-            path.append(next_possible_local_goal)
-            path = WaypointInterpolator.path_interpolate(path, next_possible_local_goal, self._planner_data.og.height())
-        else:
-            path = WaypointInterpolator.path_interpolate(path, self._goal_result.goal, self._planner_data.og.height())
-
+            next_goal = self._map_coordinate_converter.convert_map_to_waypoint(self._planner_data.ego_location, self._planner_data.next_goal)
+        
+        path = WaypointInterpolator.path_interpolate(self._goal_result.start, self._goal_result.goal, next_goal, self._planner_data.og.height())
 
         if path is None:
             self._result = PlanningResult.build_basic_response_data(
@@ -93,10 +81,7 @@ class InterpolatorPlanner(LocalPathPlannerExecutor):
                 total_exec_time_ms=self.get_execution_time()
             )            
             self._search = False
-        
-        
-        goal =  self._goal_result.goal
-        
+               
         dedup = set()
         new_path = []
         for p in path:

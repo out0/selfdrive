@@ -190,6 +190,10 @@ class GoalPointDiscover:
         if og.check_waypoint_feasible(params.g1):
             return params.g1
 
+        goal = og.find_best_cost_waypoint_with_heading(params.g2.x, params.g2.z, params.g1.heading)
+        if goal is not None:
+            return goal
+        
         # if reaching g2 is not possible due to not being feasible, then lets try to find a substitute waypoint that can directly point to g2
         # within bounds
         goal = og.find_best_cost_waypoint(params.g2.x, params.g2.z)

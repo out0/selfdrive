@@ -143,27 +143,33 @@ class WaypointInterpolator:
                         
         return path
 
-    def path_interpolate(path: List[Waypoint], goal: Waypoint, og_height: int) -> List[Waypoint]:
-        size = len(path)
-
-        if size < 2:
-            return None
-        if size == 2:
-            return WaypointInterpolator.interpolate_straight_line_path(path[0], path[1], og_height)
+    def path_interpolate(start: Waypoint, goal: Waypoint, next_goal: Waypoint, og_height: int) -> List[Waypoint]:
         
-        (res_x, res_z) = WaypointInterpolator.__downsample_waypoints(path, 10)
+        if goal is None:
+            return None
+        
+        if next_goal is None:
+            return WaypointInterpolator.interpolate_straight_line_path(start, goal, og_height)
+
+        res_z = [
+            start.z,
+            goal.z,
+            next_goal.z
+        ]
+        res_x = [
+            start.x,
+            goal.x,
+            next_goal.x
+        ]
 
         WaypointInterpolator.__sort_points(res_z, res_x)
 
-        k = 3
-        if len(path) < 4:
-            k = 2
-        tck = interpolate.splrep(res_z, res_x, k=k)
+        # Cubic spline
+        tck = interpolate.splrep(res_z, res_x, k=2)
 
 
-        z = path[0].z
-        last_point = path[len(path) - 1]
-        forward_movement = z > last_point.z
+        z = start.z
+        forward_movement = z > goal.z
         path_candidate: List[Waypoint] = []
 
         if forward_movement:

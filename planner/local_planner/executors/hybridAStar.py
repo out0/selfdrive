@@ -24,7 +24,7 @@ DIR_BOTTOM_RIGHT = 7
 TURNING_COST = 5
 
 
-DEBUG_DUMP = False
+DEBUG_DUMP = True
 
 # SAFE_W = 10
 # SAFE_H = 20
@@ -266,21 +266,21 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         while self._search and perform_search and not open_list.empty():
             _, curr_point = open_list.get(block=False)
 
-            if DEBUG_DUMP:
-                result = PlanningResult(
-                    planner_name = HybridAStarPlanner.NAME,
-                    ego_location = self._planner_data.ego_location,
-                    goal = self._planner_data.goal,
-                    next_goal = self._planner_data.next_goal,
-                    local_start = self._goal_result.start,
-                    local_goal = self._goal_result.goal,
-                    direction = self._goal_result.direction,
-                    timeout = False,
-                    path = path,
-                    result_type = PlannerResultType.VALID,
-                    total_exec_time_ms = self.get_execution_time()
-                )
-                dump_result(self._og, result)
+            # if DEBUG_DUMP:
+            #     result = PlanningResult(
+            #         planner_name = HybridAStarPlanner.NAME,
+            #         ego_location = self._planner_data.ego_location,
+            #         goal = self._planner_data.goal,
+            #         next_goal = self._planner_data.next_goal,
+            #         local_start = self._goal_result.start,
+            #         local_goal = self._goal_result.goal,
+            #         direction = self._goal_result.direction,
+            #         timeout = False,
+            #         path = path,
+            #         result_type = PlannerResultType.VALID,
+            #         total_exec_time_ms = self.get_execution_time()
+            #     )
+            #     dump_result(self._og, result)
 
             if self._check_timeout():
                 perform_search = False
@@ -357,4 +357,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             total_exec_time_ms = self.get_execution_time()
         )
         self._search = False
+        
+        if DEBUG_DUMP:
+           dump_result(self._og, self._result)
 

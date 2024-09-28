@@ -433,7 +433,7 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
     frame[pos].z = v;
 }
 
-__global__ static void __CUDA_KERNEL_bestWaypointPosForHeading(float3 *frame, int *params, int *classCost, float angle, int *bestCost)
+__global__ static void __CUDA_KERNEL_bestWaypointCostForHeading(float3 *frame, int *params, int *classCost, float angle, int *bestCost)
 {
     int width = params[0];
     int height = params[1];
@@ -481,10 +481,6 @@ __global__ static void __CUDA_KERNEL_bestWaypointPosForHeading(float3 *frame, in
 
     if (classCost[(int)frame[pos].x] < 0)
         return;
-
-#ifdef DEBUG_SET_GOAL_VECTOR
-    __CUDA_KERNEL_FrameColor_Debug(frame, width, height, classColorsDebug);
-#endif
 
     if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         return;
@@ -561,7 +557,7 @@ __global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params,
     atomicMin(bestCost, cost);
 }
 
-__global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame, int *params, int *bestCost, float angle, int *waypoint)
+__global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame, int *params, int *classCost, int *bestCost, float angle, int *waypoint)
 {
     int width = params[0];
     int height = params[1];
@@ -582,6 +578,18 @@ __global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame
     int goal_x = params[2];
     int goal_z = params[3];
 
+#ifdef MINIMAL_DISTANCE_X
+    int min_dist_x = MINIMAL_DISTANCE_X;
+#else
+    int min_dist_x = params[4];
+#endif
+
+#ifdef MINIMAL_DISTANCE_Z
+    int min_dist_z = MINIMAL_DISTANCE_Z;
+#else
+    int min_dist_z = params[5];
+#endif
+
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];
@@ -595,16 +603,9 @@ __global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
 
-
     if (cost == *bestCost)
     {
-        bool valid = false;
-        
-        float heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(x, z, goal_x, goal_z, &valid, width, height);
-            if (!valid)
-            return;
-        
-        if (abs(heading - angle) > 0.0001)
+        if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
             return;
 
         waypoint[0] = x;
@@ -671,11 +672,11 @@ __global__ static void __CUDA_KERNEL_findBestHeadingForCost(float3 *frame, int *
         if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
             return;
 
-        //printf("[CUDA] best heading found with cost %d = %f\n", cost, angle);
+        // printf("[CUDA] best heading found with cost %d = %f\n", cost, angle);
         int new_value = (int)(10000 * angle);
-        //int old_value = atomicMin(bestHeading, new_value);
+        // int old_value = atomicMin(bestHeading, new_value);
         atomicMin(bestHeading, new_value);
-        //printf("[CUDA] replacing old value %d = by new value %d\n", old_value, *bestHeading);
+        // printf("[CUDA] replacing old value %d = by new value %d\n", old_value, *bestHeading);
     }
 
     // atomicCAS(posForCost, cost == *bestCost, pos);
@@ -947,10 +948,10 @@ int *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int go
         return nullptr;
     }
 
-    __CUDA_KERNEL_bestWaypointPosForHeading<<<numBlocks, 256>>>(frame, params, costs, angle, bestCost);
+    __CUDA_KERNEL_bestWaypointCostForHeading<<<numBlocks, 256>>>(frame, params, costs, angle, bestCost);
     CUDA(cudaDeviceSynchronize());
 
-    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, 256>>>(frame, params, bestCost, angle, waypoint);
+    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, 256>>>(frame, params, costs, bestCost, angle, waypoint);
     CUDA(cudaDeviceSynchronize());
 
     cudaFreeHost(params);
@@ -1012,7 +1013,7 @@ int *CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int 
     *bestCost = 999999;
     __CUDA_KERNEL_bestWaypointPos<<<numBlocks, 256>>>(frame, params, costs, bestCost);
     CUDA(cudaDeviceSynchronize());
-//    printf("chosen cost: %d\n", *bestCost);
+    //    printf("chosen cost: %d\n", *bestCost);
 
     int *bestHeading;
     if (!cudaAllocMapped(&bestHeading, sizeof(int)))
@@ -1041,9 +1042,9 @@ int *CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int 
 
     int headingInt = *bestHeading;
     float heading = (float)headingInt / 10000;
-   // printf("bestHeading = %d, chosen heading: %f\n", *bestHeading, heading);
+    // printf("bestHeading = %d, chosen heading: %f\n", *bestHeading, heading);
 
-    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, 256>>>(frame, params, bestCost, heading, waypoint);
+    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, 256>>>(frame, params, costs, bestCost, heading, waypoint);
     CUDA(cudaDeviceSynchronize());
 
     cudaFreeHost(params);
