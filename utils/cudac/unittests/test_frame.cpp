@@ -1,9 +1,3 @@
-#include <gtest/gtest.h>
-#include "../cuda_frame.h"
-#include <stdlib.h>
-#include <opencv2/opencv.hpp>
-#include <iostream>
-#include <vector>
 #include "test_frame.h"
 
 TestFrame::TestFrame(int width, int height)

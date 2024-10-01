@@ -47,9 +47,9 @@ add_executable(
   unittests.cpp
 #  path_feasible_check_collision_edge.cpp
   set_goal_vectorized_test.cpp
-  ../driveless_cuda_frame.cpp
-  ../python_bind.cpp
-  ../driveless_cuda_frame.cu
+  ../../src/frame_color.cu
+  ../../src/driveless_cuda_frame.cpp
+  ../../src/frame_process.cu
   test_frame.cpp
   # utils/data_convert_test.cpp
   # model/frame_test.cpp

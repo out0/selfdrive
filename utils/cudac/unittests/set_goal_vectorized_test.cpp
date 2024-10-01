@@ -1,5 +1,4 @@
-#include <gtest/gtest.h>
-#include "../cuda_frame.h"
+#include "../include/cuda_frame.h"
 #include "test_frame.h"
 
 #define MIN_DISTANCE_WIDTH_PX 22

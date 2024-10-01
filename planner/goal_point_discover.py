@@ -126,7 +126,7 @@ class GoalPointDiscover:
                     too_close=False)
 
         
-        og.set_goal_vectorized(params.g1)
+        #og.set_goal_vectorized(params.g1)
      
         goal = self.__find_goal_in_range(og, params)
         if goal is not None:

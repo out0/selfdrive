@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../cuda_frame.h"
+#include "../include/cuda_frame.h"
 #include <stdlib.h>
 #include <opencv2/opencv.hpp>
 #include <iostream>
