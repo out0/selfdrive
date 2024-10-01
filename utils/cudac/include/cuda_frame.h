@@ -39,4 +39,6 @@ public:
     int * bestWaypointPosForHeading(int goal_x, int goal_z, float heading);
 
     int * bestWaypointPos(int goal_x, int goal_z);
+
+    int *bestWaypointInDirection(int start_x, int start_z, int goal_x, int goal_z);
 };

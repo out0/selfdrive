@@ -62,7 +62,7 @@ lib.compute_feasible_path.argtypes = [
     ctypes.c_bool
 ]
 
-lib.best_waypoint_for_heading.restype = ctypes.POINTER(ctypes.c_int * 2)
+lib.best_waypoint_for_heading.restype = ctypes.POINTER(ctypes.c_int * 3)
 lib.best_waypoint_for_heading.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # goal_x
@@ -70,7 +70,7 @@ lib.best_waypoint_for_heading.argtypes = [
     ctypes.c_float # heading
 ]
 
-lib.best_waypoint.restype = ctypes.POINTER(ctypes.c_int * 2)
+lib.best_waypoint.restype = ctypes.POINTER(ctypes.c_int * 3)
 lib.best_waypoint.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # goal_x
@@ -79,12 +79,22 @@ lib.best_waypoint.argtypes = [
 
 lib.free_waypoint.restype = None
 lib.free_waypoint.argtypes = [
-    ctypes.POINTER(ctypes.c_int * 2)
+    ctypes.POINTER(ctypes.c_int * 3)
 ]
-
 
 lib.get_class_cost.restype = ctypes.c_int
 lib.get_class_cost.argtypes = [ctypes.c_int]
+
+
+lib.best_waypoint_in_direction.restype = ctypes.POINTER(ctypes.c_int * 3)
+lib.best_waypoint_in_direction.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_int, # start_x
+    ctypes.c_int, # start_z
+    ctypes.c_int, # goal_x
+    ctypes.c_int # goal_z
+]
+
 
 
 class GridDirection (Enum):
@@ -257,4 +267,14 @@ class CudaFrame:
         
         heading = Waypoint.compute_heading(Waypoint(x, z, 0), Waypoint(goal_x, goal_z, 0))
         
+        return Waypoint(x, z, heading)
+    
+    
+    def find_best_cost_waypoint_in_direction(self, start_x: int, start_z: int, goal_x: int, goal_z: int) -> Waypoint:
+        p = lib.best_waypoint_in_direction(self._cuda_frame, start_x, start_z, goal_x, goal_z)   
+        waypoint = p.contents
+        x = math.floor(waypoint[0])
+        z = math.floor(waypoint[1])
+        heading = math.floor(waypoint[2])
+        lib.free_waypoint(p)
         return Waypoint(x, z, heading)

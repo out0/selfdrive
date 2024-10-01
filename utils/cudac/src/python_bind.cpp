@@ -1,5 +1,5 @@
 
-#include "cuda_frame.h"
+#include "../include/cuda_frame.h"
 
 extern "C"
 {
@@ -68,6 +68,12 @@ extern "C"
 
     void free_waypoint(int* waypoint) {
         delete []waypoint;
+    }
+
+
+    int * best_waypoint_in_direction(void *self, int start_x, int start_z, int goal_x, int goal_z) {
+        CudaFrame *f = (CudaFrame *)self;
+        return f->bestWaypointInDirection(start_x, start_z, goal_x, goal_z);
     }
 
 }

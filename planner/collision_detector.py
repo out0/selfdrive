@@ -12,8 +12,8 @@ import numpy as np
 import json
 
 
-DEBUG = True
-COLLISION_DETECT = True
+DEBUG = False
+COLLISION_DETECT = False
 
 class CollisionDetector(DiscreteComponent):
     

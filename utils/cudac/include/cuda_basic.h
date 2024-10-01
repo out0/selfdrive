@@ -20,7 +20,11 @@
 #define ANGLE_HEADING_MINUS_45 -CUDART_PI_F / 4
 #define ANGLE_HEADING_MINUS_67_5 -(3*CUDART_PI_F) / 8
 
-
+#define TOP 8       // 1000
+#define BOTTOM 4    // 0100
+#define LEFT 2      // 0010
+#define RIGHT  1    // 0001
+#define INSIDE 0    // 0000 
 
 #include <cmath>
 #include <cstring>

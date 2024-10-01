@@ -30,21 +30,20 @@ endif(CUDA_LIB_JETSON)
 include(FindPackageHandleStandardArgs)
 
 
-
-
-
-
-
 SET(TARGET_H
     # cuda_frame.h
     # cuda_basic.h
     # class_def.h
 )
- 
+
+#set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -dc")
+
 add_library( ${CMAKE_PROJECT_NAME} SHARED
-    driveless_cuda_frame.cpp
-    driveless_cuda_frame.cu
-    python_bind.cpp
+    src/frame_color.cu
+    src/frame_process.cu
+    src/python_bind.cpp
+    src/driveless_cuda_frame.cpp
+    src/python_bind.cpp
 )
 
 if(CUDA_LIB_JETSON)

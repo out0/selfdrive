@@ -170,6 +170,9 @@ class OccupancyGrid:
     def find_best_cost_waypoint(self, goal_x: int, goal_z: int) -> Waypoint:
         return self._frame.find_best_cost_waypoint(goal_x, goal_z)
 
+    def find_best_cost_waypoint_in_direction(self, start_x: int, start_z: int, goal_x: int, goal_z: int) -> Waypoint:
+        return self._frame.find_best_cost_waypoint_in_direction(start_x, start_z, goal_x, goal_z)
+
 
     def find_car_dimensions(frame: np.ndarray, car_class: int) -> tuple[Waypoint, Waypoint]:
         mid_x = math.floor(frame.shape[1] / 2)

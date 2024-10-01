@@ -24,9 +24,9 @@ SET(TARGET_H
  
 add_executable(${PROJECT_NAME}
     img_conv.cpp
-    ../driveless_cuda_frame.cpp
-    ../driveless_cuda_frame.cu
-    ../python_bind.cpp
+    ../src/frame_color.cu
+    ../src/driveless_cuda_frame.cpp
+    ../src/frame_process.cu
 )
 
 if(CUDA_LIB_JETSON)

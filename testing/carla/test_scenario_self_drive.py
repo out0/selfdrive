@@ -36,8 +36,9 @@ class CarlaPlanningDataBuilder(PlanningDataBuilder):
                       heading=0))
     
     def build_planning_data(self) -> PlanningData:
+        bev = self._ego.get_bev_camera().read()
         return PlanningData(
-            bev=self._ego.get_bev_camera().read(),
+            bev=bev,
             ego_location=self._slam.estimate_ego_pose(),
             velocity=5.0,
             goal=None,

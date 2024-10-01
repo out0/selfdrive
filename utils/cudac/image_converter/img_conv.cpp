@@ -4,7 +4,7 @@ typedef unsigned char uchar;
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include "../cuda_frame.h"
+#include "../include/cuda_frame.h"
 #include <memory>
 
 float *readPNGToFloatArray(const char *filename, int &width, int &height, int &channels)

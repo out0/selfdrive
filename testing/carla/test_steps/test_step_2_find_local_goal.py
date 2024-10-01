@@ -55,10 +55,10 @@ def show_planned_location_relative_to_projection(
         outp.add_point(projected_goal, color=[255, 0, 0])
         outp.add_point(result_goal, color=[0, 0, 255])
 
-    outp.draw_vector(Waypoint(128,128), result_goal.heading,  size=40)
+    outp.draw_vector(local_start, result_goal.heading,  size=40)
     
     outp.write(file)
-    
+
 
 def execute_plan (seq: int) -> bool:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -113,7 +113,7 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(17)
+    execute_plan(26)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
