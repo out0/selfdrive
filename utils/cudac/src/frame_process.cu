@@ -2,7 +2,6 @@
 #include "../include/class_def.h"
 #include <math_constants.h>
 
-
 // static void __DEBUG_print_params(int *params) {
 //     fprintf (stdout, "width: %d\n", params[0]);
 //     fprintf (stdout, "height: %d\n", params[1]);
@@ -179,13 +178,13 @@ __global__ static void __CUDA_KERNEL_bestWaypointCostForHeading(float3 *frame, i
     if (classCost[(int)frame[pos].x] < 0)
         return;
 
-    if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z)) {
+    if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+    {
         return;
     }
 
     atomicMin(bestCost, cost);
 }
-        
 
 __global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params, int *classCost, int *bestCost)
 {
@@ -304,11 +303,11 @@ __global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame
 
     if (cost == *bestCost)
     {
-        //printf ("waypoint (%d, %d) has cost = %d\n", x, z, cost);
+        // printf ("waypoint (%d, %d) has cost = %d\n", x, z, cost);
         if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
             return;
 
-        //printf ("waypoint (%d, %d) is feasible on angle %f\n", x, z, angle);
+        // printf ("waypoint (%d, %d) is feasible on angle %f\n", x, z, angle);
 
         waypoint[0] = x;
         waypoint[1] = z;
@@ -418,7 +417,6 @@ float *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int 
     // __DEBUG_print_params(params);
     // printf("angle = %f\n", angle);
 
-
     // printf("bounds %d, %d -> %d, %d\n", lower_bound_x, lower_bound_z, upper_bound_x, upper_bound_z);
 
     for (int i = 0; i < numClasses; i++)
@@ -458,14 +456,12 @@ float *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int 
     cudaFreeHost(costs);
     cudaFreeHost(bestCost);
 
-    float * res = new float[3]{
+    float *res = new float[3]{
         (float)waypoint[0], (float)waypoint[1], angle};
 
     cudaFreeHost(waypoint);
     return res;
 }
-
-
 
 float *CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int goal_z, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
@@ -586,7 +582,7 @@ __device__ static float __CUDA_ToRadians(float angle)
     return (angle * CUDART_PI_F) / 180;
 }
 
-__global__ static void __CUDA_KERNEL_WaypointInDirection_findBestHeadingError(float3 *frame, int *params, int *classCost, int *bestHeadingError)
+__global__ static void __CUDA_KERNEL_WaypointInDirection_findBestCost(float3 *frame, int *params, int *classCost, int *bestCost)
 {
     int width = params[0];
     int height = params[1];
@@ -598,11 +594,6 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findBestHeadingError(fl
 
     int z = pos / width;
     int x = pos - z * width;
-
-    // if (x == DEBUG_X && z == DEBUG_Z)
-    // {
-    //     printf("(%d, %d) investigating set of headings\n", x, z);
-    // }
 
     int goal_x = params[2];
     int goal_z = params[3];
@@ -633,8 +624,8 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findBestHeadingError(fl
         return;
 
     bool valid = false;
-    float best_heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(x, z, goal_x, goal_z, &valid, width, height);
-    // float angle_d = 180 * angle / CUDART_PI_F;
+    // float best_heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(x, z, goal_x, goal_z, &valid, width, height);
+    float best_heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(start_x, start_z, goal_x, goal_z, &valid, width, height);
 
     if (!valid)
         return;
@@ -644,44 +635,54 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findBestHeadingError(fl
     if (direction & BOTTOM)
         return;
 
-    float best_local_cost = -1;
+    float best_local_cost = 9999999;
+    bool found = false;
+    int angle_start = 0;
+    int angle_finish = 0;
 
     if (direction & LEFT)
     {
-        float angle = -90;
-        while (angle <= 0)
-        {
-            float a = __CUDA_ToRadians(angle);
-            if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-            {
-                float err = abs(best_heading - a);
-                best_local_cost = best_local_cost < err ? best_local_cost : err;
-            }
-            angle += 5;
-        }
+        angle_start = -90;
+        angle_finish = 0;
     }
-    if (direction & RIGHT)
+    else if (direction & RIGHT)
     {
-        float angle = 0;
-        while (angle <= 90)
-        {
-            float a = __CUDA_ToRadians(angle);
-            if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-            {
-                float err = abs(best_heading - a);
-                best_local_cost = best_local_cost < err ? best_local_cost : err;
-            }
-            angle += 5;
-        }
+        angle_start = 0;
+        angle_finish = 90;
     }
-
-    if (best_local_cost < 0)
+    else
         return;
 
-    atomicMin(bestHeadingError, 10000 * best_local_cost);
+    for (int angle = angle_start; angle <= angle_finish; angle += 5)
+    {
+        float a = __CUDA_ToRadians(angle);
+
+        if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+        {
+            float headingError = abs(best_heading - a) + 1;
+            int dx = goal_x - x;
+            int dz = goal_z - z;
+            int distError = dx * dx + dz * dz;
+            int err = ((int)(headingError * headingError * distError)) % 1000000;
+
+            if (err < best_local_cost)
+            {
+                best_local_cost = err;
+                found = true;
+            }
+        }
+        angle += 5;
+    }
+
+    if (!found)
+        return;
+
+    int local_cost = (int)best_local_cost;
+
+    atomicMin(bestCost, local_cost);
 }
 
-__global__ static void __CUDA_KERNEL_WaypointInDirection_findBestCostError(float3 *frame, int *params, int *classCost, int *bestHeadingError, int *bestCostError)
+__global__ static void __CUDA_KERNEL_WaypointInDirection_findWaypoint(float3 *frame, int *params, int *classCost, int *bestCost, float *waypoint)
 {
     int width = params[0];
     int height = params[1];
@@ -693,11 +694,6 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findBestCostError(float
 
     int z = pos / width;
     int x = pos - z * width;
-
-    // if (x == DEBUG_X && z == DEBUG_Z)
-    // {
-    //     printf("(%d, %d) investigating set of headings\n", x, z);
-    // }
 
     int goal_x = params[2];
     int goal_z = params[3];
@@ -720,9 +716,6 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findBestCostError(float
     int upper_bound_ego_z = params[9];
     int start_x = params[10];
     int start_z = params[11];
-
-    int dx = goal_x - x;
-    int dz = goal_z - z;
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
@@ -731,164 +724,66 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findBestCostError(float
         return;
 
     bool valid = false;
-
-    float best_heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(x, z, goal_x, goal_z, &valid, width, height);
-    // float angle_d = 180 * angle / CUDART_PI_F;
+    float best_heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(start_x, start_z, goal_x, goal_z, &valid, width, height);
 
     if (!valid)
         return;
 
-    int direction = __CUDA_KERNEL_computeDirection(start_x, start_z, goal_x, goal_z);
+    int direction = __CUDA_KERNEL_computeDirection(start_x, start_z, x, z);
 
     if (direction & BOTTOM)
         return;
 
+    int angle_start = 0;
+    int angle_finish = 0;
+
     if (direction & LEFT)
     {
-        float angle = -90;
-        while (angle <= 0)
-        {
-            float a = __CUDA_ToRadians(angle);
-            int err = 10000 * abs(best_heading - a);
-            if (err > *bestHeadingError)
-                continue;
-
-            if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-            {
-                int cost = (dx * dx + dz * dz) % 10000000;
-                atomicMin(bestCostError, cost);
-                return;
-            }
-            angle += 5;
-        }
+        angle_start = -90;
+        angle_finish = 0;
     }
-    if (direction & RIGHT)
+    else if (direction & RIGHT)
     {
-        float angle = 0;
-        while (angle <= 90)
-        {
-            float a = __CUDA_ToRadians(angle);
-            int err = 10000 * abs(best_heading - a);
-            if (err > *bestHeadingError)
-                continue;
-
-            if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-            {
-                int cost = (dx * dx + dz * dz) % 10000000;
-                atomicMin(bestCostError, cost);
-                return;
-            }
-            angle += 5;
-        }
+        angle_start = 0;
+        angle_finish = 90;
     }
-}
-
-__global__ static void __CUDA_KERNEL_WaypointInDirection_findWaypoint(float3 *frame, int *params, int *classCost, int *bestCost, int *bestHeading, int *waypoint)
-{
-    int width = params[0];
-    int height = params[1];
-
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (pos > width * height)
+    else
         return;
 
-    int z = pos / width;
-    int x = pos - z * width;
-
-    // if (x == DEBUG_X && z == DEBUG_Z)
-    // {
-    //     printf("(%d, %d) investigating set of headings\n", x, z);
-    // }
-
-    int goal_x = params[2];
-    int goal_z = params[3];
-
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
-    int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
-    int min_dist_z = params[5];
-#endif
-
-    int lower_bound_ego_x = params[6];
-    int lower_bound_ego_z = params[7];
-    int upper_bound_ego_x = params[8];
-    int upper_bound_ego_z = params[9];
-    int start_x = params[10];
-    int start_z = params[11];
-
-    int dx = goal_x - x;
-    int dz = goal_z - z;
-
-    int cost = (dx * dx + dz * dz) % 10000000;
-
-    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
-        return;
-
-    if (cost == *bestCost)
+    for (int angle = angle_start; angle <= angle_finish; angle += 5)
     {
-        bool valid = false;
-        float best_heading = __CUDA_KERNEL_ComputeHeading_Unbound_Values(x, z, goal_x, goal_z, &valid, width, height);
+        float a = __CUDA_ToRadians(angle);
+        float headingError = abs(best_heading - a) + 1;
+        int dx = goal_x - x;
+        int dz = goal_z - z;
+        int distError = dx * dx + dz * dz;
+        int err = ((int)(headingError * headingError * distError)) % 1000000;
 
-        if (!valid)
-            return;
+        // if (x == 129 && z == 0) {
+        //     printf("129, 0 - recomputed cost = %d bestCost = %d\n", err, *bestCost);
+        // }
 
-        int direction = __CUDA_KERNEL_computeDirection(start_x, start_z, goal_x, goal_z);
 
-        if (direction & BOTTOM)
-            return;
+        if (err > *bestCost)
+            continue;
 
-        if (direction & LEFT)
+
+        if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
         {
-            float angle = -90;
-            while (angle <= 0)
-            {
-                float a = __CUDA_ToRadians(angle);
-                int err = 10000 * abs(best_heading - a);
-                if (err > *bestHeading)
-                    continue;
+            //printf("(%d, %d) has cost %d <= %d\n", x, z, err, *bestCost);
 
-                if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-                {
-                    waypoint[0] = x;
-                    waypoint[1] = z;
-                    waypoint[2] = angle;
-                    return;
-                }
-                angle += 5;
-            }
-        }
-        if (direction & RIGHT)
-        {
-            float angle = 0;
-            while (angle <= 90)
-            {
-                float a = __CUDA_ToRadians(angle);
-                int err = 10000 * abs(best_heading - a);
-                if (err > *bestHeading)
-                    continue;
 
-                if (__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, a, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
-                {
-                    waypoint[0] = x;
-                    waypoint[1] = z;
-                    waypoint[2] = angle;
-                    return;
-                }
-                angle += 5;
-            }
+            waypoint[0] = x;
+            waypoint[1] = z;
+            waypoint[2] = angle;
+            return;
         }
+        angle += 5;
     }
 }
 
 float *CUDA_bestWaypointInDirection(float3 *frame, int width, int height, int start_x, int start_z, int goal_x, int goal_z,
-                                  int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+                                    int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
     const int numClasses = 29;
     int size = width * height;
@@ -932,57 +827,42 @@ float *CUDA_bestWaypointInDirection(float3 *frame, int width, int height, int st
     // the error is computed as err = abs (best_angle - a)
     // where best_angle = direct angle between x,z and the goal
     //       a = angle being analyzed for feasibility in direction   (if x,z is TOP-LEFT, a is in (-90, 0). If x,z is TOP-RIGHT, a is in (0, 90))
-    int *bestHeadingError;
-    if (!cudaAllocMapped(&bestHeadingError, sizeof(float)))
+    int *bestCost;
+    if (!cudaAllocMapped(&bestCost, sizeof(float)))
     {
         cudaFreeHost(params);
         cudaFreeHost(costs);
         fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for bestCost at CUDA_bestWaypointInDirection()\n", sizeof(int));
         return nullptr;
     }
-    *bestHeadingError = 999999;
-    __CUDA_KERNEL_WaypointInDirection_findBestHeadingError<<<numBlocks, 256>>>(frame, params, costs, bestHeadingError);
+    *bestCost = 9999999;
+    __CUDA_KERNEL_WaypointInDirection_findBestCost<<<numBlocks, 256>>>(frame, params, costs, bestCost);
     CUDA(cudaDeviceSynchronize());
 
-    printf("best heading error found for (%d, %d) -> (%d, %d): %d\n", start_x, start_z, goal_x, goal_z, *bestHeadingError);
+    //printf("best cost found for (%d, %d) -> (%d, %d) =  %d\n", start_x, start_z, goal_x, goal_z, *bestCost);
 
-    // STEP2: For all the points that are feasible at the bestHeadingError, find what is the closest distance between the point and the goal.
-
-    int *bestCostError;
-    if (!cudaAllocMapped(&bestCostError, sizeof(int)))
+    float *waypoint;
+    if (!cudaAllocMapped(&waypoint, 3 * sizeof(float)))
     {
         cudaFreeHost(params);
         cudaFreeHost(costs);
-        cudaFreeHost(bestHeadingError);
-        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for bestCostError at CUDA_bestWaypointInDirection()\n", sizeof(int) * 2);
+        cudaFreeHost(bestCost);
+        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for waypoint at CUDA_bestWaypointInDirection()\n", sizeof(int));
         return nullptr;
     }
 
-    *bestCostError = 999999;
-    __CUDA_KERNEL_WaypointInDirection_findBestCostError<<<numBlocks, 256>>>(frame, params, costs, bestHeadingError, bestCostError);
+    // STEP2: Now we find the first goal point that has the bestCost and is feasible. Hopefully it is only one waypoint.
+    __CUDA_KERNEL_WaypointInDirection_findWaypoint<<<numBlocks, 256>>>(frame, params, costs, bestCost, waypoint);
     CUDA(cudaDeviceSynchronize());
 
-    printf("best cost error for the heading error is: %d\n", *bestCostError);
-
-    int *waypoint;
-    if (!cudaAllocMapped(&waypoint, sizeof(int) * 2))
-    {
-        cudaFreeHost(params);
-        cudaFreeHost(costs);
-        cudaFreeHost(bestCostError);
-        cudaFreeHost(bestHeadingError);
-        fprintf(stderr, "[CUDA FRAME] unable to allocate %ld bytes for waypoint at CUDA_bestWaypointInDirection()\n", sizeof(int) * 2);
-        return nullptr;
-    }
-    // STEP3: Now we find the first goal point that has the lowest bestCostError and bestHeadingError
-    __CUDA_KERNEL_WaypointInDirection_findWaypoint<<<numBlocks, 256>>>(frame, params, costs, bestCostError, bestHeadingError, waypoint);
-    CUDA(cudaDeviceSynchronize());
-
-    printf("that resulted in the first waypoing being: %d, %d, %d\n", waypoint[0], waypoint[1], waypoint[2]);
+    // printf("that resulted in the first waypoing being: %d, %d, %d\n", waypoint[0], waypoint[1], waypoint[2]);
 
     float *res = new float[3]{
-        (float)waypoint[0], (float)waypoint[1], (float)waypoint[2]};
+        waypoint[0], waypoint[1], waypoint[2]};
 
+    cudaFreeHost(params);
+    cudaFreeHost(costs);
+    cudaFreeHost(bestCost);
     cudaFreeHost(waypoint);
     return res;
 }

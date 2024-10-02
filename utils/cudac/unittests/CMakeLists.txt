@@ -45,19 +45,16 @@ SET(TARGET_H
 add_executable(
   unittest
   unittests.cpp
-#  path_feasible_check_collision_edge.cpp
   set_goal_vectorized_test.cpp
+
   test_check_waypoint_feasible.cpp
   test_find_best_cost_waypoint_with_heading.cpp
+  test_find_best_cost_waypoint_in_direction.cpp
+
   ../../src/frame_color.cu
   ../../src/driveless_cuda_frame.cpp
   ../../src/frame_process.cu
   test_frame.cpp
-  # utils/data_convert_test.cpp
-  # model/frame_test.cpp
-  # model/planning_waypoint_test.cpp
-  # planning/ompl/ompl_skeletonize_test.cpp
-  # communication/webrtc_test.cpp
 )
 
 if(THREADS_HAVE_PTHREAD_ARG)

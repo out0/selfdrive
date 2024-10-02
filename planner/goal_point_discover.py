@@ -125,7 +125,26 @@ class GoalPointDiscover:
                     #too_close=False
                     too_close=False)
 
+        # DEBUG!
+        # ---------------------------------------------------
+        if self.__goal_in_range(og, params.g1):
+            goal = og.find_best_cost_waypoint_in_direction(params.start.x, params.start.z, params.g2.x, params.g2.z)
         
+        else:
+            goal = og.find_best_cost_waypoint_in_direction(params.start.x, params.start.z, params.g1.x, params.g1.z)
+        
+        return GoalPointDiscoverResult(
+            og=og,
+            start=self._ego_start,
+            goal=goal,
+            direction=self.__compute_direction_from_heading_angle(goal.heading),
+            too_close=self.__check_too_close(og, goal)
+        )
+        
+        # ---------------------------------------------------
+        
+
+
         #og.set_goal_vectorized(params.g1)
      
         goal = self.__find_goal_in_range(og, params)
@@ -200,11 +219,11 @@ class GoalPointDiscover:
             return params.g1
         
         goal = og.find_best_cost_waypoint_with_heading(params.g1.x, params.g1.z, mid_heading)
-        if og.check_waypoint_feasible(goal):
+        if goal is not None:
             return goal
     
         goal = og.find_best_cost_waypoint_with_heading(params.g1.x, params.g1.z, direct_heading)
-        if og.check_waypoint_feasible(goal):
+        if goal is not None:
             return goal
                
         # if we cant reach g2 directly, then we completly ignore trying to get there directly. Instead, 
@@ -224,17 +243,18 @@ class GoalPointDiscover:
     ## GOAL OUT OF RANGE
     
     def __process_short_distance_goal(self, og: OccupancyGrid, params: SearchParameters, goal: Waypoint) -> Waypoint:
+        
         direct_heading = Waypoint.compute_heading(params.g1, params.g2)
         
         goal = og.find_best_cost_waypoint_with_heading(params.g1.x, params.g1.z, direct_heading)
-        if og.check_waypoint_feasible(goal):
+        if goal is not None:
             return goal
         
         mid = Waypoint.mid_point(params.g1, params.g2)
         mid_heading = Waypoint.compute_heading(params.start, mid)
         
         goal = og.find_best_cost_waypoint_with_heading(params.g1.x, params.g1.z, mid_heading)
-        if og.check_waypoint_feasible(goal):
+        if goal is not None:
             return goal
         
         return self.__try_to_reach_the_goal_using_direction(og, params, params.g2)
