@@ -21,7 +21,7 @@ TEST(SetGoalVectorizedTest, FreeZoneInside)
 {
     TestFrame tst_frame(256, 256);
 
-    CudaFrame * frame = tst_frame.getFrame(MIN_DISTANCE_WIDTH_PX, MIN_DISTANCE_HEIGHT_PX, EGO_LOWER_BOUND_X, EGO_LOWER_BOUND_Z, EGO_UPPER_BOUND_X, EGO_UPPER_BOUND_Z);
+    CudaFrame * frame = tst_frame.getCudaFrame(MIN_DISTANCE_WIDTH_PX, MIN_DISTANCE_HEIGHT_PX, EGO_LOWER_BOUND_X, EGO_LOWER_BOUND_Z, EGO_UPPER_BOUND_X, EGO_UPPER_BOUND_Z);
     frame->setGoalVectorized(100, 50);
     frame->copyBack(tst_frame.getImgPtr());
     tst_frame.toFile("test.png");

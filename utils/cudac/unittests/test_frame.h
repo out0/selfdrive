@@ -14,6 +14,8 @@ class TestFrame
     int getVectorPos(int x, int z);
     void addPoint(int x, int z, int r, int g, int b);
 
+    TestFrame(float * imgptr, int width, int height);
+
 
 public:
     TestFrame(int width, int height);
@@ -27,8 +29,10 @@ public:
     float getDistanceCost(int x, int z);
     int getAllowedHeadings(int x, int z);
 
-    CudaFrame *getFrame(int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z);
+    CudaFrame *getCudaFrame(int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z);
     float * getImgPtr();
 
     void toFile(const std::string &filename);
+    
+    static CudaFrame* readCudaFrameFromFile(const std::string &filename, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z);
 };

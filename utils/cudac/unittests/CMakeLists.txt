@@ -47,6 +47,8 @@ add_executable(
   unittests.cpp
 #  path_feasible_check_collision_edge.cpp
   set_goal_vectorized_test.cpp
+  test_check_waypoint_feasible.cpp
+  test_find_best_cost_waypoint_with_heading.cpp
   ../../src/frame_color.cu
   ../../src/driveless_cuda_frame.cpp
   ../../src/frame_process.cu

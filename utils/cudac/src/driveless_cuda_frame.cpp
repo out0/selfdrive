@@ -51,7 +51,7 @@ extern void CUDA_setGoalVectorized(
     int upper_bound_x,
     int upper_bound_z);
 
-extern int *CUDA_bestWaypointPosForHeading(
+extern float *CUDA_bestWaypointPosForHeading(
     float3 *frame,
     int width,
     int height,
@@ -65,7 +65,7 @@ extern int *CUDA_bestWaypointPosForHeading(
     int upper_bound_x,
     int upper_bound_z);
 
-extern int *CUDA_bestWaypointPos(
+extern float *CUDA_bestWaypointPos(
     float3 *frame,
     int width,
     int height,
@@ -78,7 +78,7 @@ extern int *CUDA_bestWaypointPos(
     int upper_bound_x,
     int upper_bound_z);
 
-extern int *CUDA_bestWaypointInDirection(
+extern float *CUDA_bestWaypointInDirection(
     float3 *frame,
     int width,
     int height,
@@ -234,14 +234,14 @@ int CudaFrame::get_class_cost(int segmentation_class)
     return segmentationClassCost[segmentation_class];
 }
 
-int *CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading)
+float *CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading_rad)
 {
     return CUDA_bestWaypointPosForHeading(this->frame,
                                           this->width,
                                           this->height,
                                           goal_x,
                                           goal_z,
-                                          heading,
+                                          heading_rad,
                                           this->min_dist_x,
                                           this->min_dist_z,
                                           this->lower_bound_x,
@@ -250,7 +250,7 @@ int *CudaFrame::bestWaypointPosForHeading(int goal_x, int goal_z, float heading)
                                           this->upper_bound_z);
 }
 
-int *CudaFrame::bestWaypointPos(int goal_x, int goal_z)
+float *CudaFrame::bestWaypointPos(int goal_x, int goal_z)
 {
     return CUDA_bestWaypointPos(this->frame,
                                 this->width,
@@ -434,7 +434,7 @@ void CudaFrame::checkFeasibleWaypointsCPU(float *waypoints, int count, bool comp
 
 
 
-int *CudaFrame::bestWaypointInDirection(int start_x, int start_z, int goal_x, int goal_z)
+float *CudaFrame::bestWaypointInDirection(int start_x, int start_z, int goal_x, int goal_z)
 {
     return CUDA_bestWaypointInDirection(
         this->frame,

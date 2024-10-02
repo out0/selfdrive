@@ -62,7 +62,7 @@ lib.compute_feasible_path.argtypes = [
     ctypes.c_bool
 ]
 
-lib.best_waypoint_for_heading.restype = ctypes.POINTER(ctypes.c_int * 3)
+lib.best_waypoint_for_heading.restype = ctypes.POINTER(ctypes.c_float * 3)
 lib.best_waypoint_for_heading.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # goal_x
@@ -70,23 +70,14 @@ lib.best_waypoint_for_heading.argtypes = [
     ctypes.c_float # heading
 ]
 
-lib.best_waypoint.restype = ctypes.POINTER(ctypes.c_int * 3)
+lib.best_waypoint.restype = ctypes.POINTER(ctypes.c_float * 3)
 lib.best_waypoint.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # goal_x
     ctypes.c_int # goal_z
 ]
 
-lib.free_waypoint.restype = None
-lib.free_waypoint.argtypes = [
-    ctypes.POINTER(ctypes.c_int * 3)
-]
-
-lib.get_class_cost.restype = ctypes.c_int
-lib.get_class_cost.argtypes = [ctypes.c_int]
-
-
-lib.best_waypoint_in_direction.restype = ctypes.POINTER(ctypes.c_int * 3)
+lib.best_waypoint_in_direction.restype = ctypes.POINTER(ctypes.c_float * 3)
 lib.best_waypoint_in_direction.argtypes = [
     ctypes.c_void_p, 
     ctypes.c_int, # start_x
@@ -95,6 +86,13 @@ lib.best_waypoint_in_direction.argtypes = [
     ctypes.c_int # goal_z
 ]
 
+lib.free_waypoint.restype = None
+lib.free_waypoint.argtypes = [
+    ctypes.POINTER(ctypes.c_float * 3)
+]
+
+lib.get_class_cost.restype = ctypes.c_int
+lib.get_class_cost.argtypes = [ctypes.c_int]
 
 
 class GridDirection (Enum):
@@ -249,10 +247,11 @@ class CudaFrame:
         
         return True
     
-    def find_best_cost_waypoint_with_heading(self, goal_x: int, goal_z: int, heading: float) -> Waypoint:       
+    def find_best_cost_waypoint_with_heading(self, goal_x: int, goal_z: int, heading_degrees: float) -> Waypoint:
+        heading = math.radians(heading_degrees)  
         p = lib.best_waypoint_for_heading(self._cuda_frame, goal_x, goal_z, heading)
         waypoint = p.contents
-        res = Waypoint(waypoint[0], waypoint[1], heading)
+        res = Waypoint(waypoint[0], waypoint[1], heading_degrees)
         lib.free_waypoint(p)
         return res
 
@@ -263,11 +262,12 @@ class CudaFrame:
         waypoint = p.contents
         x = waypoint[0]
         z = waypoint[1]
+        heading = waypoint[2]
         lib.free_waypoint(p)
         
-        heading = Waypoint.compute_heading(Waypoint(x, z, 0), Waypoint(goal_x, goal_z, 0))
+        #heading = Waypoint.compute_heading(Waypoint(x, z, 0), Waypoint(goal_x, goal_z, 0))
         
-        return Waypoint(x, z, heading)
+        return Waypoint(x, z, math.degrees(heading))
     
     
     def find_best_cost_waypoint_in_direction(self, start_x: int, start_z: int, goal_x: int, goal_z: int) -> Waypoint:
@@ -275,6 +275,6 @@ class CudaFrame:
         waypoint = p.contents
         x = math.floor(waypoint[0])
         z = math.floor(waypoint[1])
-        heading = math.floor(waypoint[2])
+        heading = waypoint[2]
         lib.free_waypoint(p)
         return Waypoint(x, z, heading)

@@ -94,7 +94,7 @@ void addVector(int x, int z, float heading, int size)
 {
 }
 
-CudaFrame *TestFrame::getFrame(int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+CudaFrame *TestFrame::getCudaFrame(int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
     for (int z = 0; z < height; z++)
     {
@@ -134,4 +134,43 @@ void TestFrame::toFile(const std::string &filename)
 
     // Write the image to a PNG file
     cv::imwrite(filename, image);
+}
+
+TestFrame::TestFrame(float *imgptr, int width, int height)
+{
+    this->data = imgptr;
+    this->width = width;
+    this->height = height;
+}
+
+CudaFrame *TestFrame::readCudaFrameFromFile(const std::string &filename, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+{
+    cv::Mat image = cv::imread(filename);
+
+    // Check if the image was loaded successfully
+    if (image.empty())
+    {
+        std::cerr << "Error: Could not open or find the image!" << std::endl;
+        return nullptr;
+    }
+
+    int height = image.rows;
+    int width = image.cols;
+    int channels = image.channels();
+
+    // Create a float* array to store the pixel data
+    float *imgptr = new float[height * width * channels];
+
+    for (int z = 0; z < height; z++)
+        for (int x = 0; x < width; x++)
+        {
+            int pos = channels * (z * width + x);
+            cv::Vec3b pixelValue = image.at<cv::Vec3b>(z, x);
+
+            imgptr[pos] = pixelValue[0];
+            imgptr[pos + 1] = pixelValue[1];
+            imgptr[pos + 2] = pixelValue[2];
+        }
+
+    return new CudaFrame(imgptr, width, height, min_dist_x, min_dist_z, lower_bound_x, lower_bound_z, upper_bound_x, upper_bound_z);
 }

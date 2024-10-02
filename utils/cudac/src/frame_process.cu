@@ -2,6 +2,20 @@
 #include "../include/class_def.h"
 #include <math_constants.h>
 
+
+// static void __DEBUG_print_params(int *params) {
+//     fprintf (stdout, "width: %d\n", params[0]);
+//     fprintf (stdout, "height: %d\n", params[1]);
+//     fprintf (stdout, "goal_x: %d\n", params[2]);
+//     fprintf (stdout, "goal_z: %d\n", params[3]);
+//     fprintf (stdout, "min_dist_x: %d\n", params[4]);
+//     fprintf (stdout, "min_dist_z: %d\n", params[5]);
+//     fprintf (stdout, "lower_bound_ego_x: %d\n", params[6]);
+//     fprintf (stdout, "lower_bound_ego_z: %d\n", params[7]);
+//     fprintf (stdout, "upper_bound_ego_x: %d\n", params[8]);
+//     fprintf (stdout, "upper_bound_ego_z: %d\n", params[9]);
+// }
+
 __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
     float3 *frame,
     int *classCost,
@@ -39,7 +53,7 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
 
             if (classCost[segmentation_class] < 0)
             {
-                // if (x == DEBUG_X && z == DEBUG_Z)
+                // if (x == 115 && z == 16)
                 // {
                 //     printf("(%d, %d) not feasible on angle %f because of position: (%d, %d)\n", x, z, angle_radians * 180 / CUDART_PI_F, xl, zl);
                 //     printf("(%d, %d) min distances: W: %d  H: %d\n",  x, z, min_dist_x, min_dist_z);
@@ -48,9 +62,9 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
             }
         }
 
-    // if (x == DEBUG_X && z == DEBUG_Z)
+    // if (x == 115 && z == 16)
     // {
-    //     printf("(%d, %d) feasible on angle %f\n", x, z, angle_radians * CUDART_PI_F / 180);
+    //     printf("(%d, %d) feasible on angle %f\n", x, z, angle_radians * 180 / CUDART_PI_F);
     // }
     return true;
 }
@@ -165,11 +179,13 @@ __global__ static void __CUDA_KERNEL_bestWaypointCostForHeading(float3 *frame, i
     if (classCost[(int)frame[pos].x] < 0)
         return;
 
-    if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
+    if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z)) {
         return;
+    }
 
     atomicMin(bestCost, cost);
 }
+        
 
 __global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params, int *classCost, int *bestCost)
 {
@@ -288,8 +304,11 @@ __global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame
 
     if (cost == *bestCost)
     {
+        //printf ("waypoint (%d, %d) has cost = %d\n", x, z, cost);
         if (!__CUDA_KERNEL_ComputeFeasibleForAngle(frame, classCost, x, z, angle, width, height, min_dist_x, min_dist_z, lower_bound_ego_x, lower_bound_ego_z, upper_bound_ego_x, upper_bound_ego_z))
             return;
+
+        //printf ("waypoint (%d, %d) is feasible on angle %f\n", x, z, angle);
 
         waypoint[0] = x;
         waypoint[1] = z;
@@ -365,7 +384,7 @@ __global__ static void __CUDA_KERNEL_findBestHeadingForCost(float3 *frame, int *
     // atomicCAS(posForCost, cost == *bestCost, pos);
 }
 
-int *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int goal_x, int goal_z, float angle, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+float *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int goal_x, int goal_z, float angle, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
     const int numClasses = 29;
     int size = width * height;
@@ -395,6 +414,10 @@ int *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int go
     params[7] = lower_bound_z;
     params[8] = upper_bound_x;
     params[9] = upper_bound_z;
+
+    // __DEBUG_print_params(params);
+    // printf("angle = %f\n", angle);
+
 
     // printf("bounds %d, %d -> %d, %d\n", lower_bound_x, lower_bound_z, upper_bound_x, upper_bound_z);
 
@@ -426,19 +449,25 @@ int *CUDA_bestWaypointPosForHeading(float3 *frame, int width, int height, int go
     __CUDA_KERNEL_bestWaypointCostForHeading<<<numBlocks, 256>>>(frame, params, costs, angle, bestCost);
     CUDA(cudaDeviceSynchronize());
 
+    // printf("best cost = %d\n", *bestCost);
+
     __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, 256>>>(frame, params, costs, bestCost, angle, waypoint);
     CUDA(cudaDeviceSynchronize());
 
     cudaFreeHost(params);
     cudaFreeHost(costs);
     cudaFreeHost(bestCost);
-    cudaFreeHost(waypoint);
 
-    return new int[2]{
-        waypoint[0], waypoint[1]};
+    float * res = new float[3]{
+        (float)waypoint[0], (float)waypoint[1], angle};
+
+    cudaFreeHost(waypoint);
+    return res;
 }
 
-int *CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int goal_z, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+
+
+float *CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int goal_z, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
     const int numClasses = 29;
     int size = width * height;
@@ -526,10 +555,12 @@ int *CUDA_bestWaypointPos(float3 *frame, int width, int height, int goal_x, int 
     cudaFreeHost(costs);
     cudaFreeHost(bestCost);
     cudaFreeHost(bestHeading);
-    cudaFreeHost(waypoint);
 
-    return new int[3]{
-        waypoint[0], waypoint[1], 0};
+    float *res = new float[3]{
+        (float)waypoint[0], (float)waypoint[1], heading};
+
+    cudaFreeHost(waypoint);
+    return res;
 }
 
 __device__ int __CUDA_KERNEL_computeDirection(int start_x, int start_z, int goal_x, int goal_z)
@@ -856,7 +887,7 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findWaypoint(float3 *fr
     }
 }
 
-int *CUDA_bestWaypointInDirection(float3 *frame, int width, int height, int start_x, int start_z, int goal_x, int goal_z,
+float *CUDA_bestWaypointInDirection(float3 *frame, int width, int height, int start_x, int start_z, int goal_x, int goal_z,
                                   int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
 {
     const int numClasses = 29;
@@ -949,8 +980,8 @@ int *CUDA_bestWaypointInDirection(float3 *frame, int width, int height, int star
 
     printf("that resulted in the first waypoing being: %d, %d, %d\n", waypoint[0], waypoint[1], waypoint[2]);
 
-    int *res = new int[3]{
-        waypoint[0], waypoint[1], waypoint[2]};
+    float *res = new float[3]{
+        (float)waypoint[0], (float)waypoint[1], (float)waypoint[2]};
 
     cudaFreeHost(waypoint);
     return res;
