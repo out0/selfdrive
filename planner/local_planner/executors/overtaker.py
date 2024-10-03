@@ -14,7 +14,7 @@ from data.coordinate_converter import CoordinateConverter
 from model.map_pose import MapPose
 from planner.goal_point_discover import GoalPointDiscoverResult
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 class OvertakerPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread

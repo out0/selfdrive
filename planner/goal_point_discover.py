@@ -125,21 +125,21 @@ class GoalPointDiscover:
                     #too_close=False
                     too_close=False)
 
-        # DEBUG!
-        # ---------------------------------------------------
-        if self.__goal_in_range(og, params.g1):
-            goal = og.find_best_cost_waypoint_in_direction(params.start.x, params.start.z, params.g2.x, params.g2.z)
+        # # DEBUG!
+        # # ---------------------------------------------------
+        # if self.__goal_in_range(og, params.g1):
+        #     goal = og.find_best_cost_waypoint_in_direction(params.start.x, params.start.z, params.g2.x, params.g2.z)
         
-        else:
-            goal = og.find_best_cost_waypoint_in_direction(params.start.x, params.start.z, params.g1.x, params.g1.z)
+        # else:
+        #     goal = og.find_best_cost_waypoint_in_direction(params.start.x, params.start.z, params.g1.x, params.g1.z)
         
-        return GoalPointDiscoverResult(
-            og=og,
-            start=self._ego_start,
-            goal=goal,
-            direction=self.__compute_direction_from_heading_angle(goal.heading),
-            too_close=self.__check_too_close(og, goal)
-        )
+        # return GoalPointDiscoverResult(
+        #     og=og,
+        #     start=self._ego_start,
+        #     goal=goal,
+        #     direction=self.__compute_direction_from_heading_angle(goal.heading),
+        #     too_close=self.__check_too_close(og, goal)
+        # )
         
         # ---------------------------------------------------
         

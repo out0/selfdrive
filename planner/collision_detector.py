@@ -12,7 +12,7 @@ import numpy as np
 import json
 
 
-DEBUG = False
+DEBUG = True
 COLLISION_DETECT = False
 
 class CollisionDetector(DiscreteComponent):
@@ -112,16 +112,16 @@ class CollisionDetector(DiscreteComponent):
         if DEBUG:
             self.__log_collision_detect(og, p1, p2, p3)
         
-        if self.__check_subpath_feasible(tl, r_paths, start=0):
-            return False
+        if not self.__check_subpath_feasible(tl, r_paths, start=0):
+            return True
         
-        if self.__check_subpath_feasible(t, r_paths, start=len(tl)):
-            return False
+        if not self.__check_subpath_feasible(t, r_paths, start=len(tl)):
+            return True
 
-        if self.__check_subpath_feasible(tr, r_paths, start=len(tl) + len(t)):
-            return False
+        if not self.__check_subpath_feasible(tr, r_paths, start=len(tl) + len(t)):
+            return True
 
-        return True
+        return False
     
     def watch_path(self, path: list[MapPose]) -> None:
         self._planned_path = path

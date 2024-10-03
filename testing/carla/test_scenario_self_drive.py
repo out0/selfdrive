@@ -116,8 +116,12 @@ def drive_scenario (client: CarlaClient, file: str):
 # BUG NO COLLISION DETECTOR!
 #controller, follower, ego = drive_scenario(client=client, file="scenarios/turn_right_obstacle.sce")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/big_mission.sce")
+#controller, follower, ego = drive_scenario(client=client, file="scenarios/big_mission.sce")
 #controller, follower, ego = drive_scenario(client=client, file="scenarios/cars_zigzag.sce")
+#controller, follower, ego = drive_scenario(client=client, file="scenarios/cone_zigzag.sce")
+#controller, follower, ego = drive_scenario(client=client, file="scenarios/crossroad_left.sce")
+#controller, follower, ego = drive_scenario(client=client, file="scenarios/double_takeover.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/turn_right_obstacle.sce")
 
 
 print ("press enter to destroy")

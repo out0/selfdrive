@@ -9,7 +9,7 @@ from scipy.ndimage import gaussian_filter
 from .debug_dump import dump_result
 from planner.goal_point_discover import GoalPointDiscoverResult
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 class InterpolatorPlanner(LocalPathPlannerExecutor):
     _plan_task: Thread
