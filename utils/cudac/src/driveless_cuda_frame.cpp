@@ -7,7 +7,8 @@
 #include "../include/class_def.h"
 #include "../include/cuda_frame.h"
 
-#define PATH_FEASIBLE_CPU_THRESHOLD 20
+//#define PATH_FEASIBLE_CPU_THRESHOLD 20
+#define PATH_FEASIBLE_CPU_THRESHOLD 0
 
 extern uchar3 *CUDA_convertFrameColors(float3 *frame, int width, int height);
 

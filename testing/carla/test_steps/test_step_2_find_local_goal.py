@@ -4,16 +4,13 @@ from typing import List
 from model.map_pose import MapPose
 from model.waypoint import Waypoint
 from model.world_pose import WorldPose
-from slam.slam import SLAM
-from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType
-from model.planning_data import PlanningData, PlanningResult, PlannerResultType
+from planner.local_planner.local_planner import LocalPlannerType
 from data.coordinate_converter import CoordinateConverter
 from utils.logging import Telemetry
 from testing.test_utils import PlannerTestOutput
 from planner.goal_point_discover import GoalPointDiscover
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
-import math
 
 COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09, 
                       lon=-1.5848012769283334e-08,
@@ -77,7 +74,7 @@ def execute_plan (seq: int) -> bool:
                 lower_bound=PhysicalParameters.EGO_LOWER_BOUND,
                 upper_bound=PhysicalParameters.EGO_UPPER_BOUND
             )
-
+    
     res = local_goal_discover.find_goal(
         og=og,
         current_pose=result.ego_location,
@@ -113,7 +110,7 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(26)
+    execute_plan(1)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
