@@ -22,6 +22,8 @@ PROXIMITY_RATE_TO_GET_NEXT_PATH_SEGMENT = 0.9
 MOTION_CONTROLLER_EXEC_PERIOD_MS = 5
 LONGITUDINAL_EXEC_PERIOD_MS = 100
 
+PLANNER_TYPE = LocalPlannerType.Ensemble
+
 class ControllerState(Enum):
     ON_HOLD = 0
     START_PLANNING = 1
@@ -101,7 +103,7 @@ class SelfDriveController(DiscreteComponent):
         
         self.__local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
-            local_planner_type=LocalPlannerType.Ensemble,
+            local_planner_type=PLANNER_TYPE,
             map_coordinate_converter=self._coord
         )
         
@@ -238,7 +240,7 @@ class SelfDriveController(DiscreteComponent):
         plan_data.set_goals(p2, p3, 5.0)
         
         self._last_planning_data = plan_data
-        Telemetry.dump_pre_planning_data(level=2, seq=self._exec_mission_seq, data=self._last_planning_data)
+        #Telemetry.dump_pre_planning_data(level=2, seq=self._exec_mission_seq, data=self._last_planning_data)
         self.__local_planner.plan(plan_data)
         return ControllerState.WAIT_PLANNING
     

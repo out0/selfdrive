@@ -36,10 +36,11 @@ class CarlaPlanningDataBuilder(PlanningDataBuilder):
                       heading=0))
     
     def build_planning_data(self) -> PlanningData:
+        location = self._slam.estimate_ego_pose()
         bev = self._ego.get_bev_camera().read()
         return PlanningData(
             bev=bev,
-            ego_location=self._slam.estimate_ego_pose(),
+            ego_location=location,
             velocity=5.0,
             goal=None,
             next_goal=None
@@ -116,7 +117,7 @@ def drive_scenario (client: CarlaClient, file: str):
 # BUG NO COLLISION DETECTOR!
 #controller, follower, ego = drive_scenario(client=client, file="scenarios/turn_right_obstacle.sce")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario1.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario3.sce")
 
 
 print ("press enter to destroy")

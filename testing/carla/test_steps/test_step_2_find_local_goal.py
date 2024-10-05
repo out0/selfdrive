@@ -101,7 +101,7 @@ def execute_plan (seq: int) -> bool:
     return True
 
 RUN_ALL = True
-RUN_ALL = False
+#RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
     
@@ -110,9 +110,9 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(1)
+    #execute_plan(5)
     #execute_plan(17)
-    # execute_plan(3)
+    execute_plan(3)
     # execute_plan(4)
     # execute_plan(5)
     return 0

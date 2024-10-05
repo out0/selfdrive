@@ -18,7 +18,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       heading=0)
 
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.Ensemble
+PLANNER_TYPE = LocalPlannerType.HybridAStar
 
 def execute_plan (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -30,6 +30,9 @@ def execute_plan (seq: int) -> None:
     )
 
     result = Telemetry.read_planning_result(seq)
+    if result is None:
+        return False
+    
     bev = Telemetry.read_planning_bev(seq)
 
     data = PlanningData(
@@ -59,10 +62,20 @@ def execute_plan (seq: int) -> None:
 
     outp.add_path(res.path)
     outp.write(f"test_output_{seq}.png")
+    return True
+
+RUN_ALL = True
+#RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
-    execute_plan(17)
-    # execute_plan(2)
+    
+    if RUN_ALL:
+        for i in range(1,1000):
+            if not execute_plan(i): break
+        return
+    
+    execute_plan(1)
+    #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
     # execute_plan(5)
