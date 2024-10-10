@@ -105,7 +105,7 @@ class LocalPlanner:
                                                           next_goal_pose=planning_data.next_goal)
     
         if goal_result.goal is None:
-            self._planner_result = PlanningResult.build_basic_response_data(
+            self.__planner_result = PlanningResult.build_basic_response_data(
                 "-",
                 PlannerResultType.INVALID_GOAL,
                 planning_data, 
@@ -115,7 +115,7 @@ class LocalPlanner:
             return
 
         if goal_result.too_close:
-            self._planner_result = PlanningResult.build_basic_response_data(
+            self.__planner_result = PlanningResult.build_basic_response_data(
                 "-",
                 PlannerResultType.TOO_CLOSE,
                 planning_data, 
@@ -125,7 +125,7 @@ class LocalPlanner:
             return
 
         if goal_result.start is None:
-            self._planner_result = PlanningResult.build_basic_response_data(
+            self.__planner_result = PlanningResult.build_basic_response_data(
                 "-",
                 PlannerResultType.INVALID_START,
                 planning_data, 

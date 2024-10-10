@@ -8,8 +8,7 @@ from slam.slam import SLAM
 from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType
 from model.planning_data import PlanningData, PlanningResult, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
-from utils.logging import Telemetry
-from testing.unittests.test_utils import PlannerTestOutput
+from utils.telemetry import Telemetry
 from motion.motion_controller import MotionController
 from carlasim.carla_client import CarlaClient
 from carlasim.carla_ego_car import CarlaEgoCar
@@ -38,15 +37,19 @@ class DataBuilder(PlanningDataBuilder):
         self._seq = seq
     
     def build_planning_data(self) -> PlanningData:
-        bev = Telemetry.read_planning_bev(self._seq)
-        res = Telemetry.read_planning_result(self._seq)
+        bev = Telemetry.read_collision_bev(self._seq)
+        report = Telemetry.read_collision_report(1)
+        
         return PlanningData(
             bev=bev,
-            ego_location=res.ego_location,
+            ego_location=report.ego_location,
             velocity=5.0,
-            goal=res.map_goal,
-            next_goal=res.map_next_goal
+            goal=report.watch_target,
+            next_goal=None
         )
+        
+        
+        
         
 class TestSLAM(SLAM):    
     _pose: MapPose
@@ -104,19 +107,23 @@ def watch_path (seq: int) -> None:
         coordinate_converter=coord,
         planning_data_builder=data_builder,
         slam = slam,
-        on_collision_detected_cb=on_collision_detected
+        on_collision_detected_cb=on_collision_detected,
+        with_telemetry=False
     )
   
   
     cd.watch_path(ideal_motion_path)
     cd.start()
-    time.sleep(5)
-    p = 2
+    
+    print("press enter to destroy...")
+    input()
     cd.destroy()
     
 
 
 def main(argc: int, argv: List[str]) -> int:
+    
+    
     
     # client = CarlaClient(town='Town07')
     # tst = CarlaTestUtils(client)

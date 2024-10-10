@@ -7,8 +7,7 @@ from slam.slam import SLAM
 from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType
 from model.planning_data import PlanningData, PlanningResult, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
-from utils.logging import Telemetry
-from testing.unittests.test_utils import PlannerTestOutput
+from utils.telemetry import Telemetry
 from motion.motion_controller import MotionController
 from carlasim.carla_client import CarlaClient
 from carlasim.carla_ego_car import CarlaEgoCar

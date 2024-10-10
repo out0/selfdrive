@@ -277,3 +277,86 @@ class PlanningResult:
             result_type = result_type,
             total_exec_time_ms=total_exec_time_ms
         )
+        
+class CollisionReport:
+    __primitives: list[Waypoint]
+    __watch_path: list[MapPose]
+    __collision_time: float
+    __watch_target: MapPose
+    __ego_location: MapPose
+    
+    def __init__(self, 
+                 primitives: list[Waypoint],
+                 watch_path: list[MapPose],
+                 watch_target: MapPose,
+                 ego_location: MapPose,
+                 collision_time: float):
+        self.__primitives = primitives
+        self.__watch_path = watch_path
+        self.__collision_time = collision_time
+        self.__watch_target = watch_target
+        self.__ego_location = ego_location
+        
+    @property
+    def primitives (self) -> list[Waypoint]:
+        return self.__primitives
+    
+    @property
+    def watch_path (self) -> list[MapPose]:
+        return self.__watch_path
+    
+    @property
+    def collision_time (self) -> float:
+        return self.__collision_time    
+    
+    @property
+    def watch_target (self) -> MapPose:
+        return self.__watch_target
+
+    @property
+    def ego_location(self) -> MapPose:
+        return self.__ego_location
+
+    def __str__(self) -> str:
+        str_primitives = []
+        if self.__primitives is not None:
+            for p in self.__primitives:
+                str_primitives.append(str(p))
+
+        str_watch_path = []
+        if self.__watch_path is not None:
+            for p in self.__watch_path:
+                str_watch_path.append(str(p))
+
+        data = {
+            'primitives': str_primitives,
+            'watch_path': str_watch_path,
+            'collision_time': self.__collision_time,
+            'watch_target': str(self.__watch_target),
+            'ego_location': str(self.__ego_location)
+        }
+        return json.dumps(data)
+    
+    @classmethod
+    def from_str(cls, val: str) -> 'PlanningResult':       
+        data = json.loads(val)
+        
+        primitives = []
+        for str_p in data['primitives']:
+            primitives.append(
+                Waypoint.from_str(str_p)
+            )
+
+        watch_path = []
+        for str_p in data['watch_path']:
+            watch_path.append(
+                MapPose.from_str(str_p)
+            )
+        
+        return CollisionReport(
+            primitives=primitives,
+            watch_path=watch_path,
+            watch_target=MapPose.from_str(data['watch_target']),
+            collision_time=float(data['collision_time']),
+            ego_location=MapPose.from_str(data['ego_location'])
+        )

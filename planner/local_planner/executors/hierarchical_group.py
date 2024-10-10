@@ -95,7 +95,10 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
         
         self.__plan_result = planner.get_result()
         
-        is_valid = self.__plan_result.result_type == PlannerResultType.VALID
+        if self.__plan_result is None:
+            is_valid = False
+        else:
+            is_valid = self.__plan_result.result_type == PlannerResultType.VALID
         
         if is_valid:
             self.cancel()

@@ -15,7 +15,7 @@ from model.planning_data import CollisionReport
 import time
 
 
-DEBUG = False
+DEBUG = True
 COLLISION_DETECT = False
 LOG = True
 
@@ -35,8 +35,7 @@ class CollisionDetector(DiscreteComponent):
                  coordinate_converter: CoordinateConverter,
                  planning_data_builder: PlanningDataBuilder,
                  slam: SLAM,
-                 on_collision_detected_cb: callable,
-                 with_telemetry: bool = LOG) -> None:
+                 on_collision_detected_cb: callable) -> None:
         super().__init__(period_ms)
         
         self.__planning_data_builder = planning_data_builder
@@ -47,28 +46,44 @@ class CollisionDetector(DiscreteComponent):
         self.__kinematics_model = ModelCurveGenerator()
         self.__slam = slam
         self.__on_detect_enable = False
-        self.__with_telemetry = with_telemetry
     
     def watch_path(self, path: list[MapPose]) -> None:
         self.__watch_path = path
         self.__watch_target = self.__compute_target_on_watch_path(path)
         self.__on_detect_enable = True
-       
-    def __log_collision_detect(self, og: OccupancyGrid, path: list[Waypoint]) -> None:
+    
+    def __check_subpath_feasible(self, r_paths: np.ndarray, start: int, end: int) -> bool:
+        for i in range(start, end):
+            if not r_paths[i]:
+                return False
+        return True
+
+    
+    def __log_collision_detect(self, og: OccupancyGrid, p1: list[Waypoint], p2: list[Waypoint], p3: list[Waypoint]) -> None:
     
             f = og.get_color_frame()
 
-            for p in path:
-                if (p.z < 0 or p.z > og.height()): continue
-                if (p.x < 0 or p.x > og.width()): continue
-                f[p.z, p.x, :] = [255, 255, 255]
+            for path in [p1, p2, p3]:           
+                for p in path:
+                    if (p.z < 0 or p.z > og.height()): continue
+                    if (p.x < 0 or p.x > og.width()): continue
+                    f[p.z, p.x, :] = [255, 255, 255]
             
             cv2.imwrite("colision_frame.png", f)
             with open("collision_path.log", "w") as log:
-                data = []                
-                for p in path:
-                    data.append(str(p))
+                data = {}
+                data['left'] = list(map(lambda p: str(p), p1))
+                data['center'] = list(map(lambda p: str(p), p2))
+                data['right'] = list(map(lambda p: str(p), p3))
                 log.write(json.dumps(data))
+
+    def __generate_primitives(self, og:OccupancyGrid, location: MapPose, target: MapPose, vel: float) -> tuple[list[Waypoint], list[Waypoint], list[Waypoint]]:
+        tl, t, tr = self.__kinematics_model.gen_possible_top_paths(target, vel, steps=15)
+        path_max_left = self.__coord_converter.convert_map_path_to_waypoint(location, tl)
+        path_center = self.__coord_converter.convert_map_path_to_waypoint(location, t)
+        path_max_right = self.__coord_converter.convert_map_path_to_waypoint(location, tr)
+        
+        return (path_max_left, path_center, path_max_right)
     
     def __compute_target_on_watch_path(self, path: list[MapPose]) -> MapPose:
         if len(path) < 3: return None
@@ -89,31 +104,32 @@ class CollisionDetector(DiscreteComponent):
         return target
         
 
-    def __project_and_clip_outbound(self,  og: OccupancyGrid, location: MapPose, path: list[MapPose]) -> list[Waypoint]:
-        res: list[Waypoint] = []
-        for p in path:
-            wp: Waypoint = self.__coord_converter.convert_map_to_waypoint(location, p)
-            if wp.x < 0 or wp.x >= og.width(): continue
-            if wp.z < 0 or wp.z >= og.height(): continue
-            res.append(wp)
-        return res
-            
-
-    def __check_collision(self, og: OccupancyGrid, location: MapPose, vel: float) -> tuple[bool, list[Waypoint]]:
+    def ___check_collision(self, og: OccupancyGrid, location: MapPose, vel: float) -> tuple[bool, list[Waypoint]]:
         # TODO: fix - should not be from the current pose but from the final pose on the path
         
-        path_ahead = self.__kinematics_model.gen_path_cg(self.__watch_target, vel, self.__watch_target.heading, 15)
+               
+        p1, p2, p3 = self.__generate_primitives(og, location, self.__watch_target, vel)
         
-        watch_path = self.__project_and_clip_outbound(og, location, path_ahead)
-       
-        if DEBUG:
-            self.__log_collision_detect(og, watch_path)
-            
-        if og.check_all_path_feasible(watch_path):
+        paths: list[Waypoint] = []
+        paths.extend(p1)
+        paths.extend(p2)
+        paths.extend(p3)
+        r_paths = og.check_path_feasible(paths)
+        
+        if self.__check_subpath_feasible(r_paths, start=0, end=len(p1)):
+            return False, None
+        
+        if self.__check_subpath_feasible(r_paths, start=len(p1), end=len(p1) + len(p2)):
             return False, None
 
+        if self.__check_subpath_feasible(r_paths, start=len(p2), end=len(paths)):
+            return False, None
 
-        return True, watch_path
+        if DEBUG:
+            self.__log_collision_detect(og, p1, p2, p3)
+
+
+        return True, paths
     
     def __check_path_is_too_old(self, location: MapPose) -> bool:
         
@@ -140,19 +156,18 @@ class CollisionDetector(DiscreteComponent):
             return
 
         
-        collision, paths = self.__check_collision(planning_data.og, planning_data.ego_location, planning_data.velocity)
+        collision, paths = self.___check_collision(planning_data.og, location, planning_data.velocity)
         
         if collision:
             print("[CD] collision detected!")
 
-            if self.__with_telemetry:
+            if LOG:
                 Telemetry.log_collision(CollisionReport(
                     collision_time=time.time(),
                     primitives=paths,
                     watch_path=self.__watch_path,
-                    watch_target=self.__watch_target,
-                    ego_location=planning_data.ego_location
-                ), planning_data.bev)
+                    watch_target=self.__watch_target
+                ))
 
             # un-watch path because it is already invalid in order to avoid multiple alerts of the same problem
             self.__watch_path = None
@@ -161,8 +176,5 @@ class CollisionDetector(DiscreteComponent):
             
             # call the callback to warn the controller about the collision
             self.__on_collision_detected_cb()
-            #time.sleep(2)
-#            exit(1)
-
         
  

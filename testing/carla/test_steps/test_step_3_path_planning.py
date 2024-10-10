@@ -7,7 +7,7 @@ from slam.slam import SLAM
 from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType
 from model.planning_data import PlanningData, PlanningResult, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
-from utils.logging import Telemetry
+from utils.telemetry import Telemetry
 from testing.test_utils import PlannerTestOutput
 
 import time

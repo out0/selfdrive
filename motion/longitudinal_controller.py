@@ -1,7 +1,7 @@
 
 import numpy as np
 import time
-from utils.logging import Telemetry
+from utils.telemetry import Telemetry
 
 class LongitudinalController:    
     __KP = 1.0
@@ -41,19 +41,16 @@ class LongitudinalController:
         if error < -50:
             self._power_actuator(0.0)
             self._brake_actuator(1.0)
-            Telemetry.log(3, self.__class__.__name__, f"strong break: 100%")
             return
         
         if error < -30:
             self._power_actuator(0.0)
             self._brake_actuator(0.5)
-            Telemetry.log(3, self.__class__.__name__, f"medium break: 50%")
             return
         
         if error < -10:
             self._power_actuator(0.0)
             self._brake_actuator(0.3)
-            Telemetry.log(3, self.__class__.__name__, f"light break: 30%")
             return
         
         acc = LongitudinalController.__KP * error \
@@ -66,12 +63,10 @@ class LongitudinalController:
         
         self._prev_throttle = throttle
         
-        Telemetry.log(3, self.__class__.__name__, f"set throttle: {throttle}")       
         self._power_actuator(throttle)
     
     def loop(self, dt: float) -> None:
         current_speed = self._velocity_read()
-        Telemetry.log(3, self.__class__.__name__, f"current_speed = {current_speed}")
         
         # Autobreak
         if current_speed == 0 and self._desired_speed == 0:            

@@ -118,22 +118,26 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
     _minimal_height: int
     _ego_lower_bound: Waypoint
     _ego_upper_bound: Waypoint
+    __width: int
+    __height: int
     
     def __init__(self, max_exec_time_ms: int) -> None:
         super().__init__(max_exec_time_ms)
         self._search = False
         self._plan_task = None
         self._result = None
+        self.__width = 0
+        self.__height = 0
 
 
-    def __checkTraversable(self, current: Waypoint, next: Waypoint, direction: int) -> bool:
+    def __checkTraversable(self, current: Waypoint, next: Waypoint, direction: int) -> bool:       
         if current.z < 0 or current.z >= self._og.height():
             return False
         if current.x < 0 or current.x >= self._og.width():
             return False
-        if next.z < 0 or next.z >= self._og.height():
+        if next.z < 0 or next.z >= self.__height:
                 return False
-        if next.x < 0 or next.x >= self._og.width():
+        if next.x < 0 or next.x >= self.__width:
             return False
         
         return self._og.check_direction_allowed(current.x, current.z, direction)
@@ -190,7 +194,11 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
         cv2.imwrite("plan_debug_outp.png", frame)
 
     def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult):
+        if (planner_data.og is None): return
+        
         self._og = planner_data.og
+        self.__width = planner_data.og.width()
+        self.__height = planner_data.og.height()
         self._search = True
         self._planner_data = planner_data
         self._result = None
@@ -229,7 +237,7 @@ class VectorialAStarPlanner (LocalPathPlannerExecutor):
         open_list.put(QueuedPoint(self._goal_result.start, 0))
 
         best_possible = None
-        best_distance_to_goal: float = MAX_FLOAT
+        best_distance_to_goal: float = 99999999
 
         frame = self._og.get_frame()
         # cv2.imwrite("plan_debug_outp.png", frame)

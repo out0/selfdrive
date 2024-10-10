@@ -21,6 +21,9 @@ class Waypoint:
                 self.heading == other.heading
     
     def from_str(payload: str) -> 'Waypoint':
+        if payload == 'None':
+            return None
+        
         payload = payload.replace("(","").replace(")", "")
         p = payload.split(",")
         return Waypoint(

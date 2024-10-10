@@ -8,7 +8,7 @@
 #include "../include/cuda_frame.h"
 
 //#define PATH_FEASIBLE_CPU_THRESHOLD 20
-#define PATH_FEASIBLE_CPU_THRESHOLD 0
+#define PATH_FEASIBLE_CPU_THRESHOLD 20
 
 extern uchar3 *CUDA_convertFrameColors(float3 *frame, int width, int height);
 
@@ -304,6 +304,7 @@ static int __CPU_computeFeasibleForAngle(
 
             if (classCost[segmentation_class] < 0)
             {
+                // printf ("(%d, %d) not feasible on angle %f because of (%d, %d)\n", x, z, (180 * angle_radians) / 3.141592654F,  xl, zl);
                 return 0;
             }
         }

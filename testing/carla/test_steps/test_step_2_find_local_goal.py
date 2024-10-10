@@ -6,7 +6,7 @@ from model.waypoint import Waypoint
 from model.world_pose import WorldPose
 from planner.local_planner.local_planner import LocalPlannerType
 from data.coordinate_converter import CoordinateConverter
-from utils.logging import Telemetry
+from utils.telemetry import Telemetry
 from testing.test_utils import PlannerTestOutput
 from planner.goal_point_discover import GoalPointDiscover
 from vision.occupancy_grid_cuda import OccupancyGrid

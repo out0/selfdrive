@@ -15,7 +15,7 @@ from model.physical_parameters import PhysicalParameters
 from model.ego_car import EgoCar
 from slam.slam import SLAM
 import time
-from utils.logging import Telemetry
+from utils.telemetry import Telemetry
 
 
 PROXIMITY_RATE_TO_GET_NEXT_PATH_SEGMENT = 0.9
@@ -71,9 +71,6 @@ class SelfDriveController(DiscreteComponent):
     _collision_detector: CollisionDetector
     _last_planning_data: PlanningData
     _coord: CoordinateConverter
-    
-    _exec_mission_seq: int
-
     SELF_DRIVE_CONTROLLER_PERIOD_MS = 1
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
@@ -89,6 +86,8 @@ class SelfDriveController(DiscreteComponent):
                  controller_response: callable) -> None:
         
         super().__init__(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS)
+        
+        Telemetry.initialize()
         
         self._NAME = "SelfdriveController"
         
@@ -133,8 +132,7 @@ class SelfDriveController(DiscreteComponent):
         self._driving_path_pos = 0
        
         self._planning_data_builder = planning_data_builder
-        
-        self._exec_mission_seq = 1
+
     
     def destroy(self) -> None:
         self._run = False
@@ -144,13 +142,15 @@ class SelfDriveController(DiscreteComponent):
         
     def __on_collision_detected(self) -> None:
         msg = f"Collision ahead detected. Performing replan on path pos: {self._driving_path_pos}"
-        Telemetry.log(1, self._NAME, msg)
         print(msg)
         self.__replan()
+        ## DEBUG!!
+        #self._motion_controller.cancel()
+        #self._motion_controller.brake()
     
     def __on_finished_motion(self, motion_controller: MotionController) -> None:
         motion_controller.brake()
-        Telemetry.log(1, self._NAME, f"Motion finished succesfuly on path pos: {self._driving_path_pos}")
+        print(f"Motion finished succesfuly on path pos: {self._driving_path_pos}")
         self.__replan()
        
     def __replan(self) -> None:
@@ -204,8 +204,16 @@ class SelfDriveController(DiscreteComponent):
         pos = MapPose.find_nearest_goal_pose(
             location=plan_data.ego_location,
             poses=self._driving_path,
-            start=self._driving_path_pos
+            start=self._driving_path_pos - 1
         )
+        
+        pos_from_zero = MapPose.find_nearest_goal_pose(
+            location=plan_data.ego_location,
+            poses=self._driving_path,
+            start=0
+        )
+        
+        print (f"__find_goal: nearest goal: start = {self._driving_path_pos} result: {pos}, result from zero: {pos_from_zero}")
         
         if pos < 0:
             return (None, None)
@@ -221,26 +229,27 @@ class SelfDriveController(DiscreteComponent):
         plan_data = self._planning_data_builder.build_planning_data()
 
         if not self.__check_plan_data(plan_data):
-            Telemetry.log(2, self._NAME, "Planning data build failed, will wait for valid data")
+            print("Planning data build failed, will wait for valid data")
             return ControllerState.START_PLANNING
         
         p2, p3 = self.__find_goal(plan_data)
         
         if p2 is None:
-            Telemetry.log(0, self._NAME, "End of driving mission")
+            print("End of driving mission")
             self.__report_end_of_mission()
             return ControllerState.ON_HOLD
         
         if p3 is None:
-            Telemetry.log(1, self._NAME, f"driving to goal {p2}")
+            print(f"driving to goal {p2}")
         else:
-            Telemetry.log(1, self._NAME, f"driving to goal {p2}, next goal {p3}")
+            print(f"driving to goal {p2}, next goal {p3}")
         
         
         plan_data.set_goals(p2, p3, 5.0)
         
         self._last_planning_data = plan_data
-        #Telemetry.dump_pre_planning_data(level=2, seq=self._exec_mission_seq, data=self._last_planning_data)
+        Telemetry.log_pre_planning_data(plan_data)
+        
         self.__local_planner.plan(plan_data)
         return ControllerState.WAIT_PLANNING
     
@@ -257,8 +266,7 @@ class SelfDriveController(DiscreteComponent):
     def __execute_mission(self) -> ControllerState:
         res = self.__local_planner.get_result()
         
-        Telemetry.dump_planning_data(level=2, seq=self._exec_mission_seq, res=res, data=self._last_planning_data)
-        self._exec_mission_seq += 1
+        Telemetry.log_planning_data(self._last_planning_data, res)
         
         match res.result_type:
             case PlannerResultType.NONE:
