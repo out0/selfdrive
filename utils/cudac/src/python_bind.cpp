@@ -46,10 +46,10 @@ extern "C"
         f->convertToColorFrame(ptr);
     }
 
-    void compute_feasible_path(void *self, float *waypoints, int count)
+    void compute_feasible_path(void *self, float *waypoints, int count, bool compute_headings)
     {
         CudaFrame *f = (CudaFrame *)self;
-        f->checkFeasibleWaypoints(waypoints, count, true);
+        f->checkFeasibleWaypoints(waypoints, count, compute_headings);
     }
 
     int get_class_cost(int segmentation_class) {

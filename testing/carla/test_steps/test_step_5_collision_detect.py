@@ -90,6 +90,8 @@ def watch_path (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
 
     result = Telemetry.read_planning_result(seq)
+    if result is None:
+        return
    
     ds_path = downsample_waypoints(result.path)
     ideal_motion_path = coord.convert_waypoint_path_to_map_pose(result.ego_location, ds_path)
@@ -114,32 +116,18 @@ def watch_path (seq: int) -> None:
   
     cd.watch_path(ideal_motion_path)
     cd.start()
-    
-    print("press enter to destroy...")
-    input()
+    time.sleep(1)
+    # print("press enter to destroy...")
+    # input()
     cd.destroy()
     
 
 
 def main(argc: int, argv: List[str]) -> int:
-    
-    
-    
-    # client = CarlaClient(town='Town07')
-    # tst = CarlaTestUtils(client)
-    
-    # sb = ScenarioBuilder(client)
-    # path, ego = sb.load_scenario("../scenarios/cars_zigzag.sce", return_ego=True)
-    # ego.init_fake_bev_seg_camera()
-    # ego.set_brake(1.0)
-    
-    # # ego = CarlaEgoCar(client)
-    # # ego.set_pose(-100, 0, 0, 0)
-    # # ego.set_brake(1.0)
-
-    # follower = ExpectatorCameraAutoFollow(client)
-    # follower.follow(ego.get_carla_ego_car_obj())
-    watch_path(1)
+    for i in range(1, 100):
+        print (f"showing CD in {i}. Enter to next...")
+        watch_path(i)
+        input()
     return 0
 
 if __name__ == "__main__":

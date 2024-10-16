@@ -4,7 +4,7 @@ from typing import List
 from model.map_pose import MapPose
 from model.world_pose import WorldPose
 from data.coordinate_converter import CoordinateConverter
-from utils.logging import Telemetry
+from utils.telemetry import Telemetry
 from model.waypoint import Waypoint
 import math
 
@@ -36,15 +36,18 @@ def main(argc: int, argv: List[str]) -> int:
     
     coord = CoordinateConverter(COORD_ORIGIN)
 
-    result = Telemetry.read_planning_result(1)
-   
-    ds_path = downsample_waypoints(result.path)
-    ideal_motion_path = coord.convert_waypoint_path_to_map_pose(result.ego_location, ds_path)
+    result = Telemetry.read_planning_result(15)
     
-    #tst.show_path(ideal_motion_path)
+    goals = ScenarioBuilder.read_goal_list("../scenarios/scenario1.sce")
+      
+    #current_pose = MapPose.from_str("-82.11653900146484|-2.0242035388946533|0.02852334827184677|-0.5942687392234802")
+    pos = MapPose.find_nearest_goal_pose( result.ego_location , goals, 13)
     
-    current_pose = MapPose.from_str("-82.11653900146484|-2.0242035388946533|0.02852334827184677|-0.5942687392234802")
-    pos = MapPose.find_nearest_goal_pose( current_pose , ideal_motion_path, 0)
+    print(f"pos = {pos} of {len(goals) - 1}\n")
+    print(f"p0: {goals[pos - 1]}")
+    print(f"current pos: {result.ego_location}")
+    print(f"p1: {goals[pos]}")
+    
 
     return 0
 

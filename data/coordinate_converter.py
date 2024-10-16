@@ -99,7 +99,7 @@ class CoordinateConverter:
         z = self._og_center.z - p[0]
         return Waypoint(x, z)
 
-    def  convert_map_path_to_waypoint(self, location: MapPose, target_list: list[MapPose]) -> list[Waypoint]:
+    def  convert_map_path_to_waypoint(self, location: MapPose, target_list: list[MapPose], copy_heading: bool = False, convert_heading_to_radians: bool = False) -> list[Waypoint]:
         m = self.__build_translation_mat(-location.x, -location.y) @\
             self.__build_rotation_mat(-location.heading) @\
             self.__build_resize_mat(self._rh, self._rw)
@@ -111,7 +111,13 @@ class CoordinateConverter:
             x = self._og_center.x + p[1]
             z = self._og_center.z - p[0]
     
-            res.append(Waypoint(math.floor(x), math.floor(z)))
+            if copy_heading:
+                h = target.heading
+                if convert_heading_to_radians:
+                    h = math.radians(h)
+                res.append(Waypoint(math.floor(x), math.floor(z), h))
+            else:
+                res.append(Waypoint(math.floor(x), math.floor(z)))
         return res
 
     def convert_waypoint_path_to_map_pose(self, location: MapPose, path : list[Waypoint]) -> list[MapPose]:

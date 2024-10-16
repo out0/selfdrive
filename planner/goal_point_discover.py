@@ -79,6 +79,18 @@ class SearchParameters:
         self.direction = direction
         self.distance_to_goal = distance_to_goal
 
+class UnfeasibleGoalList:
+    __set: set
+    
+    def __init__(self, goal_list: list[Waypoint]) -> None:
+        self.__set = set()
+        for p in goal_list:
+            key = 1000 * p.x + p.z
+            self.__set.add(key)
+    
+        
+    
+
 class GoalPointDiscover:
 
     _map_coordinate_converter: CoordinateConverter
@@ -112,7 +124,12 @@ class GoalPointDiscover:
 
         return params
 
-    def find_goal(self, og: OccupancyGrid, current_pose: MapPose, goal_pose: MapPose, next_goal_pose: MapPose) -> GoalPointDiscoverResult:
+    def find_goal(self, 
+                  og: OccupancyGrid, 
+                  current_pose: MapPose, 
+                  goal_pose: MapPose, 
+                  next_goal_pose: MapPose,
+                  forbidden_poses: list[MapPose] = None) -> GoalPointDiscoverResult:
 
         params = self.__compute_initial_parameters(og, current_pose, goal_pose, next_goal_pose)
         
@@ -187,7 +204,8 @@ class GoalPointDiscover:
         dx = goal.x - self._ego_start.x
         dz = goal.z - self._ego_start.z
         dist = math.sqrt(dx ** 2 + dz ** 2)
-        return dist <= 2 * max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
+        #return dist <= 2 * max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
+        return dist <= max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
 
 
     ## GOAL IN RANGE

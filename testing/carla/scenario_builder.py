@@ -210,7 +210,7 @@ class ScenarioActor:
         self.color = color
     
     
-    def decode(payload: str) -> 'MapPose':
+    def decode(payload: str) -> 'ScenarioActor':
         p = payload.split("|")
         return ScenarioActor(
             str(p[0]),
@@ -275,8 +275,9 @@ class ScenarioBuilder:
             log.write(f"{str(p)}\n")
             
         log.close()
-        
-    def __decode_scenario_from_log(self, log_file: str) -> list[MapPose]:
+    
+    @classmethod
+    def __decode_scenario_from_log(cls, log_file: str) -> list[ScenarioActor]:
         path = []
         log = open(log_file, "r")
         
@@ -288,13 +289,34 @@ class ScenarioBuilder:
         
         return path
     
+    @classmethod
+    def read_goal_list(cls, log_file: str) -> list[MapPose]:
+        if not os.path.exists(log_file):
+            print (f"[load_scenario failed] log not found at {log_file}")
+            return
+        
+        actors = ScenarioBuilder.__decode_scenario_from_log(log_file)
+        
+        path = []
+        
+        for actor in actors:
+            if actor.type == ScenarioBuilder.TYPE_GOAL:
+                path.append(MapPose(
+                    x = actor.x,
+                    y = actor.y,
+                    z = actor.z,
+                    heading = actor.heading
+                ))
+        return path
+        
+    
     def load_scenario(self, log_file: str, return_ego: bool = False):
         self.clear()
         if not os.path.exists(log_file):
             print (f"[load_scenario failed] log not found at {log_file}")
             return
         
-        self._actors = self.__decode_scenario_from_log(log_file)
+        self._actors = ScenarioBuilder.__decode_scenario_from_log(log_file)
         
         ego: CarlaEgoCar = None
         path: list[MapPose] = []

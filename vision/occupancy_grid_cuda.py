@@ -151,11 +151,11 @@ class OccupancyGrid:
     def get_minimal_distance_z(self) -> int:
         return  self._minimal_distance_z
   
-    def check_path_feasible (self, path: list[Waypoint]) -> np.ndarray:
-        return self._frame.compute_feasible_path(path)
+    def check_path_feasible (self, path: list[Waypoint], compute_heading: bool = True) -> np.ndarray:
+        return self._frame.compute_feasible_path(path, compute_heading)
     
-    def check_all_path_feasible (self, path: list[Waypoint]) -> bool:
-        r = self._frame.compute_feasible_path(path)
+    def check_all_path_feasible (self, path: list[Waypoint], compute_heading: bool = True) -> bool:
+        r = self._frame.compute_feasible_path(path, compute_heading)
         for p in r:
             if not p:
                 return False

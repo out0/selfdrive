@@ -289,6 +289,9 @@ class SelfDriveController(DiscreteComponent):
                 return ControllerState.ON_HOLD
             
             case PlannerResultType.TOO_CLOSE:
+                if self._last_planning_data.next_goal is None:
+                    self.__report_end_of_mission()
+                    return ControllerState.ON_HOLD
                 self._driving_path_pos += 1
                 return ControllerState.START_PLANNING
         

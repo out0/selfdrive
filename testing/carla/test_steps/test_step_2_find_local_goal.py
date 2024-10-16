@@ -29,7 +29,8 @@ def show_planned_location_relative_to_projection(
             ego_location: MapPose, 
             local_start: Waypoint,
             goal: MapPose, 
-            result_goal: Waypoint) -> None:
+            result_goal: Waypoint,
+            too_close: bool) -> None:
     
     outp = PlannerTestOutput(frame=og.get_color_frame())
     
@@ -46,6 +47,10 @@ def show_planned_location_relative_to_projection(
     print(f"\tdirect heading:{h:.4} degrees")
     print(f"\tchosen heading: {result_goal.heading:} degrees")
     
+    if too_close:
+        print(f"the goal point is too close")
+    
+   
     if projected_goal.x == result_goal.x and projected_goal.z == result_goal.z:
         outp.add_point(projected_goal, color=[0, 255, 0])
     else:
@@ -96,12 +101,13 @@ def execute_plan (seq: int) -> bool:
         local_start=result.local_start,
         ego_location=result.ego_location,
         goal=result.map_goal,
-        result_goal=res.goal)
+        result_goal=res.goal,
+        too_close=res.too_close)
     
     return True
 
 RUN_ALL = True
-#RUN_ALL = False
+RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
     
@@ -112,7 +118,7 @@ def main(argc: int, argv: List[str]) -> int:
     
     #execute_plan(5)
     #execute_plan(17)
-    execute_plan(3)
+    execute_plan(15)
     # execute_plan(4)
     # execute_plan(5)
     return 0
