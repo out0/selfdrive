@@ -118,6 +118,9 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
             self._search = False
             return
         
+        if not self._search:
+            return
+        
         # if fails, try relocating the goal point       
         try_left_first = self._goal_result.goal.x < local_start.x
         
@@ -228,7 +231,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if self._og.check_all_path_feasible(self.__path):
             return True
         
-        return self.__relocate_step_left(goal, 2, x_min)
+        return self.__relocate_step(goal.x, goal.z, goal.heading, -2, x_min, self._og.width())
     
     def __relocate_right(self, goal: Waypoint) -> bool:
         
@@ -267,20 +270,17 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if self._og.check_all_path_feasible(self.__path):
             return True
         
-        return self.__relocate_step_right(goal, 2, x_max)
+        return self.__relocate_step(goal.x, goal.z, goal.heading, 2, 0, x_max)
     
-    def __relocate_step_left(self, goal: Waypoint, step: int, x_min: int) -> bool:
-        
-        if x_min < 0:
-            return False
-        
-        x = goal.x - step
-        
-        if x < x_min:
+    def __relocate_step(self, x: int, z: int, heading: float, step: int, x_min: int, x_max: int) -> bool:
+
+        new_x = x + step
+
+        if x <= x_min or x >= x_max:
             return False
 
         start = self._goal_result.start
-        new_goal = Waypoint(x, goal.z, 0)
+        new_goal = Waypoint(new_x, z, heading)
         self.__path = self.__build_overtake_path(start, new_goal)
         
         if DEBUG_DUMP:
@@ -290,7 +290,7 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
                 goal = self._planner_data.goal,
                 next_goal = self._planner_data.next_goal,
                 local_start = self._goal_result.start,
-                local_goal = self._goal_result.goal,
+                local_goal = new_goal,
                 direction = self._goal_result.direction,
                 timeout = False,
                 path = self.__path,
@@ -303,43 +303,8 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
         if self._og.check_all_path_feasible(self.__path):
             return True
         
-        self.__relocate_step_left(new_goal, step, x_min)
-            
-    def __relocate_step_right(self, goal: Waypoint, step: int, x_max: int) -> bool:
-
-        if x_max < 0:
-            return False
-        
-        x = goal.x + step
-        
-        if x >= x_max:
-            return False
-
-        start = self._goal_result.start
-        new_goal = Waypoint(x, goal.z, 0)
-        self.__path = self.__build_overtake_path(start, new_goal)
-        
-        if DEBUG_DUMP:
-            
-            result = PlanningResult(
-                planner_name = OvertakerPlanner.NAME,
-                ego_location = self._planner_data.ego_location,
-                goal = self._planner_data.goal,
-                next_goal = self._planner_data.next_goal,
-                local_start = self._goal_result.start,
-                local_goal = self._goal_result.goal,
-                direction = self._goal_result.direction,
-                timeout = False,
-                path = self.__path,
-                result_type = PlannerResultType.VALID,
-                total_exec_time_ms = self.get_execution_time()
-            )
-            
-            dump_result(self._og, result)
-            
-        if self._og.check_all_path_feasible(self.__path):
-            return True
-        
-        self.__relocate_step_right(new_goal, step, x_max)        
+        return self.__relocate_step(new_goal.x, new_goal.z, new_goal.heading, step, x_min, x_max)
+    
+    
     
    

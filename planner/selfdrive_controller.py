@@ -71,12 +71,16 @@ class SelfDriveController(DiscreteComponent):
     _collision_detector: CollisionDetector
     _last_planning_data: PlanningData
     _coord: CoordinateConverter
+    
+    
+    
     SELF_DRIVE_CONTROLLER_PERIOD_MS = 1
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
+    #PLAN_TIMEOUT=500
     PLAN_TIMEOUT=-1
-    
+    SPEED_MS = 2.0
 
 
     def __init__(self, 
@@ -245,7 +249,7 @@ class SelfDriveController(DiscreteComponent):
             print(f"driving to goal {p2}, next goal {p3}")
         
         
-        plan_data.set_goals(p2, p3, 5.0)
+        plan_data.set_goals(p2, p3, SelfDriveController.SPEED_MS)
         
         self._last_planning_data = plan_data
         Telemetry.log_pre_planning_data(plan_data)

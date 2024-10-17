@@ -4,14 +4,18 @@ from typing import List
 from model.map_pose import MapPose
 from model.waypoint import Waypoint
 from model.world_pose import WorldPose
-from planner.local_planner.local_planner import LocalPlannerType
+from planner.local_planner.local_planner import LocalPlannerType, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
-from utils.logging import Telemetry
+from utils.telemetry import Telemetry
 from testing.test_utils import PlannerTestOutput
 from planner.goal_point_discover import GoalPointDiscover
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
 from utils.smoothness import Smoothness2D
+
+VALID = True
+NOT_VALID = False
+
 
 COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09, 
                       lon=-1.5848012769283334e-08,
@@ -31,12 +35,16 @@ class Statistics:
         self.path_size = 0
         self.exec_time = 0
 
-def compute_statistics (seq: int) -> Statistics:
+def compute_statistics (seq: int) -> tuple[Statistics, bool]:
     coord = CoordinateConverter(COORD_ORIGIN)
+    
 
     result = Telemetry.read_planning_result(seq)
     if result is None:
-        return None    
+        return None, VALID
+    
+    if result.result_type == PlannerResultType.TOO_CLOSE:
+        return None, NOT_VALID
     
     sm = Smoothness2D()    
     for p in result.path:
@@ -55,7 +63,7 @@ def compute_statistics (seq: int) -> Statistics:
         last = curr
     
     stats.exec_time = result.total_exec_time_ms
-    return stats
+    return stats, VALID
 
 
 
@@ -65,7 +73,11 @@ def main(argc: int, argv: List[str]) -> int:
     count = 0
 
     for i in range(1,1000):
-        stats = compute_statistics(i)
+        stats, valid = compute_statistics(i)
+        
+        if not valid:
+            continue
+        
         if stats is None:
             break
         full_stats.cost += stats.cost

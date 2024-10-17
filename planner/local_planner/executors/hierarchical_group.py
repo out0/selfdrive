@@ -115,17 +115,19 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
 
         start_time = time.time()
 
+        check = True
+
         if self.__check_planner(start_time, self.__interpolator):
-            return
+            check = False
         
-        if self.__check_planner(start_time, self.__overtaker):
-            return
+        if check and self.__check_planner(start_time, self.__overtaker):
+            check = False
         
-        if self.__check_planner(start_time, self.__hybrid__astar):
-            return
+        if check and self.__check_planner(start_time, self.__hybrid__astar):
+            check = False
         
-        if self.__check_planner(start_time, self.__astar):
-            return
+        if check:
+            self.__check_planner(start_time, self.__astar)
 
-
+        self.__exec_plan = False
 
