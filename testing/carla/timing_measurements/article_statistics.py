@@ -12,6 +12,7 @@ from planner.goal_point_discover import GoalPointDiscover
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
 from utils.smoothness import Smoothness2D
+from utils.jerk import Jerk2D
 
 VALID = True
 NOT_VALID = False
@@ -29,11 +30,13 @@ class Statistics:
     cost: float
     path_size: float
     exec_time: float
+    jerk: float
     
     def __init__(self) -> None:
         self.cost = 0
         self.path_size = 0
         self.exec_time = 0
+        self.jerk = 0
 
 def compute_statistics (seq: int) -> tuple[Statistics, bool]:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -52,6 +55,8 @@ def compute_statistics (seq: int) -> tuple[Statistics, bool]:
         
     stats = Statistics()
     stats.cost = sm.get_cost()
+       
+    stats.jerk = Jerk2D.compute_path_jerk(result.path, 2.0)
     
     map_path = coord.convert_waypoint_path_to_map_pose(result.ego_location, result.path)
     last = map_path[0]
@@ -83,6 +88,7 @@ def main(argc: int, argv: List[str]) -> int:
         full_stats.cost += stats.cost
         full_stats.exec_time += stats.exec_time
         full_stats.path_size += stats.path_size
+        full_stats.jerk += stats.jerk
         count += 1
     
     if count == 0:
@@ -90,9 +96,11 @@ def main(argc: int, argv: List[str]) -> int:
         return
         
     full_stats.cost = full_stats.cost / count
+    #full_stats.jerk = full_stats.jerk / count
     full_stats.exec_time = full_stats.exec_time / count
 
     print(f"avg cost: {full_stats.cost:.2f}")
+    print(f"total jerk: {full_stats.jerk:.2f}")
     print(f"avg time: {full_stats.exec_time:.2f} ms")
     print(f"path_size: {full_stats.path_size:.2f} m")
     

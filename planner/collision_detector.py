@@ -15,7 +15,7 @@ from model.planning_data import CollisionReport
 import time
 
 
-DEBUG = True
+DEBUG = False
 COLLISION_DETECT = False
 LOG = True
 

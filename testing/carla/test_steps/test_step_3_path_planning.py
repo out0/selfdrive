@@ -54,6 +54,7 @@ def execute_plan (seq: int) -> None:
         print (f"Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
     else:
         print (f"invalid plan for the selected local planner {res.planner_name}")
+        return True
 
     outp = PlannerTestOutput(
         frame=data.og.get_color_frame(),
@@ -65,7 +66,7 @@ def execute_plan (seq: int) -> None:
     return True
 
 RUN_ALL = True
-#RUN_ALL = False
+RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
     
@@ -74,7 +75,7 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(1)
+    execute_plan(11)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

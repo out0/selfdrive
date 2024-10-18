@@ -125,8 +125,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             parent=parent
         )
     
-    def __find_first_unfeasible(self, path : list[Waypoint]) -> int:
-        chk = self._og.check_path_feasible(path)
+    def __find_first_unfeasible(self, path : list[Waypoint], chk: list[bool], start: int) -> int:
         for i in range(len(path)):
             if (path[i].x < 0 or path[i].x >= self._og.width()):
                 continue
@@ -134,18 +133,18 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             if (path[i].z < 0 or path[i].z >= self._og.height()):
                 continue
             
-            if not chk[i]:
+            if not chk[i + start]:
                 return i
         return len(path)
             
    
-    def __build_child_nodes(self, parent: Node, path: list[MapPose], rel_dir: int) -> list[Node]:
+    def __build_child_nodes(self, parent: Node, path: list[MapPose], rel_dir: int, list_check_points: list[bool], start: int) -> list[Node]:
         path_w = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, path)
         
         # if DEBUG_OUTP:
         #     self.show_path(path_w, color=[0, 0, 255])
         
-        first_unfeasible = self.__find_first_unfeasible(path_w)
+        first_unfeasible = self.__find_first_unfeasible(path_w, list_check_points, start)
        
         if first_unfeasible == 0:
             return []
@@ -191,10 +190,25 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
                                    node: Node) -> list[Node]:
         res = []
 
-        tl, t, tr = self._model_curve_gen.gen_possible_top_paths(node.global_pose, self._expected_velocity_meters_s)       
-        res.extend(self.__build_child_nodes(node, t, 0))        
-        res.extend(self.__build_child_nodes(node, tl, -1))
-        res.extend(self.__build_child_nodes(node, tr, 1))       
+        tl, t, tr = self._model_curve_gen.gen_possible_top_paths(node.global_pose, self._expected_velocity_meters_s)
+        
+        p1 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, tl)
+        p2 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, t)
+        p3 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, tr)
+        
+        paths = []
+        paths.extend(p1)
+        paths.extend(p2)
+        paths.extend(p3)
+        
+        block_fesible_result = self._og.check_path_feasible(paths)
+        
+        n1 = len(p1)
+        n2 = n1 + len(p2)
+        
+        res.extend(self.__build_child_nodes(node, t, 0, block_fesible_result, 0))        
+        res.extend(self.__build_child_nodes(node, tl, -1, block_fesible_result, n1))
+        res.extend(self.__build_child_nodes(node, tr, 1, block_fesible_result, n2))
         return res
         
 

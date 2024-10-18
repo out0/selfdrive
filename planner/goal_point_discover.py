@@ -204,8 +204,8 @@ class GoalPointDiscover:
         dx = goal.x - self._ego_start.x
         dz = goal.z - self._ego_start.z
         dist = math.sqrt(dx ** 2 + dz ** 2)
-        #return dist <= 2 * max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
-        return dist <= max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
+        return dist <= 2 * max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
+        #return dist <= max(og.get_minimal_distance_x(), og.get_minimal_distance_z())
 
 
     ## GOAL IN RANGE

@@ -11,6 +11,7 @@ from carlasim.expectator_cam_follower import ExpectatorCameraAutoFollow
 from model.map_pose import MapPose
 from model.world_pose import WorldPose
 
+TEST_SPEED = 1.0
 
 client = CarlaClient(town='Town07')
 
@@ -41,7 +42,7 @@ class CarlaPlanningDataBuilder(PlanningDataBuilder):
         return PlanningData(
             bev=bev,
             ego_location=location,
-            velocity=5.0,
+            velocity=TEST_SPEED,
             goal=None,
             next_goal=None
         )
@@ -117,7 +118,7 @@ def drive_scenario (client: CarlaClient, file: str):
 # BUG NO COLLISION DETECTOR!
 #controller, follower, ego = drive_scenario(client=client, file="scenarios/turn_right_obstacle.sce")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario3.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario2.sce")
 
 
 print ("press enter to destroy")
