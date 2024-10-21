@@ -1,6 +1,6 @@
 from model.discrete_component import DiscreteComponent
 from planner.planning_data_builder import PlanningDataBuilder
-from vision.occupancy_grid_cuda import OccupancyGrid, GridDirection
+from vision.occupancy_grid_cuda import OccupancyGrid
 from model.map_pose import MapPose
 from data.coordinate_converter import CoordinateConverter
 from planner.physical_model import ModelCurveGenerator
@@ -8,15 +8,15 @@ from model.physical_parameters import PhysicalParameters
 from slam.slam import SLAM
 from model.waypoint import Waypoint
 import cv2
-import numpy as np
 import json
 from utils.telemetry import Telemetry
 from model.planning_data import CollisionReport
 import time
+import math
 
 
 DEBUG = False
-COLLISION_DETECT = False
+COLLISION_DETECT = True
 LOG = True
 
 
@@ -28,7 +28,7 @@ class CollisionDetector(DiscreteComponent):
     __watch_target: MapPose
     __coord_converter: CoordinateConverter
     __kinematics_model: ModelCurveGenerator
-    __slam: SLAM
+    __last_collision_location: MapPose
     __on_detect_enable: bool
 
     class PathCandidateList:
@@ -103,7 +103,6 @@ class CollisionDetector(DiscreteComponent):
                  period_ms: int,
                  coordinate_converter: CoordinateConverter,
                  planning_data_builder: PlanningDataBuilder,
-                 slam: SLAM,
                  on_collision_detected_cb: callable,
                  with_telemetry: bool = LOG) -> None:
         super().__init__(period_ms)
@@ -114,9 +113,9 @@ class CollisionDetector(DiscreteComponent):
         self.__watch_target = None
         self.__coord_converter = coordinate_converter
         self.__kinematics_model = ModelCurveGenerator()
-        self.__slam = slam
         self.__on_detect_enable = False
         self.__with_telemetry = with_telemetry
+        self.__last_collision_location = None
 
     def watch_path(self, path: list[MapPose]) -> None:
         self.__watch_path = path
@@ -172,23 +171,31 @@ class CollisionDetector(DiscreteComponent):
     #         res.append(wp)
     #     return res
 
+    PATH_SIZE_MULTIPLIER = 15
+
     def __check_collision(self, og: OccupancyGrid, location: MapPose, vel: float) -> tuple[bool, list[Waypoint]]:
         # TODO: fix - should not be from the current pose but from the final pose on the path
 
         half_steer = PhysicalParameters.MAX_STEERING_ANGLE / 2
         
+        #path_size =  math.floor(vel * CollisionDetector.PATH_SIZE_MULTIPLIER)
+        
+        path_size = 15
+        
         h =  self.__watch_target.heading
+        
+        target = location
 
-        path_on_heading = self.__kinematics_model.gen_path_cg(
-            self.__watch_target, vel, h, 15)
-        path_turn_left_heading = self.__kinematics_model.gen_path_cg(
-            self.__watch_target, vel, h-half_steer, 15)
-        path_turn_right_heading = self.__kinematics_model.gen_path_cg(
-            self.__watch_target, vel, h+half_steer, 15)
-        path_max_turn_left_heading = self.__kinematics_model.gen_path_cg(
-            self.__watch_target, vel, h-PhysicalParameters.MAX_STEERING_ANGLE, 15)
-        path_max_turn_right_heading = self.__kinematics_model.gen_path_cg(
-            self.__watch_target, vel, h+PhysicalParameters.MAX_STEERING_ANGLE, 15)
+        path_on_heading = self.__kinematics_model.gen_path_cg2(
+            target, vel, h, path_size)
+        path_turn_left_heading = self.__kinematics_model.gen_path_cg2(
+            target, vel, h-half_steer, path_size)
+        path_turn_right_heading = self.__kinematics_model.gen_path_cg2(
+            target, vel, h+half_steer, path_size)
+        path_max_turn_left_heading = self.__kinematics_model.gen_path_cg2(
+            target, vel, h-PhysicalParameters.MAX_STEERING_ANGLE, path_size)
+        path_max_turn_right_heading = self.__kinematics_model.gen_path_cg2(
+            target, vel, h+PhysicalParameters.MAX_STEERING_ANGLE, path_size)
         
         path_on_heading = self.__coord_converter.convert_map_path_to_waypoint(location, path_on_heading, True, True)
         path_turn_left_heading = self.__coord_converter.convert_map_path_to_waypoint(location, path_turn_left_heading, True, True)
@@ -212,6 +219,13 @@ class CollisionDetector(DiscreteComponent):
             return False, None
 
         return True, paths.get_full_path()
+    
+    TOO_CLOSE_FROM_LAST_CD_DIST = 10
+
+    def __check_path_is_too_new(self, location: MapPose) -> bool:
+        if self.__last_collision_location is None:
+            return
+        return MapPose.distance_between(self.__last_collision_location, location) < CollisionDetector.TOO_CLOSE_FROM_LAST_CD_DIST
 
     def __check_path_is_too_old(self, location: MapPose) -> bool:
 
@@ -229,10 +243,12 @@ class CollisionDetector(DiscreteComponent):
         if self.__watch_target is None:
             return
 
-        location = self.__slam.estimate_ego_pose()
         planning_data = self.__planning_data_builder.build_planning_data()
 
-        if self.__check_path_is_too_old(location):
+        if self.__check_path_is_too_new(planning_data.ego_location):
+            return
+
+        if self.__check_path_is_too_old(planning_data.ego_location):
             print("[CD] watch path is too old")
             self._planned_path = None
             return
@@ -241,6 +257,9 @@ class CollisionDetector(DiscreteComponent):
             planning_data.og, planning_data.ego_location, planning_data.velocity)
 
         if collision:
+            
+            self.__last_collision_location = planning_data.ego_location
+            
             print("[CD] collision detected!")
 
             if self.__with_telemetry:

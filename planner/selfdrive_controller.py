@@ -126,8 +126,7 @@ class SelfDriveController(DiscreteComponent):
             period_ms=SelfDriveController.COLLISION_DETECTOR_PERIOD_MS,
             coordinate_converter=self._coord,
             planning_data_builder=planning_data_builder,
-            on_collision_detected_cb=self.__on_collision_detected,
-            slam=slam
+            on_collision_detected_cb=self.__on_collision_detected
         )
         self._collision_detector.start()
         
