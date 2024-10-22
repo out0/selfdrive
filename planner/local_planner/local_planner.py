@@ -7,21 +7,23 @@ from planner.local_planner.local_planner_executor import LocalPathPlannerExecuto
 from model.planning_data import *
 from enum import Enum
 from planner.local_planner.executors.hierarchical_group import HierarchicalGroupPlanner
-from planner.local_planner.executors.astar import AStarPlanner
+# from planner.local_planner.executors.astar import AStarPlanner
 from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
-from planner.local_planner.executors.vectorial_astar import VectorialAStarPlanner
+# from planner.local_planner.executors.vectorial_astar import VectorialAStarPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
-from planner.local_planner.executors.rrt import RRTPlanner
+from planner.local_planner.executors.rrtStar import RRTPlanner
 
 
 class LocalPlannerType(Enum):
     Ensemble = 0
     Interpolator = 1
     Overtaker = 2
-    AStar = 3
-    VectorialAStar = 4
-    HybridAStar = 5
+    HybridAStar = 3
+    RRTStar = 4
+    # AStar = 999
+    # VectorialAStar = 999
+    
 
 class LocalPlanner:
     __plan_timeout_ms: int
@@ -78,20 +80,26 @@ class LocalPlanner:
                     self.__plan_timeout_ms,
                     self.__map_coordinate_converter,
                 )
-            case LocalPlannerType.VectorialAStar:
-                return VectorialAStarPlanner(
-                    self.__plan_timeout_ms,
-                )
-            case LocalPlannerType.AStar:
-                return AStarPlanner(
-                    self.__plan_timeout_ms,
-                )
+            # case LocalPlannerType.VectorialAStar:
+            #     return VectorialAStarPlanner(
+            #         self.__plan_timeout_ms,
+            #     )
+            # case LocalPlannerType.AStar:
+            #     return AStarPlanner(
+            #         self.__plan_timeout_ms,
+            #     )
             case LocalPlannerType.HybridAStar:
                 return HybridAStarPlanner(
                     self.__plan_timeout_ms,
                     self.__map_coordinate_converter,
                     10
                 )
+            case LocalPlannerType.RRTStar:
+                return RRTPlanner(
+                    self.__plan_timeout_ms,
+                    max_steps=10000
+                )
+                
                 
                 
     def plan (self, planning_data: PlanningData):

@@ -18,7 +18,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       heading=0)
 
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.HybridAStar
+PLANNER_TYPE = LocalPlannerType.RRTStar
 
 def execute_plan (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -75,7 +75,7 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(11)
+    execute_plan(1)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

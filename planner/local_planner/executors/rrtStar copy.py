@@ -98,7 +98,6 @@ class RRTPlanner (LocalPathPlannerExecutor):
         dist = RRTNode.compute_node_dist(base_point, x_rand, z_rand)
         
         if dist < self._max_step:
-            Dubins.dubins_path()
             return RRTNode(x_rand, z_rand, None)
         
         ## TODO: Add Dubins here

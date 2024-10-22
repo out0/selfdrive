@@ -1,0 +1,67 @@
+
+#include <string>
+#include <memory>
+#include <cstring>
+
+#include "../include/cuda_basic.h"
+#include "../include/cuda_graph.h"
+
+extern void CUDA_clear(float4 *frame, int width, int height);
+extern void CUDA_list_neighbors(int radius, int *list, int *count);
+extern int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int height, int goal_x, int goal_z, float radius);
+extern int CUDA_count_elements_in_graph(float4 *frame, int width, int height);
+extern bool CUDA_check_in_graph(float4 * frame, int width, int height, int x, int z);
+
+
+CudaGraph::CudaGraph(int width, int height)
+{
+    this->width = width;
+    this->height = height;
+
+    if (!cudaAllocMapped(&this->frame, sizeof(float4) * (width * height)))
+        return;
+
+    if (!cudaAllocMapped(&this->point, sizeof(int3)))
+    {
+        fprintf(stderr, "[CUDA RRT] unable to allocate %ld bytes for point output\n", sizeof(int2) * 2);
+        cudaFreeHost(frame);
+        return;
+    }
+
+    clear();
+}
+
+CudaGraph::~CudaGraph()
+{
+    cudaFreeHost(this->frame);
+    cudaFreeHost(this->point);
+}
+
+void CudaGraph::clear()
+{
+    CUDA_clear(this->frame, this->width, this->height);
+}
+
+int *CudaGraph::find_best_neighbor(int x, int z, float radius)
+{
+    return CUDA_find_best_neighbor(frame, point, width, height, x, z, radius);
+}
+
+void CudaGraph::add_point(int x, int z, int parent_x, int parent_z, float cost)
+{
+    int pos = width * z + x;
+    this->frame[pos].x = parent_x;
+    this->frame[pos].y = parent_z;
+    this->frame[pos].z = cost;
+    this->frame[pos].w = 1.0;
+}
+
+unsigned int CudaGraph::count()
+{
+    return CUDA_count_elements_in_graph(frame, width, height);
+    // unsigned int value = atomicInc(&count, gridDim.x);
+}
+bool CudaGraph::checkInGraph(int x, int z)
+{
+    return CUDA_check_in_graph(frame, width, height, x, z);
+}
