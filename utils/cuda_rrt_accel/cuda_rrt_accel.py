@@ -61,7 +61,15 @@ lib.check_in_graph.argtypes = [
     ctypes.c_int, # X
     ctypes.c_int # Z    
 ]
-        
+
+
+lib.get_parent.restype = ctypes.POINTER(ctypes.c_int * 3)
+lib.get_parent.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_int, # X
+    ctypes.c_int # Z    
+]
+       
 
 class CudaGraph:
     _cuda_graph: ctypes.c_void_p
@@ -109,3 +117,16 @@ class CudaGraph:
     def check_in_graph(self, x: int, z: int) -> bool:
         return lib.check_in_graph(self._cuda_frame, x, z)
     
+    def get_parent(self, x: int, z: int) -> tuple[int, int]:
+        if self._cuda_frame is None:
+            return
+        
+        p = lib.get_parent(self._cuda_frame, x, z)
+        lib_res = p.contents
+        if lib_res[2] == 1:
+            res = (lib_res[0], lib_res[1])
+        else:
+            res = None
+            
+        lib.free_waypoint(p)
+        return res

@@ -42,9 +42,16 @@ extern "C"
         CudaGraph *f = (CudaGraph *)self;
         return f->count();
     }
+ 
     bool check_in_graph(void *self, int x, int z)
     {
         CudaGraph *f = (CudaGraph *)self;
         return f->checkInGraph(x, z);
+    }
+
+    int * get_parent(void *self, int x, int z)
+    {
+        CudaGraph *f = (CudaGraph *)self;
+        return f->getParent(x, z);
     }
 }

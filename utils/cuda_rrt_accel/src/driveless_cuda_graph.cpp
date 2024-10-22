@@ -65,3 +65,17 @@ bool CudaGraph::checkInGraph(int x, int z)
 {
     return CUDA_check_in_graph(frame, width, height, x, z);
 }
+
+int * CudaGraph::getParent(int x, int z) 
+{
+    int pos = width * z + x;
+
+    if (this->frame[pos].w == 0.0)
+        return new int[3] { 0, 0, 0 };
+    
+    return new int[3] { 
+        (int)this->frame[pos].x,
+        (int)this->frame[pos].y, 
+        1 
+    };
+}

@@ -19,4 +19,5 @@ public:
     void add_point(int x, int z, int parent_x, int parent_z, float cost);
     unsigned int count();
     bool checkInGraph(int x, int z);
+    int * getParent(int x, int z);
 };

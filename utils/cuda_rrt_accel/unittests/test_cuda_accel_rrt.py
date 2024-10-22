@@ -34,6 +34,19 @@ class TestCudaAccellRRT(unittest.TestCase):
         self.assertEqual(res[0], 100)
         self.assertEqual(res[1], 70)
 
+    def test_get_parent(self):
+        g = CudaGraph(1000, 1000)
+        g.add_point(100, 100, -1, -1, 0)
+        g.add_point(100, 70, 100, 100, 0)
+        g.add_point(130, 50, 100, 70, 0)
+
+        self.assertEqual(g.get_parent(0, 0), None)
+        
+        self.assertEqual(g.get_parent(100, 100), (-1, -1))
+        
+        self.assertEqual(g.get_parent(100, 70), (100, 100))
+        self.assertEqual(g.get_parent(130, 50), (100, 70))
+
 
 if __name__ == "__main__":
     unittest.main()
