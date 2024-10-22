@@ -139,7 +139,9 @@ int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int height, 
     int *res = nullptr;
 
     if (point->z >= 1.0)
-        res = new int[2]{point->x, point->y};
+        res = new int[3]{point->x, point->y, 1};
+    else
+        res = new int[3]{0, 0, 0};
 
     cudaFreeHost(bestCost);
 

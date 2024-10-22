@@ -24,16 +24,20 @@ TEST(CudaRRTAccel, TestFindBestNeighbor)
 
     int *res = g.find_best_neighbor(110, 100, 1.0);
 
-    ASSERT_EQ(res, nullptr);
+    ASSERT_EQ(res[0], 0);
+    ASSERT_EQ(res[1], 0);
+    ASSERT_EQ(res[2], 0);
 
     res = g.find_best_neighbor(110, 100, 10.0);
     ASSERT_EQ(res[0], 100);
     ASSERT_EQ(res[1], 100);
+    ASSERT_EQ(res[2], 1);
     delete []res;
 
     res = g.find_best_neighbor(120, 80, 1000.0);
     ASSERT_EQ(res[0], 100);
     ASSERT_EQ(res[1], 70);
+    ASSERT_EQ(res[2], 1);
     delete []res;
 
 }
