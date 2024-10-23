@@ -10,6 +10,7 @@ from planner.local_planner.executors.vectorial_astar import VectorialAStarPlanne
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
+from planner.local_planner.executors.rrtStar import RRTPlanner
 # from planner.local_planner.executors.dubins_path import DubinsPathPlanner
 from planner.goal_point_discover import GoalPointDiscoverResult
 import threading
@@ -18,7 +19,7 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
     __interpolator: InterpolatorPlanner
     __overtaker: OvertakerPlanner
     __hybrid__astar: HybridAStarPlanner
-    __astar: VectorialAStarPlanner
+    __rrt_star: RRTPlanner
     # _dubins: DubinsPathPlanner
     __max_exec_time_ms: int
     __planner_data: PlanningData
@@ -36,7 +37,8 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
         self.__interpolator = InterpolatorPlanner(map_converter, max_exec_time_ms)
         self.__overtaker = OvertakerPlanner(max_exec_time_ms, map_converter)
         self.__hybrid__astar = HybridAStarPlanner(max_exec_time_ms, map_converter, 10)
-        self.__astar = VectorialAStarPlanner(max_exec_time_ms)
+        self.__rrt_star = RRTPlanner(max_exec_time_ms, 50)
+        #self.__astar = VectorialAStarPlanner(max_exec_time_ms)
         # self._dubins = DubinsPathPlanner(max_exec_time_ms, map_converter, )
         self.__exec_plan = False
         self.__max_exec_time_ms = max_exec_time_ms
@@ -108,10 +110,11 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
     def __execute_supervised_planning(self) -> None:
         self.__exec_plan = True
         self.__interpolator.plan(self.__planner_data, self.__goal_result)
-        self.__astar.plan(self.__planner_data, self.__goal_result)
+        #self.__astar.plan(self.__planner_data, self.__goal_result)
         self.__hybrid__astar.plan(self.__planner_data, self.__goal_result)
         # self._dubins.plan(self.__planner_data, self.__goal_result)
         self.__overtaker.plan(self.__planner_data, self.__goal_result)
+        self.__rrt_star.plan(self.__planner_data, self.__goal_result)
 
         start_time = time.time()
 
@@ -126,8 +129,11 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
         if check and self.__check_planner(start_time, self.__hybrid__astar):
             check = False
         
-        if check:
-            self.__check_planner(start_time, self.__astar)
+        if check and self.__check_planner(start_time, self.__rrt_star):
+            check = False
+            
+        # if check:
+        #     self.__check_planner(start_time, self.__astar)
 
         self.__exec_plan = False
 
