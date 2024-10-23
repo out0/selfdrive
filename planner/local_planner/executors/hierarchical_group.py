@@ -60,10 +60,9 @@ class HierarchicalGroupPlanner(LocalPathPlannerExecutor):
     def cancel(self) -> None:
         self.__exec_plan = False
         self.__interpolator.cancel()
-        self.__astar.cancel()
         self.__hybrid__astar.cancel()
         self.__overtaker.cancel()
-        #self.__plan_result = None
+        self.__rrt_star.cancel()
 
     def is_planning(self) -> bool:
         return self.__exec_plan
