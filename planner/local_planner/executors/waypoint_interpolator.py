@@ -218,3 +218,34 @@ class WaypointInterpolator:
 
         return path_candidate
 
+
+    def path_smooth_rebuild(path: List[Waypoint]) -> List[Waypoint]:
+
+        size = len(path)
+
+        if size < 2:
+            return path
+        
+        start_z = path[0].z
+        end_z = path[-1].z
+        
+        (res_x, res_z) = WaypointInterpolator.__downsample_waypoints(path, 20)
+
+        WaypointInterpolator.__sort_points(res_z, res_x)
+
+        k = 3
+        if len(path) < 4:
+            k = 2
+        tck = interpolate.splrep(res_z, res_x, k=k)
+
+        path_candidate: List[Waypoint] = []
+
+
+        for z in range(end_z, start_z):
+            try:
+                x = math.floor(interpolate.splev(z, tck))
+                path_candidate.append(Waypoint(x, z))
+            except:
+                pass
+
+        return path_candidate

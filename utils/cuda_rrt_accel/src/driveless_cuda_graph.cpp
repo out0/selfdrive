@@ -10,8 +10,7 @@ extern void CUDA_clear(float4 *frame, int width, int height);
 extern void CUDA_list_neighbors(int radius, int *list, int *count);
 extern int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int height, int goal_x, int goal_z, float radius);
 extern int CUDA_count_elements_in_graph(float4 *frame, int width, int height);
-extern bool CUDA_check_in_graph(float4 * frame, int width, int height, int x, int z);
-
+extern bool CUDA_check_in_graph(float4 *frame, int width, int height, int x, int z);
 
 CudaGraph::CudaGraph(int width, int height)
 {
@@ -66,16 +65,33 @@ bool CudaGraph::checkInGraph(int x, int z)
     return CUDA_check_in_graph(frame, width, height, x, z);
 }
 
-int * CudaGraph::getParent(int x, int z) 
+int *CudaGraph::getParent(int x, int z)
 {
     int pos = width * z + x;
 
     if (this->frame[pos].w == 0.0)
-        return new int[3] { 0, 0, 0 };
-    
-    return new int[3] { 
+        return new int[3]{0, 0, 0};
+
+    return new int[3]{
         (int)this->frame[pos].x,
-        (int)this->frame[pos].y, 
-        1 
-    };
+        (int)this->frame[pos].y,
+        1};
 }
+
+// int CudaGraph::listGraphPoints(void *self, int *points)
+// {
+//     int len = count();
+//     points = new int[len * 3];
+//     int p = 0;
+    
+//     for (int z = 0; z < height; z++) {
+//         for (int x = 0; x < width; x++) {
+//             int pos = width * z + x;
+
+//             if (this->frame[pos].w != 1.0)
+//                 continue;
+
+//             points[p] =
+//         }
+//     }
+// }

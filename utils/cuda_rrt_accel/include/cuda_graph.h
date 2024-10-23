@@ -20,4 +20,5 @@ public:
     unsigned int count();
     bool checkInGraph(int x, int z);
     int * getParent(int x, int z);
+    int listGraphPoints(void *self, int *points);
 };

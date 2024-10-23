@@ -54,4 +54,9 @@ extern "C"
         CudaGraph *f = (CudaGraph *)self;
         return f->getParent(x, z);
     }
+
+    int list_graph_points(void *self, int *points) {
+        CudaGraph *f = (CudaGraph *)self;
+        return f->listGraphPoints(points);
+    }
 }

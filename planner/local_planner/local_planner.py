@@ -95,10 +95,7 @@ class LocalPlanner:
                     10
                 )
             case LocalPlannerType.RRTStar:
-                return RRTPlanner(
-                    self.__plan_timeout_ms,
-                    max_steps=10000
-                )
+                return RRTPlanner(self.__plan_timeout_ms, max_steps=50)
                 
                 
                 
