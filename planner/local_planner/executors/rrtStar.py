@@ -144,7 +144,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         self._rst_timeout()
         
         while loop_search:
-            if self._check_timeout():
+            if self._check_timeout() or not self._search:
                 loop_search = False
                 continue
             
