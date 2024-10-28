@@ -40,4 +40,4 @@ class Jerk2D:
         # Total jerk is the sum of jerk magnitudes multiplied by dt (discrete approximation of the integral)
         total_jerk = np.sum(jerk_magnitude) * dt
         
-        return total_jerk
+        return total_jerk / PhysicalParameters.OG_REAL_HEIGHT

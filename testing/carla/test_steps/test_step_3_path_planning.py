@@ -17,7 +17,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       alt=1.0149892568588257,
                       heading=0)
 
-PLAN_TIMEOUT = -1
+PLAN_TIMEOUT = 500
 PLANNER_TYPE = LocalPlannerType.RRTStar
 
 def execute_plan (seq: int) -> None:
@@ -52,6 +52,9 @@ def execute_plan (seq: int) -> None:
     
     if res.result_type == PlannerResultType.VALID:
         print (f"Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
+    elif res.result_type == PlannerResultType.TOO_CLOSE:
+        print (f"Ignoring path #{seq} because its too close")
+        return True
     else:
         print (f"invalid plan for the selected local planner {res.planner_name}")
         return True

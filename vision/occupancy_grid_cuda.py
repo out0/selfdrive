@@ -198,3 +198,15 @@ class OccupancyGrid:
         dz = p2.z - p1.z
         dx = p2.x - p1.x
         return math.degrees(math.pi/2 - math.atan2(-dz, dx))
+    
+    def check_waypoint_class_is_obstacle(self, x: int, z: int) -> bool:
+        if self._frame is None:
+            return True
+        
+        return self._frame.check_waypoint_class_is_obstacle(x, z)
+    
+    def get_cost(self, x: int, z: int) -> float:
+        if self._frame is None:
+            return 999999999
+        
+        return self._frame.get_cost(x, z)

@@ -41,4 +41,8 @@ public:
     float * bestWaypointPos(int goal_x, int goal_z);
 
     float *bestWaypointInDirection(int start_x, int start_z, int goal_x, int goal_z);
+
+    bool checkWaypointClassIsObstacle(int x, int z);
+
+    float getCost(int x, int z);
 };

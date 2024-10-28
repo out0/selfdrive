@@ -13,14 +13,16 @@ from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
 from planner.local_planner.executors.rrtStar import RRTPlanner
+from planner.local_planner.executors.ensemble import EnsemblePlanner
 
 
 class LocalPlannerType(Enum):
     Ensemble = 0
-    Interpolator = 1
-    Overtaker = 2
-    HybridAStar = 3
-    RRTStar = 4
+    HierarchicalGroup = 1
+    Interpolator = 2
+    Overtaker = 3
+    HybridAStar = 4
+    RRTStar = 5
     # AStar = 999
     # VectorialAStar = 999
     
@@ -66,6 +68,11 @@ class LocalPlanner:
     def __get_local_planner_algorithm(self, type: LocalPlannerType) -> LocalPathPlannerExecutor:
         match type:
             case LocalPlannerType.Ensemble:
+                return EnsemblePlanner(
+                    self.__map_coordinate_converter,
+                    self.__plan_timeout_ms,
+                )
+            case LocalPlannerType.HierarchicalGroup:
                 return HierarchicalGroupPlanner(
                     self.__map_coordinate_converter,
                     self.__plan_timeout_ms,
@@ -92,7 +99,7 @@ class LocalPlanner:
                 return HybridAStarPlanner(
                     self.__plan_timeout_ms,
                     self.__map_coordinate_converter,
-                    10
+                    5.0
                 )
             case LocalPlannerType.RRTStar:
                 return RRTPlanner(self.__plan_timeout_ms, max_steps=50)

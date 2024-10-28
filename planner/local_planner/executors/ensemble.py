@@ -13,7 +13,7 @@ from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 from planner.local_planner.executors.rrtStar import RRTPlanner
 # from planner.local_planner.executors.dubins_path import DubinsPathPlanner
 from planner.goal_point_discover import GoalPointDiscoverResult
-import threading
+from utils.jerk import Jerk2D
 
 class EnsemblePlanner(LocalPathPlannerExecutor):
     __interpolator: InterpolatorPlanner
@@ -67,68 +67,96 @@ class EnsemblePlanner(LocalPathPlannerExecutor):
         res = self.__plan_result
         return res
     
-    def __timeout(self, start_time: int, max_exec_time_ms: int):
+    def __timeout(self, start_time: int, max_exec_time_ms: int) -> bool:
+        if max_exec_time_ms < 0: return False
         return 1000*(time.time() - start_time) > max_exec_time_ms
     
-    def __on_full_cancelled_planning(self) -> PlanningResult:
-        self.__exec_plan = False
 
-    def __wait_execution(self, start_time: int, method: callable) -> bool:
-        while self.__exec_plan and method():
-            if self.__max_exec_time_ms > 0 and self.__timeout(start_time, self.__max_exec_time_ms):
-                self.__on_full_cancelled_planning()
-                return True
-            time.sleep(0.001)
-        return False
+    def __check_all_finished(list_finished: list[bool]) -> bool:
+        for p in list_finished:
+            if not p: return False
+        return True
     
+    def __select_best(result1: PlanningResult, result2: PlanningResult, vel: float) -> PlanningResult:
+        if result1 is None and result2 is not None:
+            return result2
+        if result2 is None and result1 is not None:
+            return result1
+        if result1 is None and result2 is None:
+            return None
+        
+        if result1.result_type == PlannerResultType.VALID and result2.result_type != PlannerResultType.VALID:
+            return result1
+        if result2.result_type == PlannerResultType.VALID and result1.result_type != PlannerResultType.VALID:
+            return result2
+        # none is valid, return the first one
+        if result1.result_type != PlannerResultType.VALID and result1.result_type != PlannerResultType.VALID:
+            return result1
 
-    def __check_planner(self, start_time, planner: LocalPathPlannerExecutor ) -> bool:
+        if result1.timeout and not result2.timeout:
+            return result2
+        if not result1.timeout and result2.timeout:
+            return result1
+
+        if len(result1.path) == 0 and len(result2.path) > 0:
+            return result2
+        if len(result2.path) == 0 and len(result1.path) > 0:
+            return result1
+        if len(result1.path) == 0 and len(result2.path) == 0:
+            return result1
+
+        jerk1 = Jerk2D.compute_path_jerk(result1.path, vel)
         
-        timeout = self.__wait_execution(start_time, lambda: planner.is_planning())
+        jerk2 = Jerk2D.compute_path_jerk(result2.path, vel)
         
-        if timeout:
-            self.__exec_plan = False
-            return True
+        if jerk1 <= jerk2:
+            return result1
         
-        self.__plan_result = planner.get_result()
+        return result2
         
-        if self.__plan_result is None:
-            is_valid = False
-        else:
-            is_valid = self.__plan_result.result_type == PlannerResultType.VALID
-        
-        if is_valid:
-            self.cancel()
-        
-        return is_valid
     
     def __execute_supervised_planning(self) -> None:
         self.__exec_plan = True
         self.__interpolator.plan(self.__planner_data, self.__goal_result)
-        #self.__astar.plan(self.__planner_data, self.__goal_result)
         self.__hybrid__astar.plan(self.__planner_data, self.__goal_result)
-        # self._dubins.plan(self.__planner_data, self.__goal_result)
         self.__overtaker.plan(self.__planner_data, self.__goal_result)
         self.__rrt_star.plan(self.__planner_data, self.__goal_result)
 
         start_time = time.time()
 
-        check = True
+        
+        self.__plan_result = None
+        plan_finish = [False, False, False, False]
+        
+        search = True
+        
 
-        if self.__check_planner(start_time, self.__interpolator):
-            check = False
-        
-        if check and self.__check_planner(start_time, self.__overtaker):
-            check = False
-        
-        if check and self.__check_planner(start_time, self.__hybrid__astar):
-            check = False
-        
-        if check and self.__check_planner(start_time, self.__rrt_star):
-            check = False
+        while search and not self.__timeout(start_time, self.__max_exec_time_ms):
+            if EnsemblePlanner.__check_all_finished(plan_finish):
+                search = False
+                continue
             
-        # if check:
-        #     self.__check_planner(start_time, self.__astar)
+            if not plan_finish[0] and not self.__interpolator.is_planning():
+                self.__plan_result = EnsemblePlanner.__select_best(self.__plan_result, self.__interpolator.get_result(), self.__planner_data.velocity)
+                plan_finish[0] = True
 
-        self.__exec_plan = False
+            if not plan_finish[1] and not self.__overtaker.is_planning():
+                self.__plan_result = EnsemblePlanner.__select_best(self.__plan_result, self.__overtaker.get_result(), self.__planner_data.velocity)
+                plan_finish[1] = True
+
+            if not plan_finish[2] and not self.__hybrid__astar.is_planning():
+                self.__plan_result = EnsemblePlanner.__select_best(self.__plan_result, self.__hybrid__astar.get_result(), self.__planner_data.velocity)
+                plan_finish[2] = True
+
+            if not plan_finish[3] and not self.__rrt_star.is_planning():
+                self.__plan_result = EnsemblePlanner.__select_best(self.__plan_result, self.__rrt_star.get_result(), self.__planner_data.velocity)
+                plan_finish[3] = True
+
+        self.cancel()
+        
+        # r1 = self.__interpolator.get_result()
+        # r2 = self.__overtaker.get_result()
+        # r3 = self.__hybrid__astar.get_result()
+        # r4 = self.__rrt_star.get_result()
+        # p1 = 2
 

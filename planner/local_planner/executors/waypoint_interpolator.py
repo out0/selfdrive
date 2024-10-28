@@ -3,6 +3,7 @@ from model.waypoint import Waypoint
 from typing import List
 import math
 from scipy import interpolate
+from model.physical_parameters import PhysicalParameters
 
 
 class WaypointInterpolator:
@@ -211,7 +212,7 @@ class WaypointInterpolator:
 
         for p in path:
             try:
-                x = math.floor(interpolate.splev(p.z, tck))
+                x = math.floor(interpolate.splev(p.z, tck, s=0.1))
                 path_candidate.append(Waypoint(x, p.z))
             except:
                 pass
@@ -219,12 +220,15 @@ class WaypointInterpolator:
         return path_candidate
 
 
-    def path_smooth_rebuild(path: List[Waypoint]) -> List[Waypoint]:
+    def path_smooth_rebuild(path: List[Waypoint], s=20) -> List[Waypoint]:
 
         size = len(path)
-
+        
         if size < 2:
             return path
+
+        if size < 3:
+            return WaypointInterpolator.interpolate_straight_line_path2(path[0], path[1], PhysicalParameters.OG_WIDTH, PhysicalParameters.OG_HEIGHT, 30)
         
         start_z = path[0].z
         end_z = path[-1].z
@@ -236,7 +240,7 @@ class WaypointInterpolator:
         k = 3
         if len(path) < 4:
             k = 2
-        tck = interpolate.splrep(res_z, res_x, k=k)
+        tck = interpolate.splrep(res_z, res_x, k=k, s=s)
 
         path_candidate: List[Waypoint] = []
 
@@ -247,5 +251,7 @@ class WaypointInterpolator:
                 path_candidate.append(Waypoint(x, z))
             except:
                 pass
+            
+        path_candidate.reverse()
 
         return path_candidate

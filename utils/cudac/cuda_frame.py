@@ -95,6 +95,22 @@ lib.get_class_cost.restype = ctypes.c_int
 lib.get_class_cost.argtypes = [ctypes.c_int]
 
 
+lib.check_waypoint_class_is_obstacle.restype = ctypes.c_bool
+lib.check_waypoint_class_is_obstacle.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_int, # x
+    ctypes.c_int  # z
+]
+
+lib.get_cost.restype = ctypes.c_float
+lib.get_cost.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_int, # x
+    ctypes.c_int  # z
+]
+
+
+
 class GridDirection (Enum):
     ALL = 0xff
     HEADING_0 = 0x01
@@ -278,3 +294,11 @@ class CudaFrame:
         heading = waypoint[2]
         lib.free_waypoint(p)
         return Waypoint(x, z, heading)
+
+    
+    def check_waypoint_class_is_obstacle(self, x: int, z: int) -> bool:
+        return lib.check_waypoint_class_is_obstacle(self._cuda_frame, x, z)
+    
+    
+    def get_cost(self, x: int, z: int) -> float:
+        return lib.get_cost(self._cuda_frame, x, z)

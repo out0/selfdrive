@@ -52,27 +52,43 @@ extern "C"
         f->checkFeasibleWaypoints(waypoints, count, compute_headings);
     }
 
-    int get_class_cost(int segmentation_class) {
+    int get_class_cost(int segmentation_class)
+    {
         return CudaFrame::get_class_cost(segmentation_class);
     }
 
-    float * best_waypoint_for_heading(void *self, int goal_x, int goal_z, float heading) {
+    float *best_waypoint_for_heading(void *self, int goal_x, int goal_z, float heading)
+    {
         CudaFrame *f = (CudaFrame *)self;
         return f->bestWaypointPosForHeading(goal_x, goal_z, heading);
     }
 
-    float * best_waypoint(void *self, int goal_x, int goal_z) {
+    float *best_waypoint(void *self, int goal_x, int goal_z)
+    {
         CudaFrame *f = (CudaFrame *)self;
         return f->bestWaypointPos(goal_x, goal_z);
     }
 
-    float * best_waypoint_in_direction(void *self, int start_x, int start_z, int goal_x, int goal_z) {
+    float *best_waypoint_in_direction(void *self, int start_x, int start_z, int goal_x, int goal_z)
+    {
         CudaFrame *f = (CudaFrame *)self;
         return f->bestWaypointInDirection(start_x, start_z, goal_x, goal_z);
     }
 
-    void free_waypoint(float* waypoint) {
-        delete []waypoint;
+    void free_waypoint(float *waypoint)
+    {
+        delete[] waypoint;
     }
 
+    bool check_waypoint_class_is_obstacle(void *self, int x, int z)
+    {
+        CudaFrame *f = (CudaFrame *)self;
+        return f->checkWaypointClassIsObstacle(x, z);
+    }
+
+    float get_cost(void *self, int x, int z)
+    {
+        CudaFrame *f = (CudaFrame *)self;
+        return f->getCost(x, z);
+    }    
 }

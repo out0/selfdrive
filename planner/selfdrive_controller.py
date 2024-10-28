@@ -22,8 +22,6 @@ PROXIMITY_RATE_TO_GET_NEXT_PATH_SEGMENT = 0.9
 MOTION_CONTROLLER_EXEC_PERIOD_MS = 5
 LONGITUDINAL_EXEC_PERIOD_MS = 100
 
-PLANNER_TYPE = LocalPlannerType.Ensemble
-
 class ControllerState(Enum):
     ON_HOLD = 0
     START_PLANNING = 1
@@ -78,7 +76,7 @@ class SelfDriveController(DiscreteComponent):
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
-    #PLAN_TIMEOUT=500
+    #PLAN_TIMEOUT=2000
     PLAN_TIMEOUT=-1
     SPEED_MS = 2.0
 
@@ -87,7 +85,8 @@ class SelfDriveController(DiscreteComponent):
                  ego: EgoCar, 
                  planning_data_builder: PlanningDataBuilder,
                  slam: SLAM,
-                 controller_response: callable) -> None:
+                 controller_response: callable,
+                 local_planner_type: LocalPlannerType) -> None:
         
         super().__init__(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS)
         
@@ -106,7 +105,7 @@ class SelfDriveController(DiscreteComponent):
         
         self.__local_planner = LocalPlanner(
             plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
-            local_planner_type=PLANNER_TYPE,
+            local_planner_type=local_planner_type,
             map_coordinate_converter=self._coord
         )
         

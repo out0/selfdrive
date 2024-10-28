@@ -454,3 +454,14 @@ float *CudaFrame::bestWaypointInDirection(int start_x, int start_z, int goal_x, 
         this->upper_bound_z
     );
 }
+
+bool CudaFrame::checkWaypointClassIsObstacle(int x, int z) {
+    int pos = z * this->width + x;
+    int waypoint_class = frame[pos].x;
+    return segmentationClassCost[waypoint_class] < 0;
+}
+
+float CudaFrame::getCost(int x, int z) {
+    int pos = z * this->width + x;
+    return frame[pos].y;
+}

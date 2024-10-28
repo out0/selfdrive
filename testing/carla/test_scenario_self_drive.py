@@ -3,17 +3,18 @@ sys.path.append("../../")
 from carlasim.carla_client import CarlaClient
 from carlasim.carla_ego_car import CarlaEgoCar
 from carlasim.sensors.data_sensors import *
-from scenario_builder import ScenarioBuilder, ScenarioActor
+from scenario_builder import ScenarioBuilder
 from planner.selfdrive_controller import SelfDriveController, PlanningDataBuilder, PlanningData, SelfDriveControllerResponse, SelfDriveControllerResponseType
 #from slam.slam import SLAM
 from carlasim.carla_slam import CarlaSLAM
 from carlasim.expectator_cam_follower import ExpectatorCameraAutoFollow
 from model.map_pose import MapPose
 from model.world_pose import WorldPose
+from planner.local_planner.local_planner import LocalPlannerType
 
 TEST_SPEED = 1.0
 
-client = CarlaClient(town='Town07')
+client = CarlaClient(town='Town07_Opt')
 
 class CarlaPlanningDataBuilder(PlanningDataBuilder):
     
@@ -107,7 +108,8 @@ def drive_scenario (client: CarlaClient, file: str):
         ego=ego,
         planning_data_builder=data_builder,
         controller_response=controller_response,
-        slam=data_builder.get_slam()
+        slam=data_builder.get_slam(),
+        local_planner_type=LocalPlannerType.RRTStar
     )
     
     controller.start()
@@ -118,7 +120,9 @@ def drive_scenario (client: CarlaClient, file: str):
 # BUG NO COLLISION DETECTOR!
 #controller, follower, ego = drive_scenario(client=client, file="scenarios/turn_right_obstacle.sce")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/big_mission.sce")
+os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
+
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario1.sce")
 
 
 print ("press enter to destroy")

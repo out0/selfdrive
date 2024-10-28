@@ -16,7 +16,7 @@ import math
 
 
 DEBUG = False
-COLLISION_DETECT = True
+COLLISION_DETECT = False
 LOG = True
 
 
