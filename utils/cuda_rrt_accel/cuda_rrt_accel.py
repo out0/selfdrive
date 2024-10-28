@@ -7,6 +7,7 @@ sys.path.append("../../../")
 from model.waypoint import Waypoint
 import math
 from enum import Enum
+from utils.cudac.cuda_frame import CudaFrame
 
 LIBNAME = "/usr/local/lib/libdriveless-cuda-rrt-accel.so"
 lib = ctypes.CDLL(LIBNAME)
@@ -15,6 +16,12 @@ lib.load_frame.restype = ctypes.c_void_p
 lib.load_frame.argtypes = [
     ctypes.c_int, # width
     ctypes.c_int, # height
+    ctypes.c_int, # min_dist_x,
+    ctypes.c_int, # min_dist_z,
+    ctypes.c_int, # lower_bound_ego_x,
+    ctypes.c_int, # lower_bound_ego_z,
+    ctypes.c_int, # upper_bound_ego_x,
+    ctypes.c_int, # upper_bound_ego_z
 ]
 
 lib.destroy_frame.restype = None
@@ -44,6 +51,15 @@ lib.find_best_neighbor.argtypes = [
     ctypes.c_float, # radius
 ]
 
+
+lib.find_nearest_neighbor.restype = ctypes.POINTER(ctypes.c_int * 3)
+lib.find_nearest_neighbor.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_int, # X
+    ctypes.c_int # Z
+]
+
+
 lib.free_waypoint.restype = None
 lib.free_waypoint.argtypes = [
     ctypes.POINTER(ctypes.c_int * 3)
@@ -69,39 +85,71 @@ lib.get_parent.argtypes = [
     ctypes.c_int, # X
     ctypes.c_int # Z    
 ]
-       
+
+lib.link.restype = None
+lib.link.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_void_p, 
+    ctypes.c_int, # parent_x
+    ctypes.c_int, # parent_z
+    ctypes.c_int, # X
+    ctypes.c_int # Z    
+]
+
+lib.list_nodes.restype = None
+lib.list_nodes.argtypes = [
+    ctypes.c_void_p, 
+    np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1)
+]
+
+          
 
 class CudaGraph:
     _cuda_graph: ctypes.c_void_p
    
-    def __init__ (self, width: int, height: int) -> None:
-        self._cuda_frame = None
-        self._cuda_frame = lib.load_frame(
+    def __init__ (self, 
+                width: int, 
+                height: int,
+                min_dist_x: int,
+                min_dist_z: int,
+                lower_bound_ego_x: int,
+                lower_bound_ego_z: int,
+                upper_bound_ego_x: int,
+                upper_bound_ego_z: int
+                  ) -> None:
+        self._cuda_graph = None
+        self._cuda_graph = lib.load_frame(
             width,
-            height)
+            height,
+            min_dist_x,
+            min_dist_z,
+            lower_bound_ego_x,
+            lower_bound_ego_z,
+            upper_bound_ego_x,
+            upper_bound_ego_z)
         
     def __del__(self):
-        if self._cuda_frame is None:
+        if self._cuda_graph is None:
             return
-        lib.destroy_frame(self._cuda_frame)
+        lib.destroy_frame(self._cuda_graph)
         
     def clear(self):
-        if self._cuda_frame is None:
+        if self._cuda_graph is None:
             return
-        lib.clear(self._cuda_frame)
+        lib.clear(self._cuda_graph)
 
     def add_point(self, x: int, z: int, parent_x: int, parent_z: int, cost: float):
-        if self._cuda_frame is None:
+        if self._cuda_graph is None:
             return
         
-        lib.add_point(self._cuda_frame, x, z, parent_x, parent_z, cost)
+        lib.add_point(self._cuda_graph, x, z, parent_x, parent_z, cost)
 
 
     def find_best_neighbor(self, x: int, z: int, radius: float) -> tuple[int, int]:
-        if self._cuda_frame is None:
+        if self._cuda_graph is None:
             return
         
-        p = lib.find_best_neighbor(self._cuda_frame, x, z, radius)
+        p = lib.find_best_neighbor(self._cuda_graph, x, z, radius)
         lib_res = p.contents
         if lib_res[2] == 1:
             res = (lib_res[0], lib_res[1])
@@ -110,18 +158,33 @@ class CudaGraph:
             
         lib.free_waypoint(p)
         return res
+
+    def find_nearest_neighbor(self, x: int, z: int) -> tuple[int, int]:
+        if self._cuda_graph is None:
+            return
+        
+        p = lib.find_nearest_neighbor(self._cuda_graph, x, z)
+        lib_res = p.contents
+        if lib_res[2] == 1:
+            res = (lib_res[0], lib_res[1])
+        else:
+            res = None
+            
+        lib.free_waypoint(p)
+        return res
+    
     
     def count(self) -> int:
-        return lib.count(self._cuda_frame)
+        return lib.count(self._cuda_graph)
     
     def check_in_graph(self, x: int, z: int) -> bool:
-        return lib.check_in_graph(self._cuda_frame, x, z)
+        return lib.check_in_graph(self._cuda_graph, x, z)
     
     def get_parent(self, x: int, z: int) -> tuple[int, int]:
-        if self._cuda_frame is None:
+        if self._cuda_graph is None:
             return
         
-        p = lib.get_parent(self._cuda_frame, x, z)
+        p = lib.get_parent(self._cuda_graph, x, z)
         lib_res = p.contents
         if lib_res[2] == 1:
             res = (lib_res[0], lib_res[1])
@@ -130,3 +193,21 @@ class CudaGraph:
             
         lib.free_waypoint(p)
         return res
+
+    def link(self, cuda_frame: CudaFrame, parent_x: int, parent_z:int, x: int, z: int) -> None:
+        lib.link(
+            self._cuda_graph,
+            cuda_frame.get_cuda_frame(), 
+            parent_x, 
+            parent_z, 
+            x, 
+            z)
+    def list_nodes(self) -> np.ndarray:
+        count = self.count()
+        shape = (count, 5)
+        res = np.zeros(shape, dtype=np.float32)
+        f = res.reshape(count * 5)
+        lib.list_nodes(self._cuda_graph, f, count)
+        res.reshape(shape)
+        return res
+        

@@ -3,7 +3,7 @@
 
 TEST(CudaRRTAccel, TestCreatingAddPointCount)
 {
-    CudaGraph g(1000, 1000);
+    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
     g.add_point(100, 100, 0, 0, 1000.12);
     g.add_point(100, 101, 0, 0, 1000.12);
 
@@ -15,7 +15,7 @@ TEST(CudaRRTAccel, TestCreatingAddPointCount)
 
 TEST(CudaRRTAccel, TestFindBestNeighbor)
 {
-    CudaGraph g(1000, 1000);
+    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
     g.add_point(100, 100, -1, -1, 0);
     g.add_point(100, 70, -1, -1, 0);
     g.add_point(130, 50, -1, -1, 0);
@@ -42,7 +42,7 @@ TEST(CudaRRTAccel, TestFindBestNeighbor)
 TEST(CudaRRTAccel, TestGetParent)
 {
 
-    CudaGraph g(1000, 1000);
+    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
     g.add_point(100, 100, -1, -1, 0);
     g.add_point(100, 70, 100, 100, 0);
     g.add_point(130, 50, 100, 70, 0);

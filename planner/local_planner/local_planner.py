@@ -12,7 +12,8 @@ from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 # from planner.local_planner.executors.vectorial_astar import VectorialAStarPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
-from planner.local_planner.executors.rrtStar import RRTPlanner
+#from planner.local_planner.executors.rrtStar import RRTPlanner
+from planner.local_planner.executors.rrtStar2 import RRTPlanner
 from planner.local_planner.executors.ensemble import EnsemblePlanner
 
 
@@ -102,7 +103,7 @@ class LocalPlanner:
                     5.0
                 )
             case LocalPlannerType.RRTStar:
-                return RRTPlanner(self.__plan_timeout_ms, max_steps=50)
+                return RRTPlanner(self.__plan_timeout_ms)
                 
                 
                 

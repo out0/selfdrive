@@ -125,7 +125,10 @@ class OccupancyGrid:
 
     def get_frame(self) -> np.ndarray:
         return self._frame.get_frame()
-        
+
+    def get_cuda_frame(self) -> CudaFrame:
+        return self._frame
+                
     def get_shape(self):
         if self._frame is None:
             return None

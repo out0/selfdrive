@@ -191,7 +191,10 @@ class CudaFrame:
         
     def get_frame (self) -> np.ndarray:
         return self._cpu_frame
-    
+        
+    def get_cuda_frame (self) -> ctypes.c_void_p:
+        return self._cuda_frame
+        
     def get_shape(self) -> tuple[int, int, int]:
         return self._orig_shape
     
