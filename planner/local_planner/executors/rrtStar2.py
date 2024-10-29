@@ -346,20 +346,35 @@ class RRTPlanner (LocalPathPlannerExecutor):
                 total_exec_time_ms = self.get_execution_time()
         )
         
-        path: list[Waypoint] = []
+        sparse_path: list[Waypoint] = []
+        
         
         while current is not None:
             x, z = current
             if x < 0 or z < 0:
                 break
-            path.append(Waypoint(x, z))
+            
+            sparse_path.append(Waypoint(x, z))
+            
             current = self._compute_frame.get_parent(x, z)
+            if current is None:
+                break
+        
+        full_path: list[Waypoint] = []
+        
+        parent = sparse_path[0]
+        
+        for i in range(1, len(sparse_path)):
+            x, z = sparse_path[i].x, sparse_path[i].z
+            path = self.__build_path(parent.x, parent.z, x, z)
+            full_path.append(Waypoint(parent.x, parent.z))
+            full_path.extend(path)
+            full_path.append(Waypoint(x, z))
+
         
         path.reverse()
         result_type = PlannerResultType.INVALID_PATH
-
-        
-        
+        result_type = PlannerResultType.VALID
 
         if len(path) > 1:
             s_try = [30, 20, 10, 1]
