@@ -105,7 +105,7 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_best_cost(float4 *frame, int wi
     int z = pos / width;
     int x = pos - z * width;
 
-    if (frame[pos].w != 1.0) // z means that the point is part of the graph
+    if (frame[pos].w != 1.0) // w means that the point is part of the graph
         return;
 
     int dx = target_x - x;
@@ -193,7 +193,7 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_nearest_dist(float4 *frame, int
     int z = pos / width;
     int x = pos - z * width;
 
-    if (frame[pos].w != 1.0) // z means that the point is part of the graph
+    if (frame[pos].w != 1.0) // w means that the point is part of the graph
         return;
 
     int dx = target_x - x;

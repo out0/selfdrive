@@ -10,6 +10,9 @@ from data.coordinate_converter import CoordinateConverter
 from utils.telemetry import Telemetry
 from testing.test_utils import PlannerTestOutput
 
+# Estudar
+# https://www.youtube.com/watch?v=_aqwJBx2NFk
+
 import time
 
 COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09, 
@@ -78,7 +81,8 @@ def main(argc: int, argv: List[str]) -> int:
             if not execute_plan(i): break
         return
     
-    execute_plan(1)
+    while True:
+        execute_plan(1)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

@@ -33,6 +33,7 @@ SET(TARGET_H
 
 add_library( ${CMAKE_PROJECT_NAME} SHARED
     src/driveless_cuda_graph.cu
+    src/cuda_graph_optim.cu
     src/python_bind.cpp
     src/driveless_cuda_graph.cpp
 )

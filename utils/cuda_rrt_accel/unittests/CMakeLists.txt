@@ -44,7 +44,9 @@ add_executable(
   unittest
   unittests.cpp
   test_cuda_accel_rrt.cpp
+  test_cuda_accel_optim.cpp
   ../../src/driveless_cuda_graph.cu
+  ../../src/cuda_graph_optim.cu
   ../../src/driveless_cuda_graph.cpp
   ../../src/python_bind.cpp
 )

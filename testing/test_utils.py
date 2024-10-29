@@ -66,6 +66,10 @@ class PlannerTestOutput:
         if point.z < 0:
             point.z = 0
         
+        if point.x >= 256 or point.z >= 256:
+            wrong = 1
+            return
+        
         if point.x > 0:
             self._frame[point.z, point.x - 1, :] = color
         if point.x < self._frame.shape[1] - 1:

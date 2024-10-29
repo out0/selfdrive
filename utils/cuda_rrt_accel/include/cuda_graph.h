@@ -31,5 +31,6 @@ public:
     int *getParent(int x, int z);
     void listNodes(float *res, int count);
     float getCost(int x, int z);
+    void optimizeGraph(int x, int z, int parent_x, int parent_z, float cost, float search_radius);
     // int listGraphPoints(void *self, int *points);
 };

@@ -102,7 +102,19 @@ lib.get_cost.argtypes = [
     ctypes.c_int, # X
     ctypes.c_int # Z
 ]
-    
+
+lib.optimize_graph.restype = None
+lib.optimize_graph.argtypes = [
+    ctypes.c_void_p,
+    ctypes.c_int, # X
+    ctypes.c_int, # Z
+    ctypes.c_int, # parent_x
+    ctypes.c_int, # parent_z
+    ctypes.c_float, # cost
+    ctypes.c_float # search_radius
+]
+
+
 
 class CudaGraph:
     _cuda_graph: ctypes.c_void_p
@@ -192,3 +204,7 @@ class CudaGraph:
         
     def get_cost(self, x: int, z: int) -> bool:
         return lib.get_cost(self._cuda_graph, x, z)
+    
+    
+    def optimize_graph(self, x: int, z: int, parent_x: int, parent_z: int, cost: float, search_radius: float):
+        lib.optimize_graph(self._cuda_graph, x, z, parent_x, parent_z, cost, search_radius)

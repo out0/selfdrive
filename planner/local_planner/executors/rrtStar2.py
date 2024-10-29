@@ -13,7 +13,7 @@ from planner.goal_point_discover import GoalPointDiscoverResult
 import cv2
 #from .debug_dump import dump_result
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 
 class RRTNode:
@@ -58,11 +58,12 @@ class RRTPlanner (LocalPathPlannerExecutor):
         
     NAME = "RRT"
     
-    RRT_STEP = 15
-    MAX_STEP = 30
+    RRT_STEP = 30
+    SEARCH_RADIUS = 30
+    REACH_DIST = 10
     
     def __init__(self, max_exec_time_ms: int) -> None:
-        super().__init__(-1)
+        super().__init__(max_exec_time_ms)
         self._search = False
         self._plan_task = None
         self._result = None
@@ -102,7 +103,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         return self._result
 
 
-    def __compute_distance(self, x1, z1, x2: int, z2: int) -> float:
+    def __compute_distance(self, x1: int, z1: int, x2: int, z2: int) -> float:
         dx = x2 - x1
         dz = z2 - z1
         return math.sqrt(dx ** 2 + dz ** 2)
@@ -151,29 +152,18 @@ class RRTPlanner (LocalPathPlannerExecutor):
     
     
     def __generate_node_towards_point(self, base_point_x: int, base_point_z: int, x_rand: int, z_rand: int) -> tuple[int, int]:
-        dist = math.sqrt(self.__compute_distance(base_point_x, base_point_z, x_rand, z_rand))
+        dist = self.__compute_distance(base_point_x, base_point_z, x_rand, z_rand)
         
-        if dist < RRTPlanner.MAX_STEP:
+        if dist < RRTPlanner.RRT_STEP:
             return x_rand, z_rand
-        
-        slope = math.atan2(z_rand - base_point_z, x_rand - base_point_x)
-        
+               
         ## TODO: Add Dubins here
         slope = math.atan2(z_rand - base_point_z, x_rand - base_point_x)
-        x = base_point_x + math.floor(RRTPlanner.MAX_STEP * math.cos(slope))
-        z = base_point_z + math.floor(RRTPlanner.MAX_STEP * math.sin(slope))
+        x = base_point_x + math.floor(RRTPlanner.RRT_STEP * math.cos(slope))
+        z = base_point_z + math.floor(RRTPlanner.RRT_STEP * math.sin(slope))
         return x, z
 
-    
-    def __to_waypoint(self, p: tuple[int, int]) -> Waypoint:
-        if p is None:
-            return p
-        
-        return Waypoint(
-            p[0],
-            p[1]
-        )
-        
+
     def dump_result(self):
         frame = self._og.get_color_frame()
         node_list = self._compute_frame.list_nodes()
@@ -181,11 +171,21 @@ class RRTPlanner (LocalPathPlannerExecutor):
         for i in range(0, node_list.shape[0]):
             x = math.floor(node_list[i, 0])
             z = math.floor(node_list[i, 1])
-            frame[z, x, :] = [255, 255, 255]
+            p_x = math.floor(node_list[i, 2])
+            p_z = math.floor(node_list[i, 3])
+            if p_x < 0 or p_z < 0:
+                frame[z, x, :] = [255, 255, 255]
+            else:
+                path = self.__build_path(p_x, p_z, x, z)
+                for p in path:
+                    frame[p.z, p.x, :] = [255, 255, 255]
+            
+            
+            
             
         cv2.imwrite("debug_rrt.png", frame)
    
-    def __build_path(self, parent_x: int, parent_z: int, x: int, z: int, base_cost: float) -> list[RRTNode]:
+    def __build_path(self, parent_x: int, parent_z: int, x: int, z: int) -> list[Waypoint]:
         dx = abs(x - parent_x)
         dz = abs(z - parent_z)
         num_steps = max(dx , dz)
@@ -199,16 +199,13 @@ class RRTPlanner (LocalPathPlannerExecutor):
         last_x = parent_x
         last_z = parent_z
         
-        path: list[RRTNode] = []
+        path: list[Waypoint] = []
         
         if x < parent_x:
             dxs = -dxs
         if z < parent_z:
             dzs = -dzs
-        
-        p_x = parent_x
-        p_z = parent_z
-        
+
         for i in range(1, num_steps):            
             delta_x = dxs * i
             delta_z = dzs * i
@@ -219,40 +216,57 @@ class RRTPlanner (LocalPathPlannerExecutor):
             if x == last_x and z == last_z:
                 continue
             
-            cost = delta_x + delta_z + base_cost
             path.append(
-                RRTNode(x, z, p_x, p_z, cost)
+                Waypoint(x, z)
             )
-            
-            p_x = x
-            p_z = z
-
         return path
+
+    def __check_link(self, parent_x: int, parent_z: int, x: int, z: int) -> bool:       
+        path = self.__build_path(parent_x, parent_z, x, z)
+        return self._og.check_all_path_feasible(path)
+
     
-    def __check_feasible(self, path: list[RRTNode]) -> bool:
-        lst = [Waypoint(p.x, p.z) for p in path]
-        return self._og.check_all_path_feasible(lst, True)
+
         
     
     def __link(self, parent_x: int, parent_z: int, new_x: int, new_z: int) -> bool:
        
         base_cost = self._compute_frame.get_cost(parent_x, parent_z)
             
-        path = self.__build_path(parent_x, parent_z, new_x, new_z, base_cost)
-        if path is None:
+        if not self.__check_link(parent_x, parent_z, new_x, new_z):
             return False
-            
-        # for p in path:
-        #     if (self._compute_frame.check_in_graph(p.x, p.z)):
-        #         return False
-                
-        if not self.__check_feasible(path):
-            return False
-            
-        for p in path:
-            self._compute_frame.add_point(p.x, p.z, p.parent_x, p.parent_z, p.cost)
+
+        self._compute_frame.add_point(new_x, new_z, parent_x, parent_z, base_cost + self.__compute_distance(new_x, new_z, parent_x, parent_z))
                 
         return True
+    
+    def __add_new_node_to_graph(self) -> RRTNode:
+        x_rand, z_rand = self.__generate_informed_random_point()
+            
+        if self._compute_frame.check_in_graph(x_rand, z_rand):
+            return None
+            
+        nearest = self._compute_frame.find_nearest_neighbor(x_rand, z_rand)
+            
+        if nearest is None:
+            return None
+            
+        p_x, p_z = nearest
+            
+        (new_x, new_z) = self.__generate_node_towards_point(p_x, p_z, x_rand, z_rand)
+
+        if self._og.check_waypoint_class_is_obstacle(new_x, new_z):
+            return None
+        
+        if not self.__check_link(p_x, p_z, new_x, new_z):
+            return None
+        
+        cost = self._compute_frame.get_cost(p_x, p_z)            
+        self._compute_frame.add_point(new_x, new_z, p_x, p_z, cost)
+        return RRTNode(new_x, new_z, p_x, p_z, cost)
+    
+    #def __optimize_graph_with_node(self, node: RRTNode) -> None:
+    
     
     def __perform_planning(self) -> None:
         #self._result.planner_name = RRTPlanner.NAME
@@ -264,49 +278,58 @@ class RRTPlanner (LocalPathPlannerExecutor):
         loop_search = self._search
         self._rst_timeout()
         
+        found_goal = False
+        
         while loop_search:
             if self._check_timeout():
                 loop_search = False
                 continue
             
-            x_rand, z_rand = self.__generate_informed_random_point()
+            node = self.__add_new_node_to_graph()
             
-            if self._compute_frame.check_in_graph(x_rand, z_rand):
-                continue
-            
-            nearest = self._compute_frame.find_nearest_neighbor(x_rand, z_rand)
-            
-            if nearest is None:
-                continue
-            
-            (new_x, new_z) = self.__generate_node_towards_point(nearest[0], nearest[1], x_rand, z_rand)
-
-            if self._og.check_waypoint_class_is_obstacle(new_x, new_z):
-                continue
-            
-            
-            best_parent = self._compute_frame.find_best_neighbor(new_x, new_z, 999999999)
-            
-            if best_parent is None:
-                continue
-            
-            parent_x, parent_z = best_parent
-            
-            if not self.__link(parent_x, parent_z, new_x, new_z):
+            if node is None :
                 continue
             
             if DEBUG_DUMP:
                 self.dump_result()
-
-            dist_to_goal = self.__compute_distance(new_x, new_z, self._goal_result.goal.x, self._goal_result.goal.z)
             
-            if dist_to_goal <= RRTPlanner.RRT_STEP:
-                loop_search = False
+            self._compute_frame.optimize_graph(node.x, node.z, node.parent_x, node.parent_z, node.cost, RRTPlanner.SEARCH_RADIUS)
+            
+            # self.__optimize_graph_with_node(node)
+            
+            # best_parent = self._compute_frame.find_best_neighbor(new_x, new_z, RRTPlanner.SEARCH_RADIUS)
+            
+            # if best_parent is None:
+            #     continue
+            
+            # parent_x, parent_z = best_parent
+            
+            # if not self.__link(parent_x, parent_z, new_x, new_z):
+            #     continue
+            
+            if DEBUG_DUMP:
+                self.dump_result()
+
+            if not found_goal:
+                dist_to_goal = self._og.get_cost(node.x, node.z)
+                
+                if dist_to_goal <= RRTPlanner.REACH_DIST:
+                    found_goal = True
+            
+            else:
+                if self._check_half_timeout() and found_goal:
+                    loop_search = False
+            
         
         # finding the path
         
+        radius = RRTPlanner.SEARCH_RADIUS
+        current = None
+        while current is None and radius <= PhysicalParameters.OG_HEIGHT:
+            current = self._compute_frame.find_best_neighbor(self._goal_result.goal.x, self._goal_result.goal.z, radius)
+            radius = 2 * radius
         
-        current = self._compute_frame.find_best_neighbor(self._goal_result.goal.x, self._goal_result.goal.z, 999999999)
+#        current = self._compute_frame.find_nearest_neighbor(self._goal_result.goal.x, self._goal_result.goal.z)
         
         if current is None:
             return PlanningResult(
@@ -334,6 +357,9 @@ class RRTPlanner (LocalPathPlannerExecutor):
         
         path.reverse()
         result_type = PlannerResultType.INVALID_PATH
+
+        
+        
 
         if len(path) > 1:
             s_try = [30, 20, 10, 1]

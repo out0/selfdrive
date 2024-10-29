@@ -13,7 +13,7 @@ extern int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int h
 extern int *CUDA_find_nearest_neighbor(float4 *frame, int3 *point, int width, int height, int goal_x, int goal_z);
 extern int CUDA_count_elements_in_graph(float4 *frame, int width, int height);
 extern bool CUDA_check_in_graph(float4 *frame, int width, int height, int x, int z);
-
+extern void CUDA_optimize_graph_with_node(float4 *frame, int width, int height, int x, int z, int parent_x, int parent_z, float cost, float search_radius);
 
 extern void CUDA_list_elements(float4 *frame, 
     float *result,
@@ -111,4 +111,8 @@ void CudaGraph::listNodes(float *res, int count) {
 float CudaGraph::getCost(int x, int z) {
     int pos = z * this->width + x;
     return frame[pos].z;
+}
+
+void CudaGraph::optimizeGraph(int x, int z, int parent_x, int parent_z, float cost, float search_radius) {
+    CUDA_optimize_graph_with_node(frame, width, height, x, z, parent_x, parent_z, cost, search_radius);
 }

@@ -72,8 +72,9 @@ extern "C"
         CudaGraph *f = (CudaGraph *)self;
         return f->getCost(x, z);
     }
-    // int list_graph_points(void *self, int *points) {
-    //     CudaGraph *f = (CudaGraph *)self;
-    //     return f->listGraphPoints(points);
-    // }
+
+    void optimize_graph(void *self, int x, int z, int parent_x, int parent_z, float cost, float search_radius) {
+        CudaGraph *f = (CudaGraph *)self;
+        f->optimizeGraph(x, z, parent_x, parent_z, cost, search_radius);
+    }
 }
