@@ -3,7 +3,7 @@
 
 TEST(CudaRRTAccel, TestCreatingAddPointCount)
 {
-    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
+    CudaGraph g(1000, 1000);
     g.add_point(100, 100, 0, 0, 1000.12);
     g.add_point(100, 101, 0, 0, 1000.12);
 
@@ -15,7 +15,7 @@ TEST(CudaRRTAccel, TestCreatingAddPointCount)
 
 TEST(CudaRRTAccel, TestFindBestNeighbor)
 {
-    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
+    CudaGraph g(1000, 1000);
     g.add_point(100, 100, -1, -1, 0);
     g.add_point(100, 70, -1, -1, 0);
     g.add_point(130, 50, -1, -1, 0);
@@ -42,7 +42,7 @@ TEST(CudaRRTAccel, TestFindBestNeighbor)
 TEST(CudaRRTAccel, TestGetParent)
 {
 
-    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
+    CudaGraph g(1000, 1000);
     g.add_point(100, 100, -1, -1, 0);
     g.add_point(100, 70, 100, 100, 0);
     g.add_point(130, 50, 100, 70, 0);
@@ -69,5 +69,35 @@ TEST(CudaRRTAccel, TestGetParent)
     ASSERT_EQ(res[1], 70);
     ASSERT_EQ(res[2], 1);
     delete[] res;
+}
 
+TEST(CudaRRTAccel, TestListNodes)
+{
+    CudaGraph g(1000, 1000);
+    g.add_point(100, 100, -1, -1, 0);
+    g.add_point(100, 70, 100, 100, 10);
+    g.add_point(130, 50, 100, 70, 20);
+    g.add_point(140, 30, 130, 50, 30);
+    g.add_point(160, 10, 100, 70, 40);
+    g.add_point(190, 0, 100, 70, 50);
+    g.add_point(210, 0, 100, 70, 50);
+
+    int count = g.count();
+
+    ASSERT_EQ(7, count);
+
+    float *nodes = new float[5 * count];
+    g.listNodes(nodes, count);
+
+    for (int i = 0; i < count; i++)
+    {
+        printf("(%d, %d):   parent (%d, %d),  total cost: %f\n",
+         static_cast<int>(round(nodes[5*i])),
+         static_cast<int>(round(nodes[5*i+1])),
+         static_cast<int>(round(nodes[5*i+2])),
+         static_cast<int>(round(nodes[5*i+3])),
+         nodes[5*i+4]);
+    }
+
+    delete[] nodes;
 }

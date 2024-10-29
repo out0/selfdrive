@@ -16,12 +16,6 @@ lib.load_frame.restype = ctypes.c_void_p
 lib.load_frame.argtypes = [
     ctypes.c_int, # width
     ctypes.c_int, # height
-    ctypes.c_int, # min_dist_x,
-    ctypes.c_int, # min_dist_z,
-    ctypes.c_int, # lower_bound_ego_x,
-    ctypes.c_int, # lower_bound_ego_z,
-    ctypes.c_int, # upper_bound_ego_x,
-    ctypes.c_int, # upper_bound_ego_z
 ]
 
 lib.destroy_frame.restype = None
@@ -102,31 +96,24 @@ lib.list_nodes.argtypes = [
     np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1)
 ]
 
-          
+lib.get_cost.restype = ctypes.c_float
+lib.get_cost.argtypes = [
+    ctypes.c_void_p, 
+    ctypes.c_int, # X
+    ctypes.c_int # Z
+]
+    
 
 class CudaGraph:
     _cuda_graph: ctypes.c_void_p
    
     def __init__ (self, 
                 width: int, 
-                height: int,
-                min_dist_x: int,
-                min_dist_z: int,
-                lower_bound_ego_x: int,
-                lower_bound_ego_z: int,
-                upper_bound_ego_x: int,
-                upper_bound_ego_z: int
-                  ) -> None:
+                height: int) -> None:
         self._cuda_graph = None
         self._cuda_graph = lib.load_frame(
             width,
-            height,
-            min_dist_x,
-            min_dist_z,
-            lower_bound_ego_x,
-            lower_bound_ego_z,
-            upper_bound_ego_x,
-            upper_bound_ego_z)
+            height)
         
     def __del__(self):
         if self._cuda_graph is None:
@@ -194,14 +181,6 @@ class CudaGraph:
         lib.free_waypoint(p)
         return res
 
-    def link(self, cuda_frame: CudaFrame, parent_x: int, parent_z:int, x: int, z: int) -> None:
-        lib.link(
-            self._cuda_graph,
-            cuda_frame.get_cuda_frame(), 
-            parent_x, 
-            parent_z, 
-            x, 
-            z)
     def list_nodes(self) -> np.ndarray:
         count = self.count()
         shape = (count, 5)
@@ -211,3 +190,5 @@ class CudaGraph:
         res.reshape(shape)
         return res
         
+    def get_cost(self, x: int, z: int) -> bool:
+        return lib.get_cost(self._cuda_graph, x, z)

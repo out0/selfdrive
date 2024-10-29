@@ -13,21 +13,7 @@ extern int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int h
 extern int *CUDA_find_nearest_neighbor(float4 *frame, int3 *point, int width, int height, int goal_x, int goal_z);
 extern int CUDA_count_elements_in_graph(float4 *frame, int width, int height);
 extern bool CUDA_check_in_graph(float4 *frame, int width, int height, int x, int z);
-extern void CUDA_link(float4 *frame, 
-    float3 *cuda_frame,
-    int width,
-    int height,
-    int *classCosts,
-    int min_dist_x, 
-    int min_dist_z,
-    int lower_bound_ego_x,
-    int lower_bound_ego_z,
-    int upper_bound_ego_x,
-    int upper_bound_ego_z,    
-    int parent_x,
-    int parent_z,
-    int x,
-    int z);
+
 
 extern void CUDA_list_elements(float4 *frame, 
     float *result,
@@ -35,22 +21,10 @@ extern void CUDA_list_elements(float4 *frame,
     int height,
     int count);
 
-CudaGraph::CudaGraph(int width, int height,
-                     int min_dist_x,
-                     int min_dist_z,
-                     int lower_bound_ego_x,
-                     int lower_bound_ego_z,
-                     int upper_bound_ego_x,
-                     int upper_bound_ego_z)
+CudaGraph::CudaGraph(int width, int height)
 {
     this->width = width;
     this->height = height;
-    this->min_dist_x = min_dist_x;
-    this->min_dist_z = min_dist_z;
-    this->lower_bound_ego_x = lower_bound_ego_x;
-    this->lower_bound_ego_z = lower_bound_ego_z;
-    this->upper_bound_ego_x = upper_bound_ego_x;
-    this->upper_bound_ego_z = upper_bound_ego_z;
 
     if (!cudaAllocMapped(&this->frame, sizeof(float4) * (width * height)))
         return;
@@ -130,42 +104,11 @@ int *CudaGraph::getParent(int x, int z)
         1};
 }
 
-void CudaGraph::link(float3 *cuda_frame, int parent_x, int parent_z, int x, int z)
-{
-    CUDA_link(frame, 
-            cuda_frame,
-            width, 
-            height, 
-            classCosts,
-            min_dist_x,
-            min_dist_z,
-            lower_bound_ego_x,
-            lower_bound_ego_z,
-            upper_bound_ego_x,
-            upper_bound_ego_z,            
-            parent_x, parent_z, x, z);
-
-}
-
-
 void CudaGraph::listNodes(float *res, int count) {
     CUDA_list_elements(frame, res, width, height, count);
 }
 
-// int CudaGraph::listGraphPoints(void *self, int *points)
-// {
-//     int len = count();
-//     points = new int[len * 3];
-//     int p = 0;
-
-//     for (int z = 0; z < height; z++) {
-//         for (int x = 0; x < width; x++) {
-//             int pos = width * z + x;
-
-//             if (this->frame[pos].w != 1.0)
-//                 continue;
-
-//             points[p] =
-//         }
-//     }
-// }
+float CudaGraph::getCost(int x, int z) {
+    int pos = z * this->width + x;
+    return frame[pos].z;
+}

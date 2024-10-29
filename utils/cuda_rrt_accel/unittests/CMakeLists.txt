@@ -19,12 +19,6 @@ find_package(PkgConfig REQUIRED)
 find_package(CUDA REQUIRED)
 include_directories("${CUDA_INCLUDE_DIRS}")
 
-find_library(CUDA_FRAME_LIB REQUIRED
-    NAMES driveless-cudac
-    HINTS /usr/lib
-)
-
-
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
@@ -66,5 +60,4 @@ endif()
 target_link_libraries(unittest PkgConfig::deps 
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
-  ${CUDA_FRAME_LIB}
 )

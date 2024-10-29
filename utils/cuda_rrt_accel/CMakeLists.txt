@@ -16,12 +16,6 @@ find_package(CUDA REQUIRED)
 include_directories("${CUDA_INCLUDE_DIRS}")
 
 
-find_library(CUDA_FRAME_LIB REQUIRED
-    NAMES driveless-cudac
-    HINTS /usr/lib
-)
-
-
 if(CUDA_LIB_JETSON)
     find_package(jetson-utils REQUIRED)
 endif(CUDA_LIB_JETSON)
@@ -47,13 +41,11 @@ if(CUDA_LIB_JETSON)
     target_link_libraries( ${PROJECT_NAME}
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
-            ${CUDA_FRAME_LIB}
             jetson-utils)
 else()
     target_link_libraries( ${PROJECT_NAME} 
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
-            ${CUDA_FRAME_LIB}
             cuda
     )
 endif(CUDA_LIB_JETSON)

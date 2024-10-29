@@ -1,28 +1,13 @@
 
 #include "../include/cuda_graph.h"
-#include "../include/cuda_frame.h"
 
 extern "C"
 {
-    void *load_frame(
-        int width, 
-        int height,
-        int min_dist_x,
-        int min_dist_z,
-        int lower_bound_ego_x,
-        int lower_bound_ego_z,
-        int upper_bound_ego_x,
-        int upper_bound_ego_z)
+    void *load_frame(int width, int height)
     {
         return new CudaGraph(
             width, 
-            height,
-            min_dist_x,
-            min_dist_z,
-            lower_bound_ego_x,
-            lower_bound_ego_z,
-            upper_bound_ego_x,
-            upper_bound_ego_z);
+            height);
     }
 
     void destroy_frame(void *self)
@@ -78,19 +63,15 @@ extern "C"
         return f->getParent(x, z);
     }
 
-    void link(void *self, void* cuda_frame, int parent_x, int parent_z, int x, int z)
-    {
-        CudaGraph *f = (CudaGraph *)self;
-        CudaFrame *cudaf = (CudaFrame *)cuda_frame;
-        return f->link(cudaf->getFramePtr(), parent_x, parent_z, x, z);
-    }
-
     void list_nodes(void *self, float *res, int count) {
         CudaGraph *f = (CudaGraph *)self;
         f->listNodes(res, count);
     }
 
-
+    float get_cost(void *self, int x, int z) {
+        CudaGraph *f = (CudaGraph *)self;
+        return f->getCost(x, z);
+    }
     // int list_graph_points(void *self, int *points) {
     //     CudaGraph *f = (CudaGraph *)self;
     //     return f->listGraphPoints(points);
