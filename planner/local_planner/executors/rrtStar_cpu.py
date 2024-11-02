@@ -36,7 +36,7 @@ TOP_RIGHT = 2
 BOTTOM_LEFT = 3
 BOTTOM_RIGHT = 4
 
-DEBUG_DUMP = False
+DEBUG_DUMP = True
 
 class ComputeGraph:
     _node_list: list[RRTNode]
@@ -317,25 +317,38 @@ class RRTPlanner (LocalPathPlannerExecutor):
             return
         return self._og.check_all_path_feasible(path, False)
  
+    # def __compute_direction_limits(self, res: GoalPointDiscoverResult) -> tuple[Waypoint, Waypoint, Waypoint, Waypoint]:
+    #     if res.start.x > res.goal.x:
+    #         if res.start.z > res.goal.z:
+    #             #TOP_LEFT
+    #             return  Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
+    #                     Waypoint(0, 0), Waypoint(res.start.x, res.start.z)            
+    #         else:
+    #             #BOTTOM_RIGHT
+    #             return  Waypoint(0, res.start.z + 1), Waypoint(PhysicalParameters.OG_WIDTH - 1, PhysicalParameters.OG_HEIGHT - 1),\
+    #                     Waypoint(res.start.x, res.start.z), Waypoint(PhysicalParameters.OG_WIDTH -1 , PhysicalParameters.OG_HEIGHT - 1)
+    #     else:
+    #         if res.start.z > res.goal.z:
+    #             #TOP_RIGHT
+    #             return  Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
+    #                     Waypoint(res.start.x, 0), Waypoint(PhysicalParameters.OG_WIDTH -1 , res.start.z)
+    #         else:
+    #             #BOTTOM_LEFT
+    #             return  Waypoint(0, res.start.z + 1), Waypoint(PhysicalParameters.OG_WIDTH - 1, PhysicalParameters.OG_HEIGHT - 1),\
+    #                     Waypoint(0, res.start.z + 1), Waypoint(res.start.x, PhysicalParameters.OG_HEIGHT - 1)   
+
     def __compute_direction_limits(self, res: GoalPointDiscoverResult) -> tuple[Waypoint, Waypoint, Waypoint, Waypoint]:
         if res.start.x > res.goal.x:
-            if res.start.z > res.goal.z:
-                #TOP_LEFT
-                return  Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
-                        Waypoint(0, 0), Waypoint(res.start.x, res.start.z)            
-            else:
-                #BOTTOM_RIGHT
-                return  Waypoint(0, res.start.z + 1), Waypoint(PhysicalParameters.OG_WIDTH - 1, PhysicalParameters.OG_HEIGHT - 1),\
-                        Waypoint(res.start.x, res.start.z), Waypoint(PhysicalParameters.OG_WIDTH -1 , PhysicalParameters.OG_HEIGHT - 1)
+            #TOP_LEFT
+            p = Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
+                Waypoint(0, 0), Waypoint(res.start.x, res.start.z)            
         else:
-            if res.start.z > res.goal.z:
-                #TOP_RIGHT
-                return  Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
-                        Waypoint(res.start.x, 0), Waypoint(PhysicalParameters.OG_WIDTH -1 , res.start.z)
-            else:
-                #BOTTOM_LEFT
-                return  Waypoint(0, res.start.z + 1), Waypoint(PhysicalParameters.OG_WIDTH - 1, PhysicalParameters.OG_HEIGHT - 1),\
-                        Waypoint(0, res.start.z + 1), Waypoint(res.start.x, PhysicalParameters.OG_HEIGHT - 1)   
+            #TOP_RIGHT
+            p = Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
+                Waypoint(res.start.x, 0), Waypoint(PhysicalParameters.OG_WIDTH -1 , res.start.z)
+
+            return p
+
     
     def __generate_random_point(self) -> tuple[int, int]:
         w = random.randint(0, self._width)

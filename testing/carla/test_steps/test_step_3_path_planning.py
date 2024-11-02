@@ -36,6 +36,7 @@ def execute_plan (seq: int) -> None:
 
     result = Telemetry.read_planning_result(seq)
     if result is None:
+        print (f"no log found for plan #{seq}")
         return False
     
     bev = Telemetry.read_planning_bev(seq)
@@ -91,7 +92,7 @@ def main(argc: int, argv: List[str]) -> int:
         return
     
     while True:
-        execute_plan(1)
+        execute_plan(6)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
