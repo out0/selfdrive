@@ -1,4 +1,5 @@
 #include "../include/cuda_graph.h"
+#include "../include/cuda_frame.h"
 #include <gtest/gtest.h>
 
 float compute_dist(int x1, int z1, int x2, int z2) {
@@ -8,9 +9,22 @@ float compute_dist(int x1, int z1, int x2, int z2) {
 }
 
 
+float * buildWithValue(int width, int height, float value) {
+    float *imgPtr = new float[width * height * 3];
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++) {
+            int pos = 3 * (i * 1000 + j);
+            imgPtr[pos] = value;
+            imgPtr[pos+1] = value;
+            imgPtr[pos+2] = value;
+        }
+    return imgPtr;
+}
+
+
 TEST(CudaRRTAccel, TestOptimization)
 {
-    CudaGraph g(1000, 1000);
+    CudaGraph g(1000, 1000, 0, 0, 0, 0, 0, 0);
     g.add_point(500, 500, -1, -1, 0);
     float cost = 0 + compute_dist(500, 450, 500, 500);
     g.add_point(500, 450, 500, 500, cost);
@@ -33,12 +47,16 @@ TEST(CudaRRTAccel, TestOptimization)
 
     // now we call for optimizing the graph with this point
 
-    g.optimizeGraph(500, 100, 500, 450, compute_dist(500, 100, 500, 450), 120);
+    float *imgPtr = buildWithValue(1000, 1000, 1);
+            
+    CudaFrame * cudaFrame = new CudaFrame(imgPtr, 1000, 1000, 0, 0, 0, 0, 0, 0);
+    cudaFrame->setGoalVectorized(1000, 1);
+
+    g.optimizeGraph(cudaFrame->getFramePtr(), 500, 100, 500, 450, compute_dist(500, 100, 500, 450), 120);
 
     parent = g.getParent(500, 0);
     ASSERT_EQ(parent[0], 500);
     ASSERT_EQ(parent[1], 100);
     delete []parent;
-
 
 }

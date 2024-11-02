@@ -38,6 +38,10 @@ SET(TARGET_H
 
 )
 
+find_library(CUDA_FRAME REQUIRED
+    NAMES driveless-cudac
+    HINTS /usr/lib
+)
 
 
 add_executable(
@@ -62,4 +66,5 @@ endif()
 target_link_libraries(unittest PkgConfig::deps 
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
+  ${CUDA_FRAME}
 )

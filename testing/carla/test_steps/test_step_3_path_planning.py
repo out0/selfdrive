@@ -10,6 +10,7 @@ from data.coordinate_converter import CoordinateConverter
 from utils.telemetry import Telemetry
 from testing.test_utils import PlannerTestOutput
 
+
 # Estudar
 # https://www.youtube.com/watch?v=_aqwJBx2NFk
 
@@ -20,7 +21,8 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       alt=1.0149892568588257,
                       heading=0)
 
-PLAN_TIMEOUT = 500
+#PLAN_TIMEOUT = 500
+PLAN_TIMEOUT = -1
 PLANNER_TYPE = LocalPlannerType.RRTStar
 
 def execute_plan (seq: int) -> None:
@@ -39,7 +41,7 @@ def execute_plan (seq: int) -> None:
     bev = Telemetry.read_planning_bev(seq)
 
     data = PlanningData(
-        bev = bev,
+        bev = bev, 
         ego_location=result.ego_location,
         goal=result.map_goal,
         next_goal=result.map_next_goal,
@@ -53,21 +55,28 @@ def execute_plan (seq: int) -> None:
 
     res = local_planner.get_result()
     
-    if res.result_type == PlannerResultType.VALID:
-        print (f"Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
-    elif res.result_type == PlannerResultType.TOO_CLOSE:
-        print (f"Ignoring path #{seq} because its too close")
-        return True
-    else:
-        print (f"invalid plan for the selected local planner {res.planner_name}")
-        return True
-
     outp = PlannerTestOutput(
         frame=data.og.get_color_frame(),
         convert_to_gray=True
     )
+    
+    if res.result_type == PlannerResultType.VALID:
+        print (f"Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
+    elif res.result_type == PlannerResultType.TOO_CLOSE:
+        print (f"Ignoring path #{seq} because its too close")
+        outp.add_point(res.local_goal, color=[0,0,255])
+        outp.write(f"test_output_{seq}.png")
+        return True
+    else:
+        print (f"invalid plan for the selected local planner {res.planner_name}")
+        outp.add_point(res.local_goal, color=[0,0,255])
+        outp.write(f"test_output_{seq}.png")
+        return True
+
+    
 
     outp.add_path(res.path)
+    outp.add_point(res.local_goal, color=[0,0,255])
     outp.write(f"test_output_{seq}.png")
     return True
 

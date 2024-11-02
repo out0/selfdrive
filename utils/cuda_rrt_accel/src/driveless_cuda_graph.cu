@@ -123,18 +123,12 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_best_cost(float4 *frame, int wi
     }
 }
 
-int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int height, int goal_x, int goal_z, float radius)
+int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int *bestCost, int width, int height, int goal_x, int goal_z, float radius)
 {
     int size = width * height;
 
     int numBlocks = floor(size / 256) + 1;
 
-    int *bestCost;
-    if (!cudaAllocMapped(&bestCost, sizeof(int)))
-    {
-        fprintf(stderr, "[CUDA RRT] unable to allocate %ld bytes for best cost in CUDA_find_best_neighbor()\n", sizeof(int));
-        return nullptr;
-    }
 
     *bestCost = 999999999;
     __CUDA_KERNEL_find_best_neighbor_cost<<<numBlocks, 256>>>(frame, width, height, goal_x, goal_z, radius, bestCost);
@@ -152,8 +146,6 @@ int *CUDA_find_best_neighbor(float4 *frame, int3 *point, int width, int height, 
         res = new int[3]{point->x, point->y, 1};
     else
         res = new int[3]{0, 0, 0};
-
-    cudaFreeHost(bestCost);
 
     return res;
 }
@@ -178,7 +170,13 @@ __global__ void __CUDA_KERNEL_find_nearest_neighbor_dist(float4 *frame, int widt
     int dx = target_x - x;
     int dz = target_z - z;
 
-    int dist = dx * dx + dz * dz;
+    if (dz == 0) {
+        // pure left or right neighbors are not desired
+        return;
+    }
+
+    int dist = __float2int_rn(sqrtf(dx * dx + dz * dz));
+    
 
     atomicMin(bestDistance, dist);
 }
@@ -199,7 +197,12 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_nearest_dist(float4 *frame, int
     int dx = target_x - x;
     int dz = target_z - z;
 
-    int dist = dx * dx + dz * dz;
+    if (dz == 0) {
+        // pure left or right neighbors are not desired
+        return;
+    }
+
+    int dist = __float2int_rn(sqrtf(dx * dx + dz * dz));
 
     if (dist == *bestDistance)
     {
@@ -209,18 +212,11 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_nearest_dist(float4 *frame, int
     }
 }
 
-int *CUDA_find_nearest_neighbor(float4 *frame, int3 *point, int width, int height, int goal_x, int goal_z)
+int *CUDA_find_nearest_neighbor(float4 *frame, int3 *point,  int *bestCost, int width, int height, int goal_x, int goal_z)
 {
     int size = width * height;
 
     int numBlocks = floor(size / 256) + 1;
-
-    int *bestCost;
-    if (!cudaAllocMapped(&bestCost, sizeof(int)))
-    {
-        fprintf(stderr, "[CUDA RRT] unable to allocate %ld bytes for best cost in CUDA_find_best_neighbor()\n", sizeof(int));
-        return nullptr;
-    }
 
     *bestCost = 999999999;
     __CUDA_KERNEL_find_nearest_neighbor_dist<<<numBlocks, 256>>>(frame, width, height, goal_x, goal_z, bestCost);
@@ -239,56 +235,38 @@ int *CUDA_find_nearest_neighbor(float4 *frame, int3 *point, int width, int heigh
     else
         res = new int[3]{0, 0, 0};
 
-    cudaFreeHost(bestCost);
-
     return res;
 }
 
-unsigned int CUDA_count_elements_in_graph(float4 *frame, int width, int height)
+unsigned int CUDA_count_elements_in_graph(float4 *frame, unsigned int *pcount, int width, int height)
 {
     int size = width * height;
 
     int numBlocks = floor(size / 256) + 1;
 
-    unsigned int *count;
-    if (!cudaAllocMapped(&count, sizeof(unsigned int)))
-    {
-        fprintf(stderr, "[CUDA RRT] unable to allocate %ld bytes for counting elements in graph\n", sizeof(unsigned int));
-        return 0;
-    }
-
-    *count = 0;
-    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, 256>>>(frame, width, height, count);
+    *pcount = 0;
+    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, 256>>>(frame, width, height, pcount);
     CUDA(cudaDeviceSynchronize());
 
-    unsigned int res = *count;
+    unsigned int res = *pcount;
 
     // printf ("CUDA_count_elements_in_graph => %d\n", res);
 
-    cudaFreeHost(count);
     return res;
 }
 
-bool CUDA_check_in_graph(float4 *frame, int width, int height, int x, int z)
+bool CUDA_check_in_graph(float4 *frame, unsigned int *pcount, int width, int height, int x, int z)
 {
     int size = width * height;
 
     int numBlocks = floor(size / 256) + 1;
-
-    unsigned int *count;
-    if (!cudaAllocMapped(&count, sizeof(unsigned int)))
-    {
-        fprintf(stderr, "[CUDA RRT] unable to allocate %ld bytes for counting elements in graph\n", sizeof(unsigned int));
-        return 0;
-    }
-
-    *count = 0;
-    __CUDA_KERNEL_check_in_graph<<<numBlocks, 256>>>(frame, width, height, x, z, count);
+   
+    *pcount = 0;
+    __CUDA_KERNEL_check_in_graph<<<numBlocks, 256>>>(frame, width, height, x, z, pcount);
     CUDA(cudaDeviceSynchronize());
 
-    int res = *count;
+    int res = *pcount;
 
-    cudaFreeHost(count);
     return res > 0;
 }
 

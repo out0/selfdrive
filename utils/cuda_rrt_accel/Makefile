@@ -5,6 +5,8 @@ install: test
 	cd build && make -j12
 	cd build && sudo make install
 	rm -rf build
+	cd unittests && python3 ./test_cuda_accel_rrt.py
+	cd unittests && python3 ./test_cuda_accel_optim.py
 
 test:
 	cd unittests && make test

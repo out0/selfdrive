@@ -1,13 +1,28 @@
 
 #include "../include/cuda_graph.h"
+#include "../include/cuda_frame.h"
 
 extern "C"
 {
-    void *load_frame(int width, int height)
+    void *load_frame(
+        int width,
+        int height,
+        int min_dist_x,
+        int min_dist_z,
+        int lower_bound_ego_x,
+        int lower_bound_ego_z,
+        int upper_bound_ego_x,
+        int upper_bound_ego_z)
     {
         return new CudaGraph(
-            width, 
-            height);
+            width,
+            height,
+            min_dist_x,
+            min_dist_z,
+            lower_bound_ego_x,
+            lower_bound_ego_z,
+            upper_bound_ego_x,
+            upper_bound_ego_z);
     }
 
     void destroy_frame(void *self)
@@ -63,18 +78,22 @@ extern "C"
         return f->getParent(x, z);
     }
 
-    void list_nodes(void *self, float *res, int count) {
+    void list_nodes(void *self, float *res, int count)
+    {
         CudaGraph *f = (CudaGraph *)self;
         f->listNodes(res, count);
     }
 
-    float get_cost(void *self, int x, int z) {
+    float get_cost(void *self, int x, int z)
+    {
         CudaGraph *f = (CudaGraph *)self;
         return f->getCost(x, z);
     }
 
-    void optimize_graph(void *self, int x, int z, int parent_x, int parent_z, float cost, float search_radius) {
+    void optimize_graph(void *self, void *cuda_frame, int x, int z, int parent_x, int parent_z, float cost, float search_radius)
+    {
         CudaGraph *f = (CudaGraph *)self;
-        f->optimizeGraph(x, z, parent_x, parent_z, cost, search_radius);
+        CudaFrame *cudaf = (CudaFrame *)cuda_frame;
+        f->optimizeGraph(cudaf->getFramePtr(), x, z, parent_x, parent_z, cost, search_radius);
     }
 }

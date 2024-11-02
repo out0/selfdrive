@@ -11,6 +11,7 @@ from planner.local_planner.executors.waypoint_interpolator import WaypointInterp
 from vision.occupancy_grid_cuda import OccupancyGrid
 from planner.goal_point_discover import GoalPointDiscoverResult
 import cv2
+import time
 #from .debug_dump import dump_result
 
 DEBUG_DUMP = False
@@ -55,24 +56,35 @@ class RRTPlanner (LocalPathPlannerExecutor):
     __rough_direction_lim1: Waypoint
     __rough_direction_lim2: Waypoint
     __planner_data: PlanningData
+    __found_goal: bool
         
     NAME = "RRT"
     
     RRT_STEP = 30
-    SEARCH_RADIUS = 30
+    SEARCH_RADIUS = 20
     REACH_DIST = 10
     
-    def __init__(self, max_exec_time_ms: int) -> None:
+    
+    
+    def __init__(self, max_exec_time_ms: int, reasonable_exec_time_ms: int = 50) -> None:
         super().__init__(max_exec_time_ms)
         self._search = False
         self._plan_task = None
         self._result = None
-        self._compute_frame = CudaGraph(PhysicalParameters.OG_WIDTH, PhysicalParameters.OG_HEIGHT)
+        self._compute_frame = CudaGraph(
+            PhysicalParameters.OG_WIDTH, 
+            PhysicalParameters.OG_HEIGHT,
+            PhysicalParameters.MIN_DISTANCE_WIDTH_PX,
+            PhysicalParameters.MIN_DISTANCE_HEIGHT_PX,
+            PhysicalParameters.EGO_LOWER_BOUND,
+            PhysicalParameters.EGO_UPPER_BOUND)
+        
         self.__planner_data = None
         self._node_list = []
         self._num_nodes_in_list = 0
         self._start = Waypoint(128, PhysicalParameters.EGO_UPPER_BOUND.z - 1)
         self._og = None
+        self._reasonable_exec_time_ms = reasonable_exec_time_ms
         
     def plan(self, planner_data: PlanningData, goal_result: GoalPointDiscoverResult) -> None:
         self._og = planner_data.og
@@ -83,6 +95,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         self._num_nodes_in_list = 0
         self._goal_result = goal_result
         self.__rough_direction_lim1, self.__rough_direction_lim2, self.__direction_lim1, self.__direction_lim2 = self.__compute_direction_limits(goal_result)
+        self.__found_goal = False
         self._plan_task = Thread(target=self.__perform_planning)
         self._plan_task.start()
 
@@ -176,22 +189,23 @@ class RRTPlanner (LocalPathPlannerExecutor):
             if p_x < 0 or p_z < 0:
                 frame[z, x, :] = [255, 255, 255]
             else:
-                path = self.__build_path(p_x, p_z, x, z)
+                path = self._build_path(p_x, p_z, x, z)
+                if path is None:
+                    return
                 for p in path:
                     frame[p.z, p.x, :] = [255, 255, 255]
-            
-            
-            
-            
         cv2.imwrite("debug_rrt.png", frame)
    
-    def __build_path(self, parent_x: int, parent_z: int, x: int, z: int) -> list[Waypoint]:
+    def _build_path(self, parent_x: int, parent_z: int, x: int, z: int) -> list[Waypoint]:
         dx = abs(x - parent_x)
         dz = abs(z - parent_z)
         num_steps = max(dx , dz)
         
-        if num_steps == 0:
-            return None
+        
+        heading = Waypoint.compute_heading(Waypoint(parent_x, parent_z), Waypoint(x, z))
+        
+        # if num_steps < 5:
+        #     return None
         
         dxs = dx / num_steps
         dzs = dz / num_steps
@@ -217,28 +231,17 @@ class RRTPlanner (LocalPathPlannerExecutor):
                 continue
             
             path.append(
-                Waypoint(x, z)
+                Waypoint(x, z, heading)
             )
         return path
 
     def __check_link(self, parent_x: int, parent_z: int, x: int, z: int) -> bool:       
-        path = self.__build_path(parent_x, parent_z, x, z)
-        return self._og.check_all_path_feasible(path)
+        path = self._build_path(parent_x, parent_z, x, z)
+        if path is None:
+            return
+        return self._og.check_all_path_feasible(path, False)
 
     
-
-        
-    
-    def __link(self, parent_x: int, parent_z: int, new_x: int, new_z: int) -> bool:
-       
-        base_cost = self._compute_frame.get_cost(parent_x, parent_z)
-            
-        if not self.__check_link(parent_x, parent_z, new_x, new_z):
-            return False
-
-        self._compute_frame.add_point(new_x, new_z, parent_x, parent_z, base_cost + self.__compute_distance(new_x, new_z, parent_x, parent_z))
-                
-        return True
     
     def __add_new_node_to_graph(self) -> RRTNode:
         x_rand, z_rand = self.__generate_informed_random_point()
@@ -262,77 +265,42 @@ class RRTPlanner (LocalPathPlannerExecutor):
             return None
         
         cost = self._compute_frame.get_cost(p_x, p_z)            
-        self._compute_frame.add_point(new_x, new_z, p_x, p_z, cost)
+        self._compute_frame.add_point(new_x, new_z, p_x, p_z, cost + self.__compute_distance(new_x, new_z, p_x, p_z))
         return RRTNode(new_x, new_z, p_x, p_z, cost)
     
-    #def __optimize_graph_with_node(self, node: RRTNode) -> None:
-    
-    
-    def __perform_planning(self) -> None:
-        #self._result.planner_name = RRTPlanner.NAME
-        self.set_exec_started()
-        
-        root_cost = self._og.get_cost(self._start.x, self._start.z)        
-        self._compute_frame.add_point(self._start.x, self._start.z, -1, -1, root_cost)
-        
-        loop_search = self._search
-        self._rst_timeout()
-        
-        found_goal = False
-        
-        while loop_search:
+
+    def __search(self, min_exec_time_ms: int) -> bool:
+        start = time.time()
+        while True:
             if self._check_timeout():
-                loop_search = False
-                continue
+                return True
             
             node = self.__add_new_node_to_graph()
             
             if node is None :
                 continue
+        
+            if DEBUG_DUMP:
+                self.dump_result()
+        
+            self._compute_frame.optimize_graph(self._og.get_cuda_frame(), node.x, node.z, node.parent_x, node.parent_z, node.cost, RRTPlanner.SEARCH_RADIUS)
             
             if DEBUG_DUMP:
                 self.dump_result()
-            
-            self._compute_frame.optimize_graph(node.x, node.z, node.parent_x, node.parent_z, node.cost, RRTPlanner.SEARCH_RADIUS)
-            
-            # self.__optimize_graph_with_node(node)
-            
-            # best_parent = self._compute_frame.find_best_neighbor(new_x, new_z, RRTPlanner.SEARCH_RADIUS)
-            
-            # if best_parent is None:
-            #     continue
-            
-            # parent_x, parent_z = best_parent
-            
-            # if not self.__link(parent_x, parent_z, new_x, new_z):
-            #     continue
-            
-            if DEBUG_DUMP:
-                self.dump_result()
-
-            if not found_goal:
+                                  
+            if not self.__found_goal:
                 dist_to_goal = self._og.get_cost(node.x, node.z)
                 
                 if dist_to_goal <= RRTPlanner.REACH_DIST:
-                    found_goal = True
+                    self.__found_goal = True
+                    return False
             
             else:
-                if self._check_half_timeout() and found_goal:
-                    loop_search = False
-            
-        
-        # finding the path
-        
-        radius = RRTPlanner.SEARCH_RADIUS
-        current = None
-        while current is None and radius <= PhysicalParameters.OG_HEIGHT:
-            current = self._compute_frame.find_best_neighbor(self._goal_result.goal.x, self._goal_result.goal.z, radius)
-            radius = 2 * radius
-        
-#        current = self._compute_frame.find_nearest_neighbor(self._goal_result.goal.x, self._goal_result.goal.z)
-        
-        if current is None:
-            return PlanningResult(
+                if 1000*(time.time() - start) >= min_exec_time_ms:
+                   return False
+    
+    def __build_timeout_no_path_response(self) -> PlanningResult:
+        return PlanningResult(
                 planner_name = RRTPlanner.NAME,
                 ego_location = self.__planner_data.ego_location,
                 goal = self.__planner_data.goal,
@@ -340,15 +308,84 @@ class RRTPlanner (LocalPathPlannerExecutor):
                 local_start = self._goal_result.start,
                 local_goal = self._goal_result.goal,
                 direction = self._goal_result.direction,
-                timeout = False,
+                timeout = True,
                 path = None,
                 result_type = PlannerResultType.INVALID_PATH,
-                total_exec_time_ms = self.get_execution_time()
-        )
+                total_exec_time_ms = self.get_execution_time())
+        
+
+        
+    def __perform_planning(self) -> None:
+        #self._result.planner_name = RRTPlanner.NAME
+        self.set_exec_started()
+        
+        #root_cost = self._og.get_cost(self._start.x, self._start.z)
+        root_cost = 0
+        self._compute_frame.add_point(self._start.x, self._start.z, -1, -1, root_cost)
+        
+        loop_search = self._search
+        self._rst_timeout()
+        
+        while loop_search:
+            timeout = self.__search(self._reasonable_exec_time_ms)
+            
+            if DEBUG_DUMP:
+                self.dump_result()
+            
+            
+            if timeout and not self.__found_goal:
+                self._result = self.__build_timeout_no_path_response()
+                self._search = False
+                return
+            
+            first_path = self._build_sparse_path_from_process_result()
+            if first_path is None:
+                continue
+            
+            path = self._post_process_smooth(first_path)
+            
+
+            if path is not None:
+                self._result = PlanningResult(
+                    planner_name = RRTPlanner.NAME,
+                    ego_location = self.__planner_data.ego_location,
+                    goal = self.__planner_data.goal,
+                    next_goal = self.__planner_data.next_goal,
+                    local_start = self._goal_result.start,
+                    local_goal = self._goal_result.goal,
+                    direction = self._goal_result.direction,
+                    timeout = False,
+                    path = path,
+                    result_type = PlannerResultType.VALID,
+                    total_exec_time_ms = self.get_execution_time()
+                )
+                self._search = False
+                return
+                
+            
+            if timeout:
+                self._result = self.__build_timeout_no_path_response()
+                self._search = False
+                
+       
+    
+    def _build_sparse_path_from_process_result(self) -> list[Waypoint]:
+        
+        # radius = RRTPlanner.REACH_DIST
+        # first = None
+        # while first is None and radius <= PhysicalParameters.OG_HEIGHT:
+        #     first = self._compute_frame.find_best_neighbor(self._goal_result.goal.x, self._goal_result.goal.z, radius)
+        #     radius = 2 * radius
+
+        first = self._compute_frame.find_best_neighbor(self._goal_result.goal.x, self._goal_result.goal.z,  RRTPlanner.REACH_DIST)
+        if first is None:
+            return None
+
+        #first = self._compute_frame.find_nearest_neighbor(self._goal_result.goal.x, self._goal_result.goal.z)
         
         sparse_path: list[Waypoint] = []
-        
-        
+        current = first
+
         while current is not None:
             x, z = current
             if x < 0 or z < 0:
@@ -359,52 +396,60 @@ class RRTPlanner (LocalPathPlannerExecutor):
             current = self._compute_frame.get_parent(x, z)
             if current is None:
                 break
-        
-        full_path: list[Waypoint] = []
-        
+        return sparse_path
+    
+    def __interpolate_path(self, sparse_path: list[Waypoint]) -> list[Waypoint]:
         parent = sparse_path[0]
+        res = []
         
         for i in range(1, len(sparse_path)):
             x, z = sparse_path[i].x, sparse_path[i].z
-            path = self.__build_path(parent.x, parent.z, x, z)
-            full_path.append(Waypoint(parent.x, parent.z))
-            full_path.extend(path)
-            full_path.append(Waypoint(x, z))
-
+            path = self._build_path(parent.x, parent.z, x, z)
+            res.append(Waypoint(parent.x, parent.z))
+            res.extend(path)
+            res.append(Waypoint(x, z))
+            parent = sparse_path[i]
+        #res.reverse()
+        return res
+    
+    def __interpolate_sparse_path(self, sparse_path: list[Waypoint]) -> list[Waypoint]:
+        path = None
+        if (len(sparse_path) >= 5):
+            try:
+                sparse_path.reverse()
+                smooth_path = WaypointInterpolator.path_smooth_rebuild(sparse_path, 1)
+                if self._og.check_all_path_feasible(smooth_path):
+                    return smooth_path
+                else:
+                    sparse_path.reverse()
+            except:
+                path = None
+                sparse_path.reverse()
         
-        path.reverse()
-        result_type = PlannerResultType.INVALID_PATH
-        result_type = PlannerResultType.VALID
-
-        if len(path) > 1:
-            s_try = [30, 20, 10, 1]
+        path = self.__interpolate_path(sparse_path)
+        if len(path) < 5:
+            return None
+        return path
+    
+    def _post_process_smooth(self, sparse_path: list[Waypoint]):
+        
+        path = self.__interpolate_sparse_path(sparse_path)
+        return path
+        
+        s_try = [30, 20, 10, 1]
             
-            for s in s_try:
+        for s in s_try:
+            try:
                 smooth_path = WaypointInterpolator.path_smooth_rebuild(path, s)
                 if len(smooth_path) == 0:
                     continue
-                if self._og.check_all_path_feasible(smooth_path):
-                    result_type = PlannerResultType.VALID
-                    path = smooth_path
-                    break
-            
-            if result_type == PlannerResultType.INVALID_PATH:
-                if (len(path) >= 10):
-                    if self._og.check_all_path_feasible(path):
-                        result_type = PlannerResultType.VALID
 
-        self._result = PlanningResult(
-            planner_name = RRTPlanner.NAME,
-            ego_location = self.__planner_data.ego_location,
-            goal = self.__planner_data.goal,
-            next_goal = self.__planner_data.next_goal,
-            local_start = self._goal_result.start,
-            local_goal = self._goal_result.goal,
-            direction = self._goal_result.direction,
-            timeout = False,
-            path = path,
-            result_type = result_type,
-            total_exec_time_ms = self.get_execution_time()
-        )
-        
-        self._search = False
+                if self._og.check_all_path_feasible(smooth_path):
+                    return smooth_path
+            except:
+                continue
+            
+        if self._og.check_all_path_feasible(path):
+             return path
+
+        return None                   

@@ -12,8 +12,8 @@ from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 # from planner.local_planner.executors.vectorial_astar import VectorialAStarPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
-#from planner.local_planner.executors.rrtStar import RRTPlanner
-from planner.local_planner.executors.rrtStar2 import RRTPlanner
+from planner.local_planner.executors.rrtStar_cpu import RRTPlanner
+#from planner.local_planner.executors.rrtStar2 import RRTPlanner
 from planner.local_planner.executors.ensemble import EnsemblePlanner
 
 

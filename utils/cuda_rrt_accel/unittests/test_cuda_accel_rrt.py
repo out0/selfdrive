@@ -2,12 +2,13 @@ import sys, time
 sys.path.append("../")
 import unittest, math, numpy as np
 from cuda_rrt_accel import CudaGraph
+from model.waypoint import Waypoint
 
 class TestCudaAccellRRT(unittest.TestCase):
      
     def test_add_count(self):
         
-        g = CudaGraph(1000, 1000)
+        g = CudaGraph(1000, 1000, 0, 0, Waypoint(0, 0), Waypoint(0, 0))
         g.add_point(100, 100, 0, 0, 1000.12)
         g.add_point(100, 101, 0, 0, 1000.12)
 
@@ -17,7 +18,7 @@ class TestCudaAccellRRT(unittest.TestCase):
         self.assertEqual(g.count(), 2)
 
     def test_find_best_neighbor(self):
-        g = CudaGraph(1000, 1000)
+        g = CudaGraph(1000, 1000, 0, 0, Waypoint(0, 0), Waypoint(0, 0))
         g.add_point(100, 100, -1, -1, 0)
         g.add_point(100, 70, -1, -1, 0)
         g.add_point(130, 50, -1, -1, 0)
@@ -35,7 +36,7 @@ class TestCudaAccellRRT(unittest.TestCase):
         self.assertEqual(res[1], 70)
 
     def test_get_parent(self):
-        g = CudaGraph(1000, 1000)
+        g = CudaGraph(1000, 1000, 0, 0, Waypoint(0, 0), Waypoint(0, 0))
         g.add_point(100, 100, -1, -1, 0)
         g.add_point(100, 70, 100, 100, 0)
         g.add_point(130, 50, 100, 70, 0)

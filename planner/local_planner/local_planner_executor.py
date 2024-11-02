@@ -45,14 +45,12 @@ class LocalPathPlannerExecutor:
         
         return 1000*(time.time() - self.__timeout) >= self.__max_exec_time_ms
     
-    def _check_half_timeout(self) -> bool:
-        if (self.__max_exec_time_ms < 0): return False
-        
+    def _get_spent_time(self) -> int:
         if (self.__timeout < 0):
             self._rst_timeout()
-            return False
+            return 0
         
-        return 2000*(time.time() - self.__timeout) >= self.__max_exec_time_ms
+        return 1000*(time.time() - self.__timeout)
     
     
     def _get_max_exec_time_ms(self) -> int:

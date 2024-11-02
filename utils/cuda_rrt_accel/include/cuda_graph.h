@@ -15,9 +15,19 @@ class CudaGraph
     int lower_bound_ego_z;
     int upper_bound_ego_x;
     int upper_bound_ego_z;
+    unsigned int *pcount;
+    int *bestValue;
 
 public:
-    CudaGraph(int width, int height);
+    CudaGraph(
+        int width,
+        int height,
+        int min_dist_x,
+        int min_dist_z,
+        int lower_bound_ego_x,
+        int lower_bound_ego_z,
+        int upper_bound_ego_x,
+        int upper_bound_ego_z);
 
     ~CudaGraph();
 
@@ -31,6 +41,6 @@ public:
     int *getParent(int x, int z);
     void listNodes(float *res, int count);
     float getCost(int x, int z);
-    void optimizeGraph(int x, int z, int parent_x, int parent_z, float cost, float search_radius);
+    void optimizeGraph(float3 *cuda_frame, int x, int z, int parent_x, int parent_z, float cost, float search_radius);
     // int listGraphPoints(void *self, int *points);
 };

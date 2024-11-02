@@ -23,6 +23,12 @@ endif(CUDA_LIB_JETSON)
 include(FindPackageHandleStandardArgs)
 
 
+find_library(CUDA_FRAME REQUIRED
+    NAMES driveless-cudac
+    HINTS /usr/lib
+)
+
+
 SET(TARGET_H
     # cuda_frame.h
     # cuda_basic.h
@@ -42,11 +48,13 @@ if(CUDA_LIB_JETSON)
     target_link_libraries( ${PROJECT_NAME}
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
+            ${CUDA_FRAME}
             jetson-utils)
 else()
     target_link_libraries( ${PROJECT_NAME} 
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
+            ${CUDA_FRAME}
             cuda
     )
 endif(CUDA_LIB_JETSON)

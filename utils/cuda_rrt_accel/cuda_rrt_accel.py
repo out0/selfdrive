@@ -16,6 +16,12 @@ lib.load_frame.restype = ctypes.c_void_p
 lib.load_frame.argtypes = [
     ctypes.c_int, # width
     ctypes.c_int, # height
+    ctypes.c_int, # min_dist_x,
+    ctypes.c_int, # min_dist_z,
+    ctypes.c_int, # lower_bound_ego_x,
+    ctypes.c_int, # lower_bound_ego_z,
+    ctypes.c_int, # upper_bound_ego_x,
+    ctypes.c_int # upper_bound_ego_z
 ]
 
 lib.destroy_frame.restype = None
@@ -106,6 +112,7 @@ lib.get_cost.argtypes = [
 lib.optimize_graph.restype = None
 lib.optimize_graph.argtypes = [
     ctypes.c_void_p,
+    ctypes.c_void_p,
     ctypes.c_int, # X
     ctypes.c_int, # Z
     ctypes.c_int, # parent_x
@@ -121,11 +128,23 @@ class CudaGraph:
    
     def __init__ (self, 
                 width: int, 
-                height: int) -> None:
+                height: int,
+                min_dist_x: int,
+                min_dist_z: int,
+                lower_bound_ego: Waypoint,
+                upper_bound_ego: Waypoint,
+) -> None:
         self._cuda_graph = None
         self._cuda_graph = lib.load_frame(
             width,
-            height)
+            height,
+            min_dist_x,
+            min_dist_z,
+            lower_bound_ego.x,
+            lower_bound_ego.z,
+            upper_bound_ego.x,
+            upper_bound_ego.z
+)
         
     def __del__(self):
         if self._cuda_graph is None:
@@ -163,6 +182,8 @@ class CudaGraph:
             return
         
         p = lib.find_nearest_neighbor(self._cuda_graph, x, z)
+        if p is None:
+            return None
         lib_res = p.contents
         if lib_res[2] == 1:
             res = (lib_res[0], lib_res[1])
@@ -206,5 +227,5 @@ class CudaGraph:
         return lib.get_cost(self._cuda_graph, x, z)
     
     
-    def optimize_graph(self, x: int, z: int, parent_x: int, parent_z: int, cost: float, search_radius: float):
-        lib.optimize_graph(self._cuda_graph, x, z, parent_x, parent_z, cost, search_radius)
+    def optimize_graph(self, cuda_frame: CudaFrame, x: int, z: int, parent_x: int, parent_z: int, cost: float, search_radius: float):
+        lib.optimize_graph(self._cuda_graph, cuda_frame.get_cuda_frame(), x, z, parent_x, parent_z, cost, search_radius)

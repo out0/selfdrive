@@ -158,6 +158,8 @@ class OccupancyGrid:
         return self._frame.compute_feasible_path(path, compute_heading)
     
     def check_all_path_feasible (self, path: list[Waypoint], compute_heading: bool = True) -> bool:
+        if (len(path) <= 0):
+            return False
         r = self._frame.compute_feasible_path(path, compute_heading)
         for p in r:
             if not p:
