@@ -78,7 +78,7 @@ def execute_plan (seq: int) -> None:
 
     outp.add_path(res.path)
     outp.add_point(res.local_goal, color=[0,0,255])
-    outp.write(f"test_output_{seq}.png")
+    outp.write(f"test_output.png")
     return True
 
 RUN_ALL = True
@@ -92,7 +92,7 @@ def main(argc: int, argv: List[str]) -> int:
         return
     
     while True:
-        execute_plan(6)
+        execute_plan(1)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

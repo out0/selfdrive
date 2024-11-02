@@ -17,7 +17,7 @@ import math
 
 DEBUG = False
 COLLISION_DETECT = False
-LOG = True
+LOG = False
 
 
 class CollisionDetector(DiscreteComponent):

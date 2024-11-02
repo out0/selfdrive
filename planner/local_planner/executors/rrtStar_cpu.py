@@ -36,7 +36,7 @@ TOP_RIGHT = 2
 BOTTOM_LEFT = 3
 BOTTOM_RIGHT = 4
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 class ComputeGraph:
     _node_list: list[RRTNode]
@@ -340,14 +340,12 @@ class RRTPlanner (LocalPathPlannerExecutor):
     def __compute_direction_limits(self, res: GoalPointDiscoverResult) -> tuple[Waypoint, Waypoint, Waypoint, Waypoint]:
         if res.start.x > res.goal.x:
             #TOP_LEFT
-            p = Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
+            return Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
                 Waypoint(0, 0), Waypoint(res.start.x, res.start.z)            
         else:
             #TOP_RIGHT
-            p = Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
+            return Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
                 Waypoint(res.start.x, 0), Waypoint(PhysicalParameters.OG_WIDTH -1 , res.start.z)
-
-            return p
 
     
     def __generate_random_point(self) -> tuple[int, int]:
@@ -444,10 +442,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         
         while loop_search:
             timeout = self.__search(self._reasonable_exec_time_ms)
-            
 
-            
-            
             if timeout and not self.__found_goal:
                 self._result = self.__build_timeout_no_path_response()
                 self._search = False
@@ -647,6 +642,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
             except:
                 continue
 
+        path.reverse()
         return path
             
         # if self._og.check_all_path_feasible(path):

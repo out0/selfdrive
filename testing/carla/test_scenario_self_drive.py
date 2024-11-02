@@ -122,7 +122,7 @@ def drive_scenario (client: CarlaClient, file: str):
 
 os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario3.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario1.sce")
 
 
 print ("press enter to destroy")
