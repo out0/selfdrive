@@ -75,45 +75,47 @@ class TestPlanningData(unittest.TestCase):
 class TestPlanningResult(unittest.TestCase):
     
     def test_planning_result_str_codec(self):
-        res = PlanningResult()
-        res.ego_location = MapPose(
-            x=1.1,
-            y=1.2,
-            z=1.3,
-            heading=1.4
+        res = PlanningResult(
+            ego_location = MapPose(
+                x=1.1,
+                y=1.2,
+                z=1.3,
+                heading=1.4
+            ),
+            direction = 2,
+            local_goal = Waypoint(
+                x=10,
+                z=20,
+                heading=30
+            ),
+            local_start = Waypoint(
+                x=1,
+                z=2,
+                heading=3
+            ),
+            goal = MapPose(
+                x=2.1,
+                y=2.2,
+                z=2.3,
+                heading=1.4
+            ),
+            next_goal = MapPose(
+                x=22.1,
+                y=22.2,
+                z=22.3,
+                heading=22.4
+            ),
+            planner_name = "name1",
+            result_type = PlannerResultType.TOO_CLOSE,
+            timeout = True,
+            path = [
+                Waypoint(0, 0, 0),
+                Waypoint(0, 0, 1),
+                Waypoint(0, 1, 0),
+                Waypoint(1, 0, 0),
+            ],
+            total_exec_time_ms=10
         )
-        res.goal_direction = 2
-        res.local_goal = Waypoint(
-            x=10,
-            z=20,
-            heading=30
-        )
-        res.local_start = Waypoint(
-            x=1,
-            z=2,
-            heading=3
-        )
-        res.map_goal = MapPose(
-            x=2.1,
-            y=2.2,
-            z=2.3,
-            heading=1.4
-        )
-        res.map_next_goal = MapPose(
-            x=22.1,
-            y=22.2,
-            z=22.3,
-            heading=22.4
-        )
-        res.planner_name = "name1"
-        res.result_type = PlannerResultType.TOO_CLOSE
-        res.timeout = True
-        res.path = [
-            Waypoint(0, 0, 0),
-            Waypoint(0, 0, 1),
-            Waypoint(0, 1, 0),
-            Waypoint(1, 0, 0),
-        ]
         
         str_val = str(res)
         
