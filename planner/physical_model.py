@@ -43,16 +43,17 @@ class ModelCurveGenerator:
             y = y + v * math.sin(math.radians(heading + beta)) * self._delta_t
             heading = math.degrees(math.radians(heading) + v * math.cos(math.radians(beta)) * steer * self._delta_t / (2*self._lr))
             next_point = MapPose(x, y, pos.z, heading=heading)
+            print(f"new heading for ({next_point.x}, {next_point.y}): {next_point.heading}")
             path.append(next_point)
             
         return path
     
-    def gen_path_cg2(self, pos: MapPose, velocity_meters_per_s: float, steering_angle: float, steps: int) -> list[MapPose]:
+    def gen_path_cg2(self, pos: MapPose, velocity_meters_per_s: float, steering_angle_deg: float, steps: int) -> list[MapPose]:
         """ Generate path from the center of gravity
         """
         v = velocity_meters_per_s
         dt = 0.5
-        steer = math.tan(math.radians(steering_angle))
+        steer = math.tan(math.radians(steering_angle_deg))
         
         x = pos.x
         y = pos.y
@@ -69,7 +70,94 @@ class ModelCurveGenerator:
             
         return path
     
+    def gen_path_waypoint(self, pos: Waypoint, velocity_meters_per_s: float, steering_angle_deg: float, path_size: float) -> list[Waypoint]:
+        """ Generate path from the center of gravity
+        """
+        self._rw = PhysicalParameters.OG_WIDTH / PhysicalParameters.OG_REAL_WIDTH 
+        self._rh = PhysicalParameters.OG_HEIGHT / PhysicalParameters.OG_REAL_HEIGHT  
+        v = velocity_meters_per_s
+        steer = math.tan(math.radians(steering_angle_deg))
+        
+        x = (128 - pos.z) / self._rw
+        y = (pos.x - 128) / self._rh
+        heading = 0
+        path = []
+        
+        dt = 0.1
+
+        path: list[Waypoint] = []
+        
+        last_xb = pos.x
+        last_zb = pos.z
+
+        ds = v * dt
+        size = 0
+        while size < path_size:
+            beta = math.degrees(math.atan(steer / self._lr))
+            x = x + ds * math.cos(math.radians(heading + beta))
+            y = y + ds * math.sin(math.radians(heading + beta))
+            heading = math.degrees(math.radians(heading) + ds * math.cos(math.radians(beta)) * steer / (2*self._lr))            
+            xb = math.floor(128 + self._rh * y)
+            zb = math.floor(128 - self._rw * x)
+                        
+            if last_xb == xb and last_zb == zb:
+                continue
+            
+            next_point = Waypoint(xb, zb, heading)            
+            path.append(next_point)
+            last_xb = xb
+            last_zb = zb
+            # size += 1
+            
+            size = Waypoint.distance_between(
+                pos,
+                next_point
+            )
+            
+            print (f"size: {size}")
+        
+        return path
     
+    # def gen_path_waypoint(self, pos: Waypoint, velocity_meters_per_s: float, steering_angle_deg: float, path_size: float) -> list[Waypoint]:
+    #     """ Generate path from the center of gravity
+    #     """
+    #     self._rw = PhysicalParameters.OG_WIDTH / PhysicalParameters.OG_REAL_WIDTH 
+    #     self._rh = PhysicalParameters.OG_HEIGHT / PhysicalParameters.OG_REAL_HEIGHT  
+    #     v = velocity_meters_per_s
+    #     steer = math.tan(math.radians(steering_angle_deg))
+        
+    #     x = (128 - pos.z) / self._rw
+    #     y = (pos.x - 128) / self._rh
+    #     heading = 0
+    #     path = []
+        
+    #     dt = 0.1
+    #     #steps = math.floor(path_size / (dt * velocity_meters_per_s))
+    #     steps = math.floor(path_size / v)
+    #     #dt = 1/velocity_meters_per_s
+
+    #     path: list[Waypoint] = []
+        
+    #     last_xb = pos.x
+    #     last_zb = pos.z
+
+    #     ds = v * dt
+    #     for _ in range (0, steps):            
+    #         beta = math.degrees(math.atan(steer / self._lr))
+    #         x = x + ds * math.cos(math.radians(heading + beta))
+    #         y = y + ds * math.sin(math.radians(heading + beta))
+    #         heading = math.degrees(math.radians(heading) + ds * math.cos(math.radians(beta)) * steer / (2*self._lr))            
+    #         xb = math.floor(128 + self._rh * y)
+    #         zb = math.floor(128 - self._rw * x)
+                        
+    #         if last_xb == xb and last_zb == zb:
+    #             continue
+            
+    #         next_point = Waypoint(xb, zb, heading)            
+    #         path.append(next_point)
+        
+    #     return path
+
     
     # def gen_path_cg_by_driving_time(self, pos: MapPose, steering_angle: int, velocity_meters_per_s: float, driving_time: float, dt: float) -> list[MapPose]:
     #     """ Generate path from the center of gravity

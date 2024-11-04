@@ -202,4 +202,13 @@ class TestFrame:
         for j in range (x - 1, x + 2):
             if x < 0: continue
             if j > self.frame.shape[0]: continue
-            self.frame[z, j, :] = color            
+            self.frame[z, j, :] = color
+            
+    def add_dot(self, x: int, z: int, color = [255, 255, 255]) -> None:
+        if x < 0 or z < 0:
+            return
+        if x >= self.frame.shape[1] or z >= self.frame.shape[0]:
+            return
+        
+        self.frame[z, x, :] = color
+    
