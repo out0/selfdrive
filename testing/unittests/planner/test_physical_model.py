@@ -53,13 +53,14 @@ class TestPhysicalModel(unittest.TestCase):
 
         plt.savefig(file)
         
-    def plot_waypoints(self, file: str, path: list[Waypoint]):
+    def plot_waypoints(self, file: str, path: list[Waypoint], color = [255,255,255]) -> TestFrame:
         frame = TestFrame(256, 256)
         
         for p in path:
-            frame.add_dot(p.x, p.z)
+            frame.add_dot(p.x, p.z, color)
             
         frame.dump_to_file(file)
+        return frame
         
     
     def test_discrete_path_generation_using_size(self):
@@ -67,16 +68,32 @@ class TestPhysicalModel(unittest.TestCase):
         l = MapPose(0, 0, 0, 0)
         w = WorldPose(0, 0, 0, 0)
         
+        start = Waypoint(128, 128, heading=0)
+        
         v = 1
         #num_steps = math.floor(120/v)
-        path = model.gen_path_waypoint(Waypoint(128, 128), v, 30, 100)
+        path = model.gen_path_waypoint(start, v, 30, 100)
         # conv = CoordinateConverter(w)
         # path = conv.convert_map_path_to_waypoint(l, path)
         
         siz = Waypoint.distance_between(path[0], path[-1])
         print (f"path direct size: {siz} comming from 128,128 to {path[-1].x}, {path[-1].z}")
         print (f"path direct heading: {Waypoint.compute_heading(Waypoint(128,128), path[-1])}")
-        self.plot_waypoints("test_physical_waypoints_gen.png", path)
+        frame = self.plot_waypoints("test_physical_waypoints_gen.png", path)
+        
+        end = path[-1]
+        
+        start.heading = 180
+        path2 = model.connect_nodes_with_path(start, end, v)
+        
+        if path2 is not None:
+            print(f"path connecting {start.x}, {start.z} and  {path[-1].x}, {path[-1].z} has {len(path2)} nodes")
+            
+            for p in path2:
+                frame.add_dot(p.x, p.z, [0, 0, 255])        
+                frame.dump_to_file("test_physical_waypoints_gen.png")
+        
+        
         
     def test_discrete_path_generation_using_size2(self):
         return
