@@ -125,14 +125,14 @@ class ModelCurveGenerator:
             path.append(next_point)
             last_xb = xb
             last_zb = zb
-            # size += 1
+            size += 1
             
-            size = Waypoint.distance_between(
-                pos,
-                next_point
-            )
+            # size = Waypoint.distance_between(
+            #     pos,
+            #     next_point
+            # )
             
-            print (f"size: {size}")
+            #print (f"size: {size}")
         
         return path
     
@@ -159,7 +159,7 @@ class ModelCurveGenerator:
         
         path_heading = MapPose.compute_path_heading(MapPose(x, y, 0, 0), end_pose)
         steering_angle_deg = np.clip(path_heading - heading, -max_turning_angle, max_turning_angle)
-        print (f"current heading: {math.degrees(heading)}, path heading:{math.degrees(path_heading)}, steering: {math.degrees(steering_angle_deg)}")
+        #print (f"current heading: {math.degrees(heading)}, path heading:{math.degrees(path_heading)}, steering: {math.degrees(steering_angle_deg)}")
 
 
         ds = v * dt
@@ -178,7 +178,7 @@ class ModelCurveGenerator:
 
             path_heading = MapPose.compute_path_heading(MapPose(x, y, 0, 0), end_pose)
             steering_angle_deg = np.clip(path_heading - heading, -max_turning_angle, max_turning_angle)            
-            print (f"current heading: {math.degrees(heading)}, path heading:{math.degrees(path_heading)}, steering: {math.degrees(steering_angle_deg)}")
+            #print (f"current heading: {math.degrees(heading)}, path heading:{math.degrees(path_heading)}, steering: {math.degrees(steering_angle_deg)}")
 
             xb, zb = self.__simple_change_coordinates_to_bev_ref_on_zero_origin_zero_heading(x, y)
             next_point = Waypoint(xb, zb, heading)

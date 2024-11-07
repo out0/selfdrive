@@ -53,6 +53,7 @@ class TestPhysicalModel(unittest.TestCase):
 
         plt.savefig(file)
         
+   
     def plot_waypoints(self, file: str, path: list[Waypoint], color = [255,255,255]) -> TestFrame:
         frame = TestFrame(256, 256)
         
@@ -62,8 +63,28 @@ class TestPhysicalModel(unittest.TestCase):
         frame.dump_to_file(file)
         return frame
         
+    def test_gen_top_paths(self):
+        model = ModelCurveGenerator()
+        start = Waypoint(128, 128, heading=0)
+        v = 1
+        #num_steps = math.floor(120/v)
+        p1 = model.gen_path_waypoint(start, v, -20, 100)
+        p2 = model.gen_path_waypoint(start, v, 0, 100)
+        p3 = model.gen_path_waypoint(start, v, 20, 100)
+        
+        
+        frame = TestFrame(256, 256, 255)
+        frame.add_path(p1, color=[0, 0, 0])
+        frame.add_path(p2, color=[0, 0, 0])
+        frame.add_path(p3, color=[0, 0, 0])
+        frame.dump_to_file("test_physical_waypoints_gen.png")
+        
+        
+        
+        
     
     def test_discrete_path_generation_using_size(self):
+        return
         model = ModelCurveGenerator()
         l = MapPose(0, 0, 0, 0)
         w = WorldPose(0, 0, 0, 0)

@@ -57,11 +57,13 @@ class ComputeGraph:
     _node_list: list[RRTNode]
     _node_keys: set
     _model: ModelCurveGenerator
+    _velocity_m_s: float
     
-    def __init__(self, root: Waypoint):
+    def __init__(self, root: Waypoint, velocity_m_s: float):
         self._node_list = []
         self._node_keys = {}
         self._model = ModelCurveGenerator()
+        self._velocity_m_s = velocity_m_s
         self.__add_node(
             final_x=root.x,
             final_z=root.z,
@@ -124,10 +126,10 @@ class ComputeGraph:
     
 
     
-    def link_node(self, og: OccupancyGrid, parent_x: int, parent_z: int, angle: float, size: float, velocity_m_s: float) -> RRTNode:
+    def derive_node(self, og: OccupancyGrid, parent_x: int, parent_z: int, angle: float, size: float) -> RRTNode:
         path = self._model.gen_path_waypoint(
             Waypoint(parent_x, parent_z),
-            velocity_m_s,
+            self._velocity_m_s,
             angle,
             size
         )
@@ -149,6 +151,21 @@ class ComputeGraph:
             final_heading=n.heading,
             path=path
         )
+        
+    def build_link_path_between_nodes(self, og: OccupancyGrid, start: RRTNode, end: RRTNode) -> list[Waypoint]:
+        path = self._model.connect_nodes_with_path(
+            Waypoint(start.final_x, start.final_z, start.final_heading),
+            Waypoint(end.final_x, end.final_z, end.final_heading),
+            self._velocity_m_s
+        )
+        
+        if len(path) < 2:
+            return None
+        
+        if not og.check_all_path_feasible(path):
+            return None
+        
+        return path
         
     def find_nearest_neighbor(self, x: int, z: int):
         best_dist = 99999999
@@ -175,9 +192,14 @@ class ComputeGraph:
         if node.final_z >= target.final_z:  #lets not optimize by pointing backwards
             return
         
-        dist_to_target = math.sqrt(dx * dx + dz * dz);
+        dist_to_target = math.sqrt(dx * dx + dz * dz)
         if (dist_to_target > search_radius):
             return
+        
+        link_path = self.build_link_path_between_nodes(og, target, node)
+        
+        path_size = len(link_path) # rough approximation
+        
 
         if target.parent is None:
             target_parent_x = -1
@@ -194,16 +216,12 @@ class ComputeGraph:
         target_cost = target.cost
         my_cost = node.cost
 
-        if (my_cost <= target_cost + dist_to_target):
-            return
-
-        # lets check if I can connect to target
-        if not self.__check_link_between_p1_p2(og, node.x, node.z, target.x, target.z):
+        if (my_cost <= target_cost + path_size):
             return
         
         # perform the optimization change
         node.parent = target
-        node.cost = target_cost + dist_to_target
+        node.cost = target_cost + path_size
     
     def get_parent(self, x: int, z: int) -> RRTNode:
         n = self.get_node(x, z)
@@ -299,56 +317,13 @@ class RRTPlanner (LocalPathPlannerExecutor):
         dz = z2 - z1
         return math.sqrt(dx ** 2 + dz ** 2)        
 
-    def __generate_node_towards_point(self, base_point_x: int, base_point_z: int, x_rand: int, z_rand: int) -> Waypoint:
-        dist = self.__compute_distance(base_point_x, base_point_z, x_rand, z_rand)
-        
-        x = x_rand
-        z = z_rand
-        
-        if dist > RRTPlanner.RRT_STEP:           
-            slope = math.atan2(z_rand - base_point_z, x_rand - base_point_x)
-            x = base_point_x + math.floor(RRTPlanner.RRT_STEP * math.cos(slope))
-            z = base_point_z + math.floor(RRTPlanner.RRT_STEP * math.sin(slope))
-
-        heading, valid = ComputeGraph.compute_heading(
-            base_point_x, 
-            base_point_z,
-            x, 
-            z, 
-            PhysicalParameters.OG_WIDTH, 
-            PhysicalParameters.OG_HEIGHT)
     
-        if not valid:
-            return None
-        
-        return Waypoint(x, z, heading)
-
     def __check_link(self, parent_x: int, parent_z: int, new_node: Waypoint) -> bool:       
         path = self._build_path(parent_x, parent_z, new_node)
         if path is None:
             return
         return self._og.check_all_path_feasible(path, False)
  
-    # def __compute_direction_limits(self, res: GoalPointDiscoverResult) -> tuple[Waypoint, Waypoint, Waypoint, Waypoint]:
-    #     if res.start.x > res.goal.x:
-    #         if res.start.z > res.goal.z:
-    #             #TOP_LEFT
-    #             return  Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
-    #                     Waypoint(0, 0), Waypoint(res.start.x, res.start.z)            
-    #         else:
-    #             #BOTTOM_RIGHT
-    #             return  Waypoint(0, res.start.z + 1), Waypoint(PhysicalParameters.OG_WIDTH - 1, PhysicalParameters.OG_HEIGHT - 1),\
-    #                     Waypoint(res.start.x, res.start.z), Waypoint(PhysicalParameters.OG_WIDTH -1 , PhysicalParameters.OG_HEIGHT - 1)
-    #     else:
-    #         if res.start.z > res.goal.z:
-    #             #TOP_RIGHT
-    #             return  Waypoint(0, 0), Waypoint(PhysicalParameters.OG_WIDTH - 1, res.start.z - 1),\
-    #                     Waypoint(res.start.x, 0), Waypoint(PhysicalParameters.OG_WIDTH -1 , res.start.z)
-    #         else:
-    #             #BOTTOM_LEFT
-    #             return  Waypoint(0, res.start.z + 1), Waypoint(PhysicalParameters.OG_WIDTH - 1, PhysicalParameters.OG_HEIGHT - 1),\
-    #                     Waypoint(0, res.start.z + 1), Waypoint(res.start.x, PhysicalParameters.OG_HEIGHT - 1)   
-
     def __compute_direction_limits(self, res: GoalPointDiscoverResult) -> tuple[Waypoint, Waypoint, Waypoint, Waypoint]:
         if res.start.x > res.goal.x:
             #TOP_LEFT
@@ -365,7 +340,9 @@ class RRTPlanner (LocalPathPlannerExecutor):
         h = random.randint(0, self._height)
         return (w, h)
        
-    def __generate_informed_random_point(self) -> tuple[int, int]:
+    def __generate_informed_random_node(self) -> RRTNode:
+        
+        
         
         p = random.randint(0, 9)
         

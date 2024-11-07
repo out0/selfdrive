@@ -158,8 +158,8 @@ class TestFrame:
     FREE_CLASS_TYPE = 1
     OBSTACLE_CLASS_TYPE = 0
     
-    def __init__(self, width: int, height: int) -> None:
-        self.frame = np.full((width, height, 3), TestFrame.FREE_CLASS_TYPE, dtype=np.int32)
+    def __init__(self, width: int, height: int, class_type = FREE_CLASS_TYPE) -> None:
+        self.frame = np.full((width, height, 3), class_type, dtype=np.int32)
     
     def dump_to_file (self, file: str = 'frame.png'):
         cv2.imwrite(file, self.frame)
@@ -212,3 +212,6 @@ class TestFrame:
         
         self.frame[z, x, :] = color
     
+    def add_path(self, path: list[Waypoint], color = [255, 255, 255]) -> None:
+        for p in path:
+            self.add_dot(p.x, p.z, color)
