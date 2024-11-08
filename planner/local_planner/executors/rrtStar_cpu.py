@@ -97,6 +97,8 @@ class ComputeGraph:
         best_dist = 99999999
         best_node = None
         for p in self._node_list:
+            if p.z < z:
+                continue
             dist = self.__compute_distance(p.x, p.z, x, z)
             if dist < best_dist:
                 best_dist = dist
@@ -126,7 +128,7 @@ class ComputeGraph:
         if (heading > 3.141592654): # greater than 180 deg
             heading = heading - 2 * 3.141592654
 
-        return heading, True
+        return math.degrees(heading), True
 
     def __check_link_between_p1_p2(self, og: OccupancyGrid, p1_x: int, p1_z: int, p2_x: int, p2_z: int) -> bool:
         dx = abs(p2_x - p1_x)
@@ -244,7 +246,8 @@ class ComputeGraph:
         
         for node in self._node_list:
             dist = self.__compute_distance(goal.x, goal.z, node.x, node.z) 
-            heading_err = abs(ref_heading - math.degrees(node.heading))
+            heading_err = abs(ref_heading - node.heading)
+            
             if dist > reach_dist:
                 continue
             
@@ -279,7 +282,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
     NAME = "RRT*"
     RRT_STEP = 40
     SEARCH_RADIUS = 30
-    REACH_DIST = 10
+    REACH_DIST = 20
     
     def __init__(self,  
                   max_exec_time_ms: int, reasonable_exec_time_ms: int = 50
@@ -441,6 +444,9 @@ class RRTPlanner (LocalPathPlannerExecutor):
         start = time.time()
         
         while True:
+            if not self._search:
+                return True
+            
             if self._check_timeout():
                 return True
             
@@ -481,7 +487,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         loop_search = self._search
         self._rst_timeout()
         
-        while loop_search:
+        while loop_search and self._search:
             timeout = self.__search(self._reasonable_exec_time_ms)
 
             if timeout and not self.__found_goal:

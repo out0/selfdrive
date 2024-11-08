@@ -147,6 +147,15 @@ class Telemetry:
         with open(file, "r") as f:
             j = json.loads(f.read())
             return PlanningResult.from_str(j["planning"])
+        
+    @classmethod
+    def read_planning_result_from_file(cls, file: str) -> PlanningResult:
+        if not os.path.exists (file):
+            return None
+            
+        with open(file, "r") as f:
+            j = json.loads(f.read())
+            return PlanningResult.from_str(j["planning"])
 
     @classmethod
     def __read_bev(cls, file: str) -> PlanningResult:

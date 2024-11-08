@@ -92,7 +92,7 @@ def main(argc: int, argv: List[str]) -> int:
         return
     
     while True:
-        execute_plan(5)
+        execute_plan(11)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

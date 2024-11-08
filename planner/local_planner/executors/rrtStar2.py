@@ -326,7 +326,7 @@ class RRTPlanner (LocalPathPlannerExecutor):
         loop_search = self._search
         self._rst_timeout()
         
-        while loop_search:
+        while loop_search and self._search:
             timeout = self.__search(self._reasonable_exec_time_ms)
             
             if DEBUG_DUMP:

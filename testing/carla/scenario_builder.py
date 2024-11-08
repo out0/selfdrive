@@ -264,7 +264,7 @@ class ScenarioBuilder:
     def __show_goal(self, actor: ScenarioActor, i: int) -> any:
         world = self._client.get_world()
         world.debug.draw_string(carla.Location(actor.x, actor.y, actor.z), f'{i}', draw_shadow=False,
-                                        color=carla.Color(r=0, g=0, b=255), life_time=1200.0,
+                                        color=carla.Color(r=0, g=0, b=255), life_time=30.0,
                                         persistent_lines=True)
 
         

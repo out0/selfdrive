@@ -58,7 +58,7 @@ class ModelCurveGenerator:
             y = y + v * math.sin(math.radians(heading + beta)) * self._delta_t
             heading = math.degrees(math.radians(heading) + v * math.cos(math.radians(beta)) * steer * self._delta_t / (2*self._lr))
             next_point = MapPose(x, y, pos.z, heading=heading)
-            print(f"new heading for ({next_point.x}, {next_point.y}): {next_point.heading}")
+            #print(f"new heading for ({next_point.x}, {next_point.y}): {next_point.heading}")
             path.append(next_point)
             
         return path

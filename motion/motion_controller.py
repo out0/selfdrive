@@ -9,7 +9,7 @@ from model.ego_car import EgoCar
 
 
 DEBUG_LOG = False
-SHOW_DEBUG_MESSAGES = True
+SHOW_DEBUG_MESSAGES = False
 
 class MotionController (DiscreteComponent):
     _longitudinal_controller: LongitudinalController

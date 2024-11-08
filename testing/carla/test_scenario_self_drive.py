@@ -15,7 +15,6 @@ from model.discrete_component import DiscreteComponent
 
 TEST_SPEED = 1.0
 
-client = CarlaClient(town='Town07_Opt')
 
 
 class AutoCameraSet (DiscreteComponent):
@@ -24,6 +23,7 @@ class AutoCameraSet (DiscreteComponent):
     _dist_m: float
     _client: CarlaClient
     _slam: CarlaSLAM
+    _last_pos: int
     
     def __init__(self, period_ms: int, client: CarlaClient) -> None:
         super().__init__(period_ms)
@@ -31,6 +31,8 @@ class AutoCameraSet (DiscreteComponent):
         world = client.get_world()
         self._spectator = world.get_spectator()
         self._slam = None
+        self._camera_pos = np.zeros(6)
+        self._last_pos = -1
         pass
 
     #
@@ -40,42 +42,50 @@ class AutoCameraSet (DiscreteComponent):
         p = carla.Transform(carla.Location(x=x,y=y,z=z ),
                 carla.Rotation( yaw = yaw, pitch = pitch, roll = roll))
         self._spectator.set_transform(p) 
+
+    def set_full_path_cam(self):
+        addr = [-2.7538657188415527, -114.45896911621094, 131.358322143554, -86.02267456054688, 0, 175]
+        self.set_camera_addr(addr)
+
     
-    def __get_pos(self, i: int) -> tuple:
-        match i:
-            case 1:
-               return (-75.676786422729492, 12.838396072387695, 31.128173828125, -116.02267456054688, 90, 180)
-            case 2:
-                return (-35.676786422729492, 12.838396072387695, 31.128173828125, -116.02267456054688, 90, 180)
-            case 3:
-                return (0.676786422729492, 12.838396072387695, 31.128173828125, -116.02267456054688, 90, 180)
+    def __get_pos(self, i: int) -> list:
+        if i >= 1 and i <= 5:
+            base_camera = [-75.676786422729492, 12.838396072387695, 31.128173828125, -116.02267456054688, 90, 180]
+            base_camera[0] += (i-1) * 35
+            return base_camera
+        if i == 6:
+            return [54.5118408203125, -37.8912239074707, 43.70728302001953, -126.02267456054688, 190, 180]
+        if i == 7:
+            return [49.90725326538086, -79.77393341064453, 46.898399353027344, -126.02267456054688, 220, 180]
+        if i == 8:
+            return [49.90725326538086, -79.77393341064453, 46.898399353027344, -126.02267456054688, 220, 180]
+        if i == 9:
+            return [66.57605743408203, -120.50383758544922, 25.827301025390625, -126.02267456054688, -70, 180]
+        if i == 10:
+            return [66.55567169189453, -122.79230499267578, 25.30083465576172, -146.02267456054688, 70, 180]
+        if i == 11:
+            return [48.34419631958008, -184.6458740234375, 27.583595275878906, -126.02267456054688, -80, 180]
+        if i == 12:
+            return [48.65867614746094, -205.46849060058594, 24.48407745361328, -126.02267456054688, 60, 180]
         return None
     
-    def pos1(self):
-        addr = self.__get_pos(1)
-        self.set_camera_addr(addr)
-
-    def pos2(self):
-        addr = self.__get_pos(2)
-        self.set_camera_addr(addr)
-
-    def pos3(self):
-        addr = self.__get_pos(3)
-        self.set_camera_addr( addr)
-
+           
     def auto_set(self, slam: CarlaSLAM):
         self.destroy()
         self._slam = slam
         self.start()
-    
+
+
     def _loop(self, dt: float) -> None:
         if self._slam is None:
             return
         
         best = -1
         best_dist = 999999999
-        for p in range(1, 4):
+        for p in range(1, 14):
             l = self.__get_pos(p)
+            if l is None:
+                continue
             location = self._slam.estimate_ego_pose()
             dist = MapPose.distance_between(MapPose(l[0], l[1], l[2], heading=0), location)
             if dist < best_dist:
@@ -83,9 +93,18 @@ class AutoCameraSet (DiscreteComponent):
                 best = p
         if best < 0:
             best = 1
+            
+        if self._last_pos != best:
+            print (f"********************")
+            print (f"changed pos to: {best}")
+            print (f"********************\n\n")
+        self._last_pos = best
 
         addr = self.__get_pos(best)
         self.set_camera_addr(addr)
+
+client = CarlaClient(town='Town07_Opt')
+auto_camera = AutoCameraSet(100, client)
 
 
 class CarlaPlanningDataBuilder(PlanningDataBuilder):
@@ -155,6 +174,9 @@ def controller_response(res: SelfDriveControllerResponse) -> None:
             return              
         case SelfDriveControllerResponseType.GOAL_REACHED:
             print("[Vehicle Controller callback] The final goal was reached successfuly \o/")
+            time.sleep(4)
+            auto_camera.destroy()
+            auto_camera.set_full_path_cam()
             return  
         case SelfDriveControllerResponseType.VALID_WILL_EXECUTE:
             show_path(client, res.motion_path)
@@ -179,8 +201,6 @@ def drive_scenario (client: CarlaClient, file: str):
     print(f"Self-driving EGO vehicle through a global path with #{len(path)} goals")
     
     data_builder = CarlaPlanningDataBuilder(ego)
-    
-    auto_camera = AutoCameraSet(100, client)
     auto_camera.auto_set(data_builder.get_slam())
     
     controller = SelfDriveController(
@@ -188,8 +208,10 @@ def drive_scenario (client: CarlaClient, file: str):
         planning_data_builder=data_builder,
         controller_response=controller_response,
         slam=data_builder.get_slam(),
-        local_planner_type=LocalPlannerType.RRTStar
+        local_planner_type=LocalPlannerType.HierarchicalGroup
     )
+    
+    time.sleep(2)
     
     controller.start()
     controller.drive(path)
@@ -201,7 +223,7 @@ def drive_scenario (client: CarlaClient, file: str):
 
 os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario3.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario6.sce")
 
 
 print ("press enter to destroy")
