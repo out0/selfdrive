@@ -124,12 +124,21 @@ class GoalPointDiscover:
 
         return params
 
+    def fix_heading_range(self, goal: Waypoint) -> None:
+        if goal.heading <= -180:
+            while goal.heading <= -180:
+                goal.heading += 360
+            return
+        if goal.heading > 180:
+            while goal.heading > 180:
+                goal.heading -= 360
+            return
+
     def find_goal(self, 
                   og: OccupancyGrid, 
                   current_pose: MapPose, 
                   goal_pose: MapPose, 
-                  next_goal_pose: MapPose,
-                  forbidden_poses: list[MapPose] = None) -> GoalPointDiscoverResult:
+                  next_goal_pose: MapPose) -> GoalPointDiscoverResult:
 
         params = self.__compute_initial_parameters(og, current_pose, goal_pose, next_goal_pose)
         
@@ -166,6 +175,7 @@ class GoalPointDiscover:
      
         goal = self.__find_goal_in_range(og, params)
         if goal is not None:
+            self.fix_heading_range(goal)
             return GoalPointDiscoverResult(
                     og=og,
                     start=self._ego_start,
@@ -189,7 +199,8 @@ class GoalPointDiscover:
                 direction=0,
                 too_close=False
         )
-                    
+
+        self.fix_heading_range(goal)
         return GoalPointDiscoverResult(
             og=og,
             start=self._ego_start,

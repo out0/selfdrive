@@ -38,7 +38,7 @@ TOP_RIGHT = 2
 BOTTOM_LEFT = 3
 BOTTOM_RIGHT = 4
 
-DEBUG_DUMP = True
+DEBUG_DUMP = False
 
 class ComputeGraph:
     _node_list: list[RRTNode]
@@ -240,10 +240,11 @@ class ComputeGraph:
     def find_best_neighbor(self, goal: Waypoint, reach_dist: float) -> RRTNode:
         best_neighbor = None
         best_heading_err = 99999999
+        ref_heading = goal.heading
         
         for node in self._node_list:
             dist = self.__compute_distance(goal.x, goal.z, node.x, node.z) 
-            heading_err = abs(goal.heading - node.heading)
+            heading_err = abs(ref_heading - math.degrees(node.heading))
             if dist > reach_dist:
                 continue
             
@@ -251,6 +252,10 @@ class ComputeGraph:
                 best_heading_err = heading_err
                 best_neighbor = node
         
+        if best_heading_err >= 15:
+            return None
+        
+        #print(f"best node err: {best_heading_err}, best heading: {best_neighbor.heading}")
         return best_neighbor
 
 

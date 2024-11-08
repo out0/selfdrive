@@ -118,7 +118,7 @@ def main(argc: int, argv: List[str]) -> int:
     
     #execute_plan(5)
     #execute_plan(17)
-    execute_plan(15)
+    execute_plan(8)
     # execute_plan(4)
     # execute_plan(5)
     return 0

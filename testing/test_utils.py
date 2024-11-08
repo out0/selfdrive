@@ -60,7 +60,8 @@ class PlannerTestOutput:
 
     
     def add_point (self, point: Waypoint,  color = [255, 255, 255]) -> None:
-        
+        if point is None:
+            return
         if point.x < 0:
             point.x = 0
         if point.z < 0:
