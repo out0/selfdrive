@@ -48,6 +48,7 @@ add_executable(
   unittest
   unittests.cpp
   test_kinematic_model.cpp
+  test_rrt_graph.cpp
   ../../src/kinematic_model.cpp
   ../../src/python_bind.cpp
   ../../src/fast_rrt.cpp

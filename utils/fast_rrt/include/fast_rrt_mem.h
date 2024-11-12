@@ -3,20 +3,21 @@
 #include <stdio.h>
 
 template <typename T>
-class Memlist {
-public:    
+class Memlist
+{
+public:
     T *data;
     unsigned int size;
 
-    Memlist() {
+    Memlist()
+    {
         data = nullptr;
     }
 
-    ~Memlist() {
-        if (data != nullptr) {
-            printf ("deleting data\n");
-            delete []data;
-        }
+    ~Memlist()
+    {
+        if (data != nullptr)
+            delete[] data;
     }
 };
 
