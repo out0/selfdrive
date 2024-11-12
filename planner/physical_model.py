@@ -102,26 +102,28 @@ class ModelCurveGenerator:
         v = velocity_meters_per_s
         steer = math.tan(math.radians(steering_angle_deg))
         x, y = self.__simple_change_coordinates_to_map_ref_on_zero_origin_zero_heading(pos)
-        heading = pos.heading
+        
+        heading = math.radians(pos.heading)
         dt = 0.1
+
 
         path: list[Waypoint] = []
         last_xb = pos.x
         last_zb = pos.z
         ds = v * dt
         size = 0
+        beta = math.atan(steer / self._lr)
 
         while size < path_size:
-            beta = math.degrees(math.atan(steer / self._lr))
-            x = x + ds * math.cos(math.radians(heading + beta))
-            y = y + ds * math.sin(math.radians(heading + beta))
-            heading = math.degrees(math.radians(heading) + ds * math.cos(math.radians(beta)) * steer / (2*self._lr))            
-            
+            x += ds * math.cos(heading + beta)
+            y += ds * math.sin(heading + beta)
+            heading += ds * math.cos(beta) * steer / (2*self._lr)
+           
             xb, zb = self.__simple_change_coordinates_to_bev_ref_on_zero_origin_zero_heading(x, y)
             if last_xb == xb and last_zb == zb:
                 continue
             
-            next_point = Waypoint(xb, zb, heading)            
+            next_point = Waypoint(xb, zb, math.degrees(heading)) 
             path.append(next_point)
             last_xb = xb
             last_zb = zb
@@ -167,27 +169,30 @@ class ModelCurveGenerator:
         
         best_end_pos = -1
         best_end_dist = target_distance
+
         
-        for _ in range(total_steps):
+        for i in range(total_steps):
             steer = math.tan(steering_angle_deg)
             beta = math.atan(steer / self._lr)
 
             x = x + ds * math.cos(heading + beta)
             y = y + ds * math.sin(heading + beta)
             heading = heading + ds * math.cos(beta) * steer / (2*self._lr)
+        
 
             path_heading = MapPose.compute_path_heading(MapPose(x, y, 0, 0), end_pose)
             steering_angle_deg = np.clip(path_heading - heading, -max_turning_angle, max_turning_angle)            
             #print (f"current heading: {math.degrees(heading)}, path heading:{math.degrees(path_heading)}, steering: {math.degrees(steering_angle_deg)}")
 
             xb, zb = self.__simple_change_coordinates_to_bev_ref_on_zero_origin_zero_heading(x, y)
-            next_point = Waypoint(xb, zb, heading)
+            next_point = Waypoint(xb, zb, math.degrees(heading))
             if last_xb == xb and last_zb == zb:
                 continue
             
             path.append(next_point)
             
             dist = Waypoint.distance_between(next_point, end)
+           # print (f"[Py {i} dist: {dist}]")
             if best_end_dist > dist:
                 best_end_dist = dist
                 best_end_pos = len(path)
