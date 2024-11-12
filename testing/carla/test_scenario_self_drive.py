@@ -56,17 +56,15 @@ class AutoCameraSet (DiscreteComponent):
         if i == 6:
             return [54.5118408203125, -37.8912239074707, 43.70728302001953, -126.02267456054688, 190, 180]
         if i == 7:
-            return [49.90725326538086, -79.77393341064453, 46.898399353027344, -126.02267456054688, 220, 180]
+            return [52.82429122924805, -74.19267272949219, 36.18389892578125, -136.02267456054688, -110, 180]
         if i == 8:
-            return [49.90725326538086, -79.77393341064453, 46.898399353027344, -126.02267456054688, 220, 180]
+            return [52.82429122924805, -74.59267272949219, 36.18389892578125, -136.02267456054688, 90, 180]
         if i == 9:
-            return [66.57605743408203, -120.50383758544922, 25.827301025390625, -126.02267456054688, -70, 180]
+            return [49.8397216796875, -166.0282440185547, 64.50352096557617, -110.02267456054688, -40, 180]
         if i == 10:
-            return [66.55567169189453, -122.79230499267578, 25.30083465576172, -146.02267456054688, 70, 180]
+            return [34.9863395690918, -201.5182342529297, 62.7861328125, -100.02267456054688, -100, 180]
         if i == 11:
-            return [48.34419631958008, -184.6458740234375, 27.583595275878906, -126.02267456054688, -80, 180]
-        if i == 12:
-            return [48.65867614746094, -205.46849060058594, 24.48407745361328, -126.02267456054688, 60, 180]
+            return [54.60447692871094, -239.78192138671875, 56.99696350097656, -120.02267456054688, -40, 180]
         return None
     
            
@@ -82,7 +80,7 @@ class AutoCameraSet (DiscreteComponent):
         
         best = -1
         best_dist = 999999999
-        for p in range(1, 14):
+        for p in range(1, 12):
             l = self.__get_pos(p)
             if l is None:
                 continue
@@ -131,12 +129,17 @@ class CarlaPlanningDataBuilder(PlanningDataBuilder):
     def build_planning_data(self) -> PlanningData:
         location = self._slam.estimate_ego_pose()
         bev = self._ego.get_bev_camera().read()
+        unseg_bev = self._ego.get_rgb_bev_camera().read()
+        location_useg = self._slam.estimate_ego_pose()
+
         return PlanningData(
+            unseg_bev=unseg_bev,
             bev=bev,
             ego_location=location,
             velocity=TEST_SPEED,
             goal=None,
-            next_goal=None
+            next_goal=None,
+            ego_location_ubev=location_useg
         )
         
     def get_slam(self) -> CarlaSLAM:
@@ -176,7 +179,7 @@ def controller_response(res: SelfDriveControllerResponse) -> None:
             print("[Vehicle Controller callback] The final goal was reached successfuly \o/")
             time.sleep(4)
             auto_camera.destroy()
-            auto_camera.set_full_path_cam()
+            # auto_camera.set_full_path_cam()
             return  
         case SelfDriveControllerResponseType.VALID_WILL_EXECUTE:
             show_path(client, res.motion_path)
@@ -189,9 +192,8 @@ def drive_scenario (client: CarlaClient, file: str):
     
     sb = ScenarioBuilder(client)
     path, ego = sb.load_scenario(file, return_ego=True)
-    ego.init_fake_bev_seg_camera()
+    ego.init_dual_bev_camera()
     ego.set_brake(1.0)
-    
 
     
     follower = None
@@ -202,6 +204,8 @@ def drive_scenario (client: CarlaClient, file: str):
     
     data_builder = CarlaPlanningDataBuilder(ego)
     auto_camera.auto_set(data_builder.get_slam())
+    
+    #ego.set_pose(67.14884185791016,-116.3796615600586,8.809161186218262,-86.6710205078125)
     
     controller = SelfDriveController(
         ego=ego,
@@ -223,7 +227,7 @@ def drive_scenario (client: CarlaClient, file: str):
 
 os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario6.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario5.sce")
 
 
 print ("press enter to destroy")

@@ -39,15 +39,19 @@ class PrePlanningData:
         return f"ego_location:{self.ego_location},velocity:{self.velocity},top:{self.__frame_shape_to_str(self.top_frame)},left:{self.__frame_shape_to_str(self.left_frame)},right:{self.__frame_shape_to_str(self.right_frame)},bottom:{self.__frame_shape_to_str(self.bottom_frame)}"
 
 class PlanningData:
+    __unseg_bev: np.ndarray
     __bev: np.ndarray
     __og: OccupancyGrid
     __ego_location: MapPose
+    __ego_location_ubev: MapPose
     __velocity: float
     __goal: MapPose
     __next_goal: MapPose
 
-    def __init__(self, bev: np.ndarray, ego_location: MapPose, velocity: float, goal: MapPose, next_goal: MapPose) -> None:
+    def __init__(self, unseg_bev: np.ndarray, bev: np.ndarray, ego_location: MapPose, velocity: float, goal: MapPose, next_goal: MapPose, ego_location_ubev: MapPose) -> None:
         self.__bev = bev
+        self.__unseg_bev = unseg_bev
+        self.__ego_location_ubev = ego_location_ubev
         
         if bev is not None:     
             self.__og = OccupancyGrid(
@@ -70,6 +74,10 @@ class PlanningData:
         return self.__bev
     
     @property
+    def unseg_bev(self) -> np.ndarray:
+        return self.__unseg_bev
+    
+    @property
     def og(self) -> OccupancyGrid:
         return self.__og
     
@@ -77,6 +85,10 @@ class PlanningData:
     def ego_location(self) -> MapPose:
         return self.__ego_location
     
+    @property
+    def ego_location_ubev(self) -> MapPose:
+        return self.__ego_location_ubev
+        
     @property
     def velocity(self) -> float:
         return self.__velocity
@@ -95,7 +107,7 @@ class PlanningData:
         return f"({frame.shape[0]},{frame.shape[1]},{frame.shape[2]})"
 
     def __str__(self) -> str:
-        return f"ego_location:{self.__ego_location},velocity:{self.__velocity},bev:{self.__frame_shape_to_str(self.__bev)},goal:{self.__goal},next_goal:{self.__next_goal}"
+        return f"ego_location:{self.__ego_location},velocity:{self.__velocity},bev:{self.__frame_shape_to_str(self.__bev)},goal:{self.__goal},next_goal:{self.__next_goal},ego_location_ubev:{self.__ego_location_ubev}"
 
     def set_goals(self, goal: MapPose, next_goal: MapPose, expected_velocity: float) -> None:
         self.__goal = goal

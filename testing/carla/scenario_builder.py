@@ -262,9 +262,10 @@ class ScenarioBuilder:
         self.__show_goal(p)
 
     def __show_goal(self, actor: ScenarioActor, i: int) -> any:
+        if i > 9: return
         world = self._client.get_world()
         world.debug.draw_string(carla.Location(actor.x, actor.y, actor.z), f'{i}', draw_shadow=False,
-                                        color=carla.Color(r=0, g=0, b=255), life_time=30.0,
+                                        color=carla.Color(r=0, g=0, b=255), life_time=12000.0,
                                         persistent_lines=True)
 
         
@@ -327,7 +328,7 @@ class ScenarioBuilder:
             if actor.type == ScenarioBuilder.TYPE_EGO:
                 if return_ego:
                     ego = CarlaEgoCar(self._client)
-                    ego.init_fake_bev_seg_camera()
+                    ego.init_dual_bev_camera()
                     ego.set_pose(actor.x, actor.y, actor.z, actor.heading)
                 else:                   
                     self._summoner.add_car(actor.x, actor.y, actor.z, actor.heading)
