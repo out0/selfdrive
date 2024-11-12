@@ -1,0 +1,156 @@
+#include "cuda_graph.h"
+#include "class_def.h"
+
+extern void CUDA_clear(float4 *graph, int width, int height);
+extern unsigned int CUDA_parallel_count(float4 *graph, unsigned int *pcount, int width, int height);
+extern bool CUDA_check_connection_feasible(float3 *og, int *classCost, float *checkParams, unsigned int *pcount, float3 &start, float3 &end);
+extern void __tst_CUDA_build_path(float4 *graph, float3 *og, float *checkParams, float3 &start, float3 &end, int r, int g, int b);
+
+CudaGraph::CudaGraph(
+    int width,
+    int height,
+    int min_dist_x,
+    int min_dist_z,
+    int lower_bound_ego_x,
+    int lower_bound_ego_z,
+    int upper_bound_ego_x,
+    int upper_bound_ego_z,
+    float _rate_w,
+    float _rate_h,
+    float _max_steering_angle_deg,
+    float _lr,
+    float velocity_meters_per_s)
+{
+    this->width = width;
+    this->height = height;
+
+    if (!cudaAllocMapped(&this->graph, sizeof(float4) * (width * height)))
+        return;
+
+    if (!cudaAllocMapped(&this->point, sizeof(int3)))
+    {
+        fprintf(stderr, "[CUDA RRT] unable to allocate %ld bytes for fast point output computing\n", sizeof(int2) * 2);
+        cudaFreeHost(graph);
+        return;
+    }
+
+    classCosts = nullptr;
+    const int numClasses = 29;
+    if (!cudaAllocMapped(&classCosts, sizeof(int) * numClasses))
+    {
+        fprintf(stderr, "[CUDA GRAPH] unable to allocate %ld bytes for class costs\n", sizeof(int) * numClasses);
+        cudaFreeHost(graph);
+        cudaFreeHost(point);
+        return;
+    }
+    for (int i = 0; i < numClasses; i++)
+        classCosts[i] = segmentationClassCost[i];
+
+    if (!cudaAllocMapped(&pcount, sizeof(unsigned int)))
+    {
+        fprintf(stderr, "[CUDA GRAPH] unable to allocate %ld bytes for counting tasks\n", sizeof(unsigned int));
+        cudaFreeHost(graph);
+        cudaFreeHost(point);
+        cudaFreeHost(classCosts);
+        return;
+    }
+
+    if (!cudaAllocMapped(&bestValue, sizeof(int)))
+    {
+        fprintf(stderr, "[CUDA GRAPH] unable to allocate %ld bytes for computing best value tasks\n", sizeof(int));
+        cudaFreeHost(graph);
+        cudaFreeHost(point);
+        cudaFreeHost(classCosts);
+        cudaFreeHost(pcount);
+        return;
+    }
+
+    if (!cudaAllocMapped(&checkParams, 30 * sizeof(float)))
+    {
+        fprintf(stderr, "[CUDA GRAPH] unable to allocate %ld bytes for the computing params\n", 30 * sizeof(float));
+        cudaFreeHost(graph);
+        cudaFreeHost(point);
+        cudaFreeHost(classCosts);
+        cudaFreeHost(pcount);
+        cudaFreeHost(bestValue);
+        return;
+    }
+
+    checkParams[0] = width;
+    checkParams[1] = height;
+    checkParams[2] = min_dist_x;
+    checkParams[3] = min_dist_z;
+    checkParams[4] = lower_bound_ego_x;
+    checkParams[5] = lower_bound_ego_z;
+    checkParams[6] = upper_bound_ego_x;
+    checkParams[7] = upper_bound_ego_z;
+    checkParams[8] = _rate_w;
+    checkParams[9] = _rate_h;
+    checkParams[10] = _max_steering_angle_deg;
+    checkParams[11] = _lr;
+    checkParams[12] = velocity_meters_per_s;
+    checkParams[13] = width / 2;  // OG center
+    checkParams[14] = height / 2; // OG center
+
+    clear();
+}
+
+CudaGraph::~CudaGraph()
+{
+    cudaFreeHost(this->graph);
+    cudaFreeHost(this->point);
+    cudaFreeHost(this->classCosts);
+    cudaFreeHost(this->pcount);
+    cudaFreeHost(this->bestValue);
+    cudaFreeHost(this->checkParams);
+}
+
+void CudaGraph::clear()
+{
+    CUDA_clear(this->graph, this->width, this->height);
+}
+
+void CudaGraph::add(int x, int z, int parent_x, int parent_z, float cost)
+{
+    int pos = width * z + x;
+    this->graph[pos].x = parent_x;
+    this->graph[pos].y = parent_z;
+    this->graph[pos].z = cost;
+    this->graph[pos].w = 1.0;
+}
+
+unsigned int CudaGraph::count()
+{
+    return CUDA_parallel_count(graph, pcount, width, height);
+}
+
+bool CudaGraph::checkInGraph(int x, int z)
+{
+    int pos = z * width + x;
+    return this->graph[pos].w == 1.0;
+}
+
+int2 CudaGraph::getParent(int x, int z)
+{
+    int pos = z * width + x;
+    int2 p;
+    p.x = this->graph[pos].x;
+    p.y = this->graph[pos].y;
+    return p;
+}
+
+float CudaGraph::getCost(int x, int z)
+{
+    int pos = z * width + x;
+    return this->graph[pos].z;
+}
+
+bool CudaGraph::checkConnectionFeasible(float3 *og, float3 &start, float3 end)
+{
+    return CUDA_check_connection_feasible(og, classCosts, checkParams, pcount, start, end);
+}
+
+void CudaGraph::drawKinematicPath(float3 *og, float3 &start, float3 &end)
+{
+    __tst_CUDA_build_path(graph, og, checkParams, start, end, 255, 255, 255);
+}

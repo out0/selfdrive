@@ -51,6 +51,11 @@ add_executable(
   ../../src/kinematic_model.cpp
   ../../src/python_bind.cpp
   ../../src/fast_rrt.cpp
+  ../../src/cuda_graph.cpp
+  ../../src/cuda_graph_clear.cu
+  ../../src/cuda_graph_optim.cu
+  ../../src/cuda_graph_parallel_count.cu
+  ../../src/cuda_kinematics.cu
 )
 
 if(THREADS_HAVE_PTHREAD_ARG)

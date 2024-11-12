@@ -1,6 +1,7 @@
 
 
 #include "../include/fast_rrt.h"
+#include "../src/cuda_frame.h"
 #include <stdio.h>
 
 extern "C"
@@ -16,7 +17,8 @@ extern "C"
         int lower_bound_ego_z,
         int upper_bound_ego_x,
         int upper_bound_ego_z,
-        float max_steering_angle)
+        float max_steering_angle,
+        float velocity_m_s)
     {
 
         return new FastRRT(
@@ -24,11 +26,14 @@ extern "C"
             height,
             og_real_width_m,
             og_real_height_m,
+            min_dist_x,
+            min_dist_z,
             lower_bound_ego_x,
             lower_bound_ego_z,
             upper_bound_ego_x,
             upper_bound_ego_z,
-            max_steering_angle);
+            max_steering_angle,
+            velocity_m_s);
     }
 
     void destroy(void *self)
@@ -112,4 +117,20 @@ extern "C"
         delete curve;
         return res;
     }
+
+    void test_draw_path(void *self, void *cuda_frame, int x1, int z1, float h1, int x2, int z2, float h2)
+    {
+        FastRRT *f = (FastRRT *)self;
+        CudaFrame *cudaf = (CudaFrame *)cuda_frame;
+        float3 start, end;
+        start.x = x1;
+        start.y = z1;
+        start.z = h1;
+        end.x = x2;
+        end.y = z2;
+        end.z = h2;
+        f->testDrawPath(cudaf->getFramePtr(), start, end);
+    }
+
+
 }

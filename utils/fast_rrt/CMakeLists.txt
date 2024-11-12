@@ -42,6 +42,11 @@ add_library( ${CMAKE_PROJECT_NAME} SHARED
     src/kinematic_model.cpp
     src/python_bind.cpp
     src/fast_rrt.cpp
+    src/cuda_graph.cpp
+    src/cuda_graph_clear.cu
+    src/cuda_graph_optim.cu
+    src/cuda_graph_parallel_count.cu
+    src/cuda_kinematics.cu
 )
 
 if(CUDA_LIB_JETSON)
