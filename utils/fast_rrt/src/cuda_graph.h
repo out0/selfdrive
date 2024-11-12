@@ -34,10 +34,13 @@ public:
     // Basic stuff
     void clear();
     void add(int x, int z, int parent_x, int parent_z, float cost);
-    unsigned int count();
-    bool checkInGraph(int x, int z);
+    void remove(int x, int z);
     int2 getParent(int x, int z);
+    void setParent(int x, int z, int parent_x, int parent_z);
+    bool checkInGraph(int x, int z);
+    void setCost(int x, int z, float cost);
     float getCost(int x, int z);
+    unsigned int count();
 
     // Test stuff
     void drawKinematicPath(float3 *og, float3 &start, float3 &end);

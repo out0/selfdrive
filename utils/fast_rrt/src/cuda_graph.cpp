@@ -119,6 +119,12 @@ void CudaGraph::add(int x, int z, int parent_x, int parent_z, float cost)
     this->graph[pos].w = 1.0;
 }
 
+void CudaGraph::remove(int x, int z)
+{
+    int pos = width * z + x;
+    this->graph[pos].w = 0.0;
+}
+
 unsigned int CudaGraph::count()
 {
     return CUDA_parallel_count(graph, pcount, width, height);
@@ -126,22 +132,85 @@ unsigned int CudaGraph::count()
 
 bool CudaGraph::checkInGraph(int x, int z)
 {
+    if (x > width || x < 0)
+        return false;
+    if (z > height || z < 0)
+        return false;
+    
     int pos = z * width + x;
+    
+    if (pos > width * height || pos < 0)
+        return false;
+
     return this->graph[pos].w == 1.0;
 }
 
+void CudaGraph::setParent(int x, int z, int parent_x, int parent_z)
+{
+    if (x > width || x < 0)
+        return;
+    if (z > height || z < 0)
+        return;
+
+    int pos = z * width + x;
+
+    if (pos > width * height || pos < 0)
+        return;
+    if (this->graph[pos].w == 0.0)
+        return;
+
+    this->graph[pos].x = parent_x;
+    this->graph[pos].y = parent_z;
+}
 int2 CudaGraph::getParent(int x, int z)
 {
-    int pos = z * width + x;
     int2 p;
+    p.x = -1;
+    p.y = -1;
+
+    if (x > width || x < 0)
+        return p;
+    if (z > height || z < 0)
+        return p;
+
+    int pos = z * width + x;
+
+    if (pos > width * height || pos < 0)
+        return p;
+    if (this->graph[pos].w == 0.0)
+        return p;
+
     p.x = this->graph[pos].x;
     p.y = this->graph[pos].y;
     return p;
 }
 
+void CudaGraph::setCost(int x, int z, float cost)
+{
+    if (x > width || x < 0)
+        return;
+    if (z > height || z < 0)
+        return;
+    int pos = z * width + x;
+    if (pos > width * height || pos < 0)
+        return;
+    if (this->graph[pos].w == 0.0)
+        return;
+
+    this->graph[pos].z = cost;
+}
 float CudaGraph::getCost(int x, int z)
 {
+    if (x > width || x < 0)
+        return -1;
+    if (z > height || z < 0)
+        return -1;
     int pos = z * width + x;
+    if (pos > width * height || pos < 0)
+        return -1;
+    if (this->graph[pos].w == 0.0)
+        return -1;
+
     return this->graph[pos].z;
 }
 
