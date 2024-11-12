@@ -16,7 +16,8 @@ class CarlaEgoCar(EgoCar):
     _client: CarlaClient
     _ego_car: any
     _vehicle_control: carla.VehicleControl
-    _camera_bev: BEVRGBCamera
+    _camera_bev: BEVSemanticCamera
+    _camera_bev_rgb: BEVRGBCamera
     _camera_front: FrontRGBCamera
     _camera_back: BackRGBCamera
     _camera_left: LeftRGBCamera
@@ -46,13 +47,19 @@ class CarlaEgoCar(EgoCar):
         self._camera_left = None
         self._camera_right = None
 
-    def init_fake_bev_camera(self, width: int = 256, height: int = 256) -> None:
+    def init_bev_camera(self, width: int = 256, height: int = 256) -> None:
         self._camera_bev = BEVRGBCamera(width, height, 30)
         self._camera_bev.attach_to(self._client, self._ego_car)
 
-    def init_fake_bev_seg_camera(self, width: int = 256, height: int = 256) -> None:
+    def init_bev_seg_camera(self, width: int = 256, height: int = 256) -> None:
         self._camera_bev = BEVSemanticCamera(width, height, 30)
         self._camera_bev.attach_to(self._client, self._ego_car)
+
+    def init_dual_bev_camera(self, width: int = 256, height: int = 256) -> None:
+        self._camera_bev = BEVSemanticCamera(width, height, 30)
+        self._camera_bev.attach_to(self._client, self._ego_car)
+        self._camera_bev_rgb = BEVRGBCamera(width, height, 30)
+        self._camera_bev_rgb.attach_to(self._client, self._ego_car)
 
     def init_surrounding_cameras(self, width: int = 256, height: int = 256) -> None:
         self._camera_front = FrontRGBCamera(width, height, 110, 30)
@@ -197,3 +204,6 @@ class CarlaEgoCar(EgoCar):
     
     def get_bev_camera(self) -> CarlaCamera:
         return self._camera_bev
+    
+    def get_rgb_bev_camera(self) -> CarlaCamera:
+        return self._camera_bev_rgb
