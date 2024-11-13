@@ -17,8 +17,9 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 find_package(PkgConfig REQUIRED)
 find_package(CUDA REQUIRED)
+find_package(OpenCV REQUIRED)
 include_directories("${CUDA_INCLUDE_DIRS}")
-
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
@@ -71,4 +72,5 @@ target_link_libraries(unittest PkgConfig::deps
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
   ${CUDA_FRAME}
+  ${OpenCV_LIBS}
 )

@@ -469,3 +469,10 @@ float CudaFrame::getCost(int x, int z) {
 float3 * CudaFrame::getFramePtr() {
     return frame;
 }
+
+    int CudaFrame::getWidth() {
+        return this->width;
+    }
+    int CudaFrame::getHeight() {
+        return this->height;
+    }

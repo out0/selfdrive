@@ -109,10 +109,10 @@ __device__ static float to_radians(float angle)
 {
     return (angle * CUDART_PI_F) / 180;
 }
-// __device__ static float to_degrees(float angle)
-// {
-//     return (angle * 180) / CUDART_PI_F;
-// }
+__device__ static float to_degrees(float angle)
+{
+    return (angle * 180) / CUDART_PI_F;
+}
 __device__ static void convert_to_map_coord(float3 &center, float rate_w, float rate_h, float3 &p)
 {
     float x = p.x;
@@ -126,8 +126,8 @@ __device__ static void convert_to_waypoint_coord(float3 &center, float rate_w, f
     float x = p.x;
     float y = p.y;
 
-    p.x = __float2int_rd(floor((center.y + rate_h * y)));
-    p.y = __float2int_rd(floor((center.x - rate_w * x)));
+    p.x = __float2int_rd(center.y + rate_h * y);
+    p.y = __float2int_rd(center.x - rate_w * x);
 }
 __device__ static float compute_euclidean_dist(float3 &start, float3 &end)
 {
@@ -264,7 +264,7 @@ bool CUDA_check_connection_feasible(float3 *og, int *classCost, float *checkPara
 }
 
 
-__global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkParams, float3 &start, float3 &end, int r, int g, int b)
+__global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkParams, float3 *inputParams)
 {
     int width = checkParams[0];
     int height = checkParams[1];
@@ -274,13 +274,22 @@ __global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkP
     if (pos > width * height)
         return;
 
-    if (graph[pos].w != 1.0) return;
-
     int zt = pos / width;
     int xt = pos - zt * width;
 
+    if (graph[pos].w != 1.0) return;
+
+    float3 start = inputParams[0];
+    float3 end = inputParams[1];
+    int r,g, b;
+    r = __float2int_rd(inputParams[2].x);
+    g = __float2int_rd(inputParams[2].y);
+    b = __float2int_rd(inputParams[2].z);
+
+
     // limits the process to a single thread. I dont want a bunch of threads doing the same thing...
-    if (xt != start.x || zt != start.y) return;
+    if (xt != __float2int_rd(start.x) || zt != __float2int_rd(start.y)) 
+        return;
 
     // Now lets build the path
     float distance = compute_euclidean_dist(start, end);   
@@ -294,7 +303,6 @@ __global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkP
     float _lr = checkParams[11];
     float velocity_meters_per_s = checkParams[12];
 
-
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
     convert_to_map_coord(_center, _rate_w, _rate_h, end);
     float dt = 0.1;
@@ -306,7 +314,7 @@ __global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkP
     float steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
     float ds = velocity_meters_per_s * dt;
 
-    int total_steps = __float2int_rn(round(distance / ds));
+    int total_steps = __float2int_rn(distance / ds);
 
     float best_end_dist = distance;
     float x = start.x;
@@ -314,6 +322,7 @@ __global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkP
 
     float3 last_p;
     float3 next_p;
+    printf("[CUDA] ds=%f\n", ds);
 
     for (int i = 0; i < total_steps; i++)
     {
@@ -324,9 +333,13 @@ __global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkP
         y += ds * sinf(heading + beta);
         heading += ds * cosf(beta) * steer / (2 * _lr);
 
+        if (i >= 9 && i < 20) {
+            printf("[CUDA %d] x = %f, y=%f, heading=%f\n", i, x, y, heading);
+        }
+
         next_p.x = x;
         next_p.y = y;
-        next_p.z = heading;
+        next_p.z = to_degrees(heading);
 
         path_heading = compute_path_heading(next_p, end);
         steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
@@ -334,21 +347,20 @@ __global__ void CUDA_KERNEL_build_path(float4 * graph, float3 *og, float *checkP
 
         convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
 
-        if (next_p.x == last_p.x && next_p.y == last_p.z)
+        if (next_p.x == last_p.x && next_p.y == last_p.y)
             continue;
 
         if (best_end_dist < dist)
-        {
             return;
-        }
 
-        int pos = next_p.z * width + next_p.x;
+        int pos = next_p.y * width + next_p.x;
+
         og[pos].x = r;
         og[pos].y = g;
         og[pos].z = b;
 
         last_p.x = next_p.x;
-        last_p.z = next_p.z;
+        last_p.y = next_p.y;
         best_end_dist = dist;
     }
 }
@@ -364,6 +376,21 @@ void __tst_CUDA_build_path(float4 *graph, float3 *og, float *checkParams, float3
 
     int numBlocks = floor(size / 256) + 1;
 
-    CUDA_KERNEL_build_path<<<numBlocks, 256>>>(graph, og, checkParams, start, end, r, g, b);
+    float3 *inputParams = nullptr;
+    if (!cudaAllocMapped(&inputParams, sizeof(float3) * 3))
+        return;
+
+    inputParams[0].x = start.x;
+    inputParams[0].y = start.y;
+    inputParams[0].z = start.z;
+    inputParams[1].x = end.x;
+    inputParams[1].y = end.y;
+    inputParams[1].z = end.z;
+    inputParams[2].x = r;
+    inputParams[2].y = g;
+    inputParams[2].z = b;
+    
+
+    CUDA_KERNEL_build_path<<<numBlocks, 256>>>(graph, og, checkParams, inputParams);
     CUDA(cudaDeviceSynchronize());
 }

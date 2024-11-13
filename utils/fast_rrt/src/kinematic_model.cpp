@@ -145,7 +145,7 @@ Memlist<float3> *CurveGenerator::buildCurveWaypoints(float3 start, float3 end, f
     float best_end_dist = distance;
     float x = start.x;
     float y = start.y;
-
+printf("[CPU] ds=%f\n", ds);
 
     for (int i = 0; i < total_steps; i++)
     {
@@ -155,6 +155,10 @@ Memlist<float3> *CurveGenerator::buildCurveWaypoints(float3 start, float3 end, f
         x += ds * cosf(heading + beta);
         y += ds * sinf(heading + beta);
         heading += ds * cosf(beta) * steer / (2 * _lr);
+
+        if (i >= 9 && i < 20) {
+            printf("[CPU %d] x = %f, y=%f, heading=%f\n", i, x, y, heading);
+        }
 
         res->data[res->size].x = x;
         res->data[res->size].y = y;

@@ -112,7 +112,16 @@ void CudaGraph::clear()
 
 void CudaGraph::add(int x, int z, int parent_x, int parent_z, float cost)
 {
-    int pos = width * z + x;
+    if (x > width || x < 0)
+        return;
+    if (z > height || z < 0)
+        return;
+
+    int pos = z * width + x;
+
+    if (pos > width * height || pos < 0)
+        return;
+
     this->graph[pos].x = parent_x;
     this->graph[pos].y = parent_z;
     this->graph[pos].z = cost;
@@ -121,7 +130,16 @@ void CudaGraph::add(int x, int z, int parent_x, int parent_z, float cost)
 
 void CudaGraph::remove(int x, int z)
 {
-    int pos = width * z + x;
+    if (x > width || x < 0)
+        return;
+    if (z > height || z < 0)
+        return;
+
+    int pos = z * width + x;
+
+    if (pos > width * height || pos < 0)
+        return;
+
     this->graph[pos].w = 0.0;
 }
 
@@ -136,9 +154,9 @@ bool CudaGraph::checkInGraph(int x, int z)
         return false;
     if (z > height || z < 0)
         return false;
-    
+
     int pos = z * width + x;
-    
+
     if (pos > width * height || pos < 0)
         return false;
 

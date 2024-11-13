@@ -24,6 +24,9 @@ public:
     CudaFrame(float *ptr, int width, int height, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z);
     ~CudaFrame();
 
+    int getWidth();
+    int getHeight();
+
     void convertToColorFrame(u_char *dest);
     void setGoal(int goal_x, int goal_z);
     void copyBack(float *img);
