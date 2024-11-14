@@ -5,6 +5,7 @@
 class CudaGraph
 {
     double4 *graph;
+    double *graph_cost;
     int3 *point;
     int *classCosts;
     double *checkParams;
@@ -33,7 +34,7 @@ public:
 
     // Basic stuff
     void clear();
-    void add(int x, int z, int parent_x, int parent_z, double cost);
+    void add(int x, int z, double heading, int parent_x, int parent_z, double cost);
     void remove(int x, int z);
     int2 getParent(int x, int z);
     void setParent(int x, int z, int parent_x, int parent_z);
@@ -47,6 +48,8 @@ public:
 
     // RRT operations
     bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);
+    
     int2 find_nearest_neighbor(int x, int z);
+    
     int2 find_nearest_feasible_neighbor(int x, int z);
 };

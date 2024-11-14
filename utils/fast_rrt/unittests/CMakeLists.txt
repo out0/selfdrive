@@ -58,6 +58,7 @@ add_executable(
   ../../src/cuda_graph_optim.cu
   ../../src/cuda_graph_parallel_count.cu
   ../../src/cuda_kinematics.cu
+  ../../src/cuda_graph_nearest.cu
 )
 
 if(THREADS_HAVE_PTHREAD_ARG)

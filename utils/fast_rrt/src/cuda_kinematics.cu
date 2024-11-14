@@ -363,6 +363,47 @@ __global__ void CUDA_KERNEL_build_path(double4 * graph, float3 *og, double *chec
     }
 }
 
+
+
+__global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, int *bestDistance)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int width = __double2int_rn(checkParams[0]);
+    int height = __double2int_rn(checkParams[1]);
+
+    if (pos > width * height)
+        return;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    if (graph[pos].w != 1.0) // w means that the point is part of the graph
+        return;
+
+    int dx = target_x - x;
+    int dz = target_z - z;
+
+    // may be optimized with a max distance to check? 
+    int dist = __double2int_rn(sqrtf(dx * dx + dz * dz));
+
+    double3 start, end;
+
+    start.x = x;
+    start.y = z;
+    start.z = graph[pos].z;
+
+    end.x = target_x;
+    end.y = target_z;
+    end.z = graph[pos].z;
+
+
+    if (!check_kinematic_path(og, classCost, checkParams, start, end))
+        return;
+
+    atomicMin(bestDistance, dist);
+}
+
 /*
 This method is much less efficient than it's CPU equivalent. It is only used for testing.
 */

@@ -21,13 +21,13 @@ TEST(RRTGraph, TestBasicFeatures)
 
     ASSERT_EQ(0, g->count());
 
-    g->add(50, 50, -1, -1, 0);
-    g->add(50, 45, 50, 50, 10);
-    g->add(55, 40, 50, 45, 10);
-    g->add(20, 35, 50, 45, 10);
-    g->add(20, 15, 20, 35, 10);
-    g->add(20, 5, 20, 15, 10);
-    g->add(20, 0, 20, 5, 10);
+    g->add(50, 50, 0.12, -1, -1, 0);
+    g->add(50, 45, 0.12, 50, 50, 10);
+    g->add(55, 40, 0.12, 50, 45, 10);
+    g->add(20, 35, 0.12, 50, 45, 10);
+    g->add(20, 15, 0.12, 20, 35, 10);
+    g->add(20, 5, 0.12, 20, 15, 10);
+    g->add(20, 0, 0.12, 20, 5, 10);
 
     ASSERT_EQ(7, g->count());
 
@@ -121,7 +121,7 @@ TEST(RRTGraph, TestCudaPathCPUPathSameBehaviorTOP)
     end.z = 0.0;
 
     CurveGenerator gen(start, rw, rh, 3, 40);
-    g->add(128, 128, -1, -1, 0);
+    g->add(128, 128, 0.0, -1, -1, 0);
 
     CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
     float3 *ptrGpu = f->getFramePtr();
@@ -132,7 +132,8 @@ TEST(RRTGraph, TestCudaPathCPUPathSameBehaviorTOP)
     {
         double3 p = listCpu->data[i];
         bool found = false;
-        if (p.x == 79 && p.y == 58) {
+        if (p.x == 79 && p.y == 58)
+        {
             auto jj = 1;
         }
         for (int j = -1; !found && j <= 1; j++)
@@ -144,7 +145,7 @@ TEST(RRTGraph, TestCudaPathCPUPathSameBehaviorTOP)
             if (ptrGpu[convert_to_point(p.x + j, p.y + j)].x == 255)
                 found = true;
             if (ptrGpu[convert_to_point(p.x + j, p.y - j)].x == 255)
-                found = true;                
+                found = true;
         }
         if (!found)
         {
@@ -179,7 +180,7 @@ TEST(RRTGraph, TestDrawPath)
     end.y = 0.0;
     end.z = 0.0;
 
-    g->add(128, 128, -1, -1, 0);
+    g->add(128, 128, 0.0, -1, -1, 0);
 
     /*
     for (int x = 200; x < 256; x++) {
@@ -221,7 +222,7 @@ TEST(RRTGraph, TestDrawPathCPU)
     end.y = 0.0;
     end.z = 0.0;
 
-    g->add(128, 128, -1, -1, 0);
+    g->add(128, 128, 0.0, -1, -1, 0);
 
     CurveGenerator gen(start, rw, rh, 3, 40);
     CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
