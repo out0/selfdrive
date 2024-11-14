@@ -4,10 +4,11 @@
 #include <iostream>
 #include "../src/cuda_frame.h"
 
-void dump_cuda_frame_to_file(CudaFrame *frame, const char *filename) {
+void dump_cuda_frame_to_file(CudaFrame *frame, const char *filename)
+{
     cv::Mat cimg = cv::Mat(frame->getHeight(), frame->getWidth(), CV_8UC3);
     float3 *ptr = frame->getFramePtr();
-    
+
     for (int i = 0; i < frame->getHeight(); i++)
         for (int j = 0; j < frame->getWidth(); j++)
         {
@@ -21,4 +22,28 @@ void dump_cuda_frame_to_file(CudaFrame *frame, const char *filename) {
         }
 
     cv::imwrite(filename, cimg);
+}
+
+
+float *create_matrix(int rows, int cols, int channels, float fill_val)
+{
+    int count = rows * cols * channels;
+    float *mat = new float[count];
+    for (int i = 0; i < count; i++)
+        mat[i] = fill_val;
+    return mat;
+}
+
+#define MIN_DIST_X      22
+#define MIN_DIST_Z      40
+#define LOWER_BOUND_X   119
+#define LOWER_BOUND_Z   148
+#define UPPER_BOUND_X   137
+#define UPPER_BOUND_Z   108
+#define OG_WIDTH        256
+#define OG_HEIGHT       256
+
+CudaFrame * create_default_cuda_frame(float fill_val) {
+    float *mat = create_matrix(OG_WIDTH, OG_HEIGHT, 3, fill_val);
+    return new CudaFrame(mat, OG_WIDTH, OG_HEIGHT, MIN_DIST_X, MIN_DIST_Z, LOWER_BOUND_X, LOWER_BOUND_Z, UPPER_BOUND_X, UPPER_BOUND_Z);
 }

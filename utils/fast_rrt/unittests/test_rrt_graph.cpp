@@ -8,6 +8,7 @@
 #include "test_utils.h"
 #include <thread>
 #include <chrono>
+#include <unordered_map>
 
 TEST(RRTGraph, TestCreateDelete)
 {
@@ -99,63 +100,125 @@ int convert_to_point(int x, int z)
     return 256 * z + x;
 }
 
-TEST(RRTGraph, TestCudaPathCPUPathSameBehaviorTOP)
+int convert_to_key(int x, int z)
 {
-    return;
-    int c = 256 * 256 * 3;
-    float *frame = new float[c];
-    for (int i = 0; i < c; i++)
-        frame[i] == 3;
+    return 1000 * x + z;
+}
 
-    double rw = 256 / PHYS_SIZE;
-    double rh = 256 / PHYS_SIZE;
+TEST(RRTGraph, TestList)
+{
+    CudaGraph *g = new CudaGraph(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
 
-    CudaGraph *g = new CudaGraph(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3, 1);
+    ASSERT_EQ(0, g->count());
+    std::unordered_map<int, double> map;
 
-    double3 start, end;
-    start.x = 128.0;
-    start.y = 128.0;
-    start.z = 0.0;
-    end.x = 0.0;
-    end.y = 0.0;
-    end.z = 0.0;
+    g->add(50, 50, 0.12, -1, -1, 0);
+    map[convert_to_key(50, 50)] = 0;
 
-    CurveGenerator gen(start, rw, rh, 3, 40);
-    g->add(128, 128, 0.0, -1, -1, 0);
+    g->add(50, 45, 0.12, 50, 50, 10);
+    map[convert_to_key(50, 45)] = 10;
 
-    CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
-    float3 *ptrGpu = f->getFramePtr();
-    g->drawKinematicPath(ptrGpu, start, end);
-    Memlist<double3> *listCpu = gen.buildCurveWaypoints(start, end, 1);
+    g->add(55, 40, 0.12, 50, 45, 20);
+    map[convert_to_key(55, 40)] = 20;
 
-    for (int i = 0; i < listCpu->size; i++)
+    g->add(20, 35, 0.12, 50, 45, 15);
+    map[convert_to_key(20, 35)] = 15;
+
+    g->add(20, 15, 0.12, 20, 35, 11);
+    map[convert_to_key(20, 15)] = 11;
+
+    g->add(20, 5, 0.12, 20, 15, 14);
+    map[convert_to_key(20, 5)] = 14;
+
+    g->add(20, 0, 0.12, 20, 5, 99);
+    map[convert_to_key(20, 0)] = 99;
+
+    int count = g->count();
+
+    ASSERT_EQ(7, count);
+    double *res = new double[6 * count];
+    g->list(res, count);
+
+    for (int i = 0; i < count; i++)
     {
-        double3 p = listCpu->data[i];
-        bool found = false;
-        if (p.x == 79 && p.y == 58)
-        {
-            auto jj = 1;
-        }
-        for (int j = -1; !found && j <= 1; j++)
-        {
-            if (ptrGpu[convert_to_point(p.x + j, p.y)].x == 255)
-                found = true;
-            if (ptrGpu[convert_to_point(p.x, p.y + j)].x == 255)
-                found = true;
-            if (ptrGpu[convert_to_point(p.x + j, p.y + j)].x == 255)
-                found = true;
-            if (ptrGpu[convert_to_point(p.x + j, p.y - j)].x == 255)
-                found = true;
-        }
-        if (!found)
-        {
-            printf("[%d] invalid GPU/CPU pos: %d, %d\n", i, static_cast<int>(p.x), static_cast<int>(p.y));
-            // FAIL();
-        }
+        int x = static_cast<int>(round(res[0]));
+        int z = static_cast<int>(round(res[1]));
+        int key = convert_to_key(x, z);
+        ASSERT_TRUE(map.find(key) != map.end());
+        double heading = res[2];
+        ASSERT_FLOAT_EQ(heading, 0.12);
+        int px = static_cast<int>(round(res[3]));
+        int pz = static_cast<int>(round(res[4]));
+        int2 parent = g->getParent(x, z);
+        ASSERT_EQ(px, parent.x);
+        ASSERT_EQ(pz, parent.y);
+        double cost = res[5];
+        ASSERT_FLOAT_EQ(map[key], cost);
     }
 
-    delete listCpu;
-    delete f;
+    delete g;
+}
+
+TEST(RRTGraph, TestNearestNeighboor)
+{
+    CudaGraph *g = new CudaGraph(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+
+    ASSERT_EQ(0, g->count());
+
+    g->add(50, 50, 0.12, -1, -1, 0);
+    g->add(50, 45, 0.12, 50, 50, 10);
+    g->add(55, 40, 0.12, 50, 45, 20);
+    g->add(20, 35, 0.12, 50, 45, 15);
+    g->add(20, 15, 0.12, 20, 35, 11);
+    g->add(20, 5, 0.12, 20, 15, 14);
+    g->add(20, 0, 0.12, 20, 5, 99);
+
+    int2 res = g->find_nearest_neighbor(50, 50);
+    ASSERT_EQ(res.x, 50);
+    ASSERT_EQ(res.y, 50);
+
+    res = g->find_nearest_neighbor(50, 44);
+    ASSERT_EQ(res.x, 50);
+    ASSERT_EQ(res.y, 45);
+
+    res = g->find_nearest_neighbor(21, 12);
+    ASSERT_EQ(res.x, 20);
+    ASSERT_EQ(res.y, 15);
+
+    res = g->find_nearest_neighbor(21, -12);
+    ASSERT_EQ(res.x, 20);
+    ASSERT_EQ(res.y, 0);
+    delete g;
+}
+
+TEST(RRTGraph, TestNearestFeasibleNeighboor_NoObstacles)
+{
+    CudaFrame *og = create_default_cuda_frame(3);
+    CudaGraph *g = new CudaGraph(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+
+    g->add(50, 50, 0.12, -1, -1, 0);
+    g->add(50, 45, 0.12, 50, 50, 10);
+    g->add(55, 40, 0.12, 50, 45, 20);
+    g->add(20, 35, 0.12, 50, 45, 15);
+    g->add(20, 15, 0.12, 20, 35, 11);
+    g->add(20, 5, 0.12, 20, 15, 14);
+    g->add(20, 0, 0.12, 20, 5, 99);
+
+    int2 res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 50, 50);
+    ASSERT_EQ(res.x, 50);
+    ASSERT_EQ(res.y, 50);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 50, 44);
+    ASSERT_EQ(res.x, 50);
+    ASSERT_EQ(res.y, 45);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 21, 12);
+    ASSERT_EQ(res.x, 20);
+    ASSERT_EQ(res.y, 15);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 21, -20);
+    ASSERT_EQ(res.x, 20);
+    ASSERT_EQ(res.y, 0);
     delete g;
 }
 

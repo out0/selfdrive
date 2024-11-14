@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cuda_basic.h"
+#include <vector>
 
 class CudaGraph
 {
@@ -42,14 +43,18 @@ public:
     void setCost(int x, int z, double cost);
     double getCost(int x, int z);
     unsigned int count();
+    void list(double *result, int count);
 
     // Test stuff
     void drawKinematicPath(float3 *og, double3 &start, double3 &end);
 
     // RRT operations
+    // ------------------------------------------------------------------------------------
+
+    // checks that the connection between start and end is feasible
     bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);
-    
+    /// Returns the nearest neighbor, based on euclidean distance only
     int2 find_nearest_neighbor(int x, int z);
-    
-    int2 find_nearest_feasible_neighbor(int x, int z);
+    /// Returns the nearest neighbor p, based on euclidean distance, which can draw a feasible p -> (x,z) .
+    int2 find_nearest_feasible_neighbor(float3 *og, int x, int z);
 };

@@ -45,7 +45,7 @@ add_library( ${CMAKE_PROJECT_NAME} SHARED
     src/cuda_graph.cpp
     src/cuda_graph_clear.cu
     src/cuda_graph_optim.cu
-    src/cuda_graph_parallel_count.cu
+    src/cuda_graph_list.cu
     src/cuda_kinematics.cu
     src/cuda_graph_nearest.cu
 )

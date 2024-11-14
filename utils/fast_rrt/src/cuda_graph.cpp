@@ -6,6 +6,8 @@ extern unsigned int CUDA_parallel_count(double4 *graph, unsigned int *pcount, in
 extern bool CUDA_check_connection_feasible(float3 *og, int *classCost, double *checkParams, unsigned int *pcount, double3 &start, double3 &end);
 extern void __tst_CUDA_build_path(double4 *graph, float3 *og, double *checkParams, double3 &start, double3 &end, int r, int g, int b);
 extern int2 CUDA_find_nearest_neighbor(double4 *graph, int3 *point, int *bestValue, int width, int height, int x, int z);
+extern int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, int *bestValue, int x, int z);
+extern void CUDA_list_elements(double4 *graph, double *graph_cost, double *result, int width, int height, int count);
 
 CudaGraph::CudaGraph(
     int width,
@@ -25,18 +27,18 @@ CudaGraph::CudaGraph(
     this->width = width;
     this->height = height;
 
-    if (!cudaAllocMapped(&this->graph, sizeof(double4) * (width * height))) {
-        fprintf(stderr, "[CUDA RRT] unable to allocate graph with %ld bytes\n",sizeof(double4) * (width * height));
+    if (!cudaAllocMapped(&this->graph, sizeof(double4) * (width * height)))
+    {
+        fprintf(stderr, "[CUDA RRT] unable to allocate graph with %ld bytes\n", sizeof(double4) * (width * height));
         return;
     }
 
-    if (!cudaAllocMapped(&this->graph_cost, sizeof(double) * (width * height))) {
-        fprintf(stderr, "[CUDA RRT] unable to allocate graph_cost with %ld bytes\n",sizeof(double) * (width * height));
+    if (!cudaAllocMapped(&this->graph_cost, sizeof(double) * (width * height)))
+    {
+        fprintf(stderr, "[CUDA RRT] unable to allocate graph_cost with %ld bytes\n", sizeof(double) * (width * height));
         cudaFreeHost(graph);
         return;
     }
-
-
 
     if (!cudaAllocMapped(&this->point, sizeof(int3)))
     {
@@ -250,6 +252,11 @@ double CudaGraph::getCost(int x, int z)
     return this->graph_cost[pos];
 }
 
+void CudaGraph::list(double *result, int count)
+{
+    CUDA_list_elements(graph, graph_cost, result, width, height, count);
+}
+
 bool CudaGraph::checkConnectionFeasible(float3 *og, double3 &start, double3 end)
 {
     return CUDA_check_connection_feasible(og, classCosts, checkParams, pcount, start, end);
@@ -265,8 +272,7 @@ int2 CudaGraph::find_nearest_neighbor(int x, int z)
     return CUDA_find_nearest_neighbor(graph, point, bestValue, width, height, x, z);
 }
 
-int2 CudaGraph::find_nearest_feasible_neighbor(int x, int z)
+int2 CudaGraph::find_nearest_feasible_neighbor(float3 *og, int x, int z)
 {
-    int2 p;
-    return p;
+    return CUDA_find_nearest_feasible_neighbor(graph, og, classCosts, checkParams, point, bestValue, x, z);
 }
