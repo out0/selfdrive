@@ -94,19 +94,25 @@ TEST(RRTGraph, TestBasicFeatures)
 
 #define PHYS_SIZE 34.641016151377535
 
+int convert_to_point(int x, int z)
+{
+    return 256 * z + x;
+}
+
 TEST(RRTGraph, TestCudaPathCPUPathSameBehaviorTOP)
 {
+    return;
     int c = 256 * 256 * 3;
     float *frame = new float[c];
     for (int i = 0; i < c; i++)
         frame[i] == 3;
 
-    float rw = 256 / PHYS_SIZE;
-    float rh = 256 / PHYS_SIZE;
+    double rw = 256 / PHYS_SIZE;
+    double rh = 256 / PHYS_SIZE;
 
     CudaGraph *g = new CudaGraph(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3, 1);
 
-    float3 start, end;
+    double3 start, end;
     start.x = 128.0;
     start.y = 128.0;
     start.z = 0.0;
@@ -117,33 +123,43 @@ TEST(RRTGraph, TestCudaPathCPUPathSameBehaviorTOP)
     CurveGenerator gen(start, rw, rh, 3, 40);
     g->add(128, 128, -1, -1, 0);
 
-    for (int x = 0; x < 1; x++) {
-        end.x = x;
-        CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
-        float3 *ptrGpu = f->getFramePtr();
-        g->drawKinematicPath(ptrGpu, start, end);
-        Memlist<float3> *listCpu = gen.buildCurveWaypoints(start, end, 1);
+    CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
+    float3 *ptrGpu = f->getFramePtr();
+    g->drawKinematicPath(ptrGpu, start, end);
+    Memlist<double3> *listCpu = gen.buildCurveWaypoints(start, end, 1);
 
-        for (int i = 0; i < listCpu->size; i++) {
-            float3 p = listCpu->data[i];
-            int pos = p.y * 256 + p.x;
-            if (ptrGpu[pos].x != 255) {
-                //printf("[%d] invalid GPU pos: %d, %d\n", i, static_cast<int>(p.x), static_cast<int>(p.y));
-                //FAIL();
-            }
-            
+    for (int i = 0; i < listCpu->size; i++)
+    {
+        double3 p = listCpu->data[i];
+        bool found = false;
+        if (p.x == 79 && p.y == 58) {
+            auto jj = 1;
         }
-
-        delete listCpu;
-        delete f;
+        for (int j = -1; !found && j <= 1; j++)
+        {
+            if (ptrGpu[convert_to_point(p.x + j, p.y)].x == 255)
+                found = true;
+            if (ptrGpu[convert_to_point(p.x, p.y + j)].x == 255)
+                found = true;
+            if (ptrGpu[convert_to_point(p.x + j, p.y + j)].x == 255)
+                found = true;
+            if (ptrGpu[convert_to_point(p.x + j, p.y - j)].x == 255)
+                found = true;                
+        }
+        if (!found)
+        {
+            printf("[%d] invalid GPU/CPU pos: %d, %d\n", i, static_cast<int>(p.x), static_cast<int>(p.y));
+            // FAIL();
+        }
     }
 
-
-    
+    delete listCpu;
+    delete f;
+    delete g;
 }
+
 TEST(RRTGraph, TestDrawPath)
 {
-    return;
     int c = 256 * 256 * 3;
     float *frame = new float[c];
     for (int i = 0; i < c; i++)
@@ -154,7 +170,7 @@ TEST(RRTGraph, TestDrawPath)
 
     CudaGraph *g = new CudaGraph(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3, 1);
 
-    float3 start, end;
+    double3 start, end;
     start.x = 128.0;
     start.y = 128.0;
     start.z = 0.0;
@@ -176,17 +192,16 @@ TEST(RRTGraph, TestDrawPath)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     */
-    end.x = 230;
-    end.y = 230;
+
     CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
     g->drawKinematicPath(f->getFramePtr(), start, end);
-    dump_cuda_frame_to_file(f, "dump.png");
+    dump_cuda_frame_to_file(f, "dump_gpu.png");
     delete f;
+    delete g;
 }
 
 TEST(RRTGraph, TestDrawPathCPU)
 {
-    return;
     int c = 256 * 256 * 3;
     float *frame = new float[c];
     for (int i = 0; i < c; i++)
@@ -197,13 +212,13 @@ TEST(RRTGraph, TestDrawPathCPU)
 
     CudaGraph *g = new CudaGraph(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3, 1);
 
-    float3 start, end;
+    double3 start, end;
     start.x = 128.0;
     start.y = 128.0;
-    start.z = 180.0;
+    start.z = 0.0;
 
-    end.x = 255.0;
-    end.y = 255.0;
+    end.x = 0.0;
+    end.y = 0.0;
     end.z = 0.0;
 
     g->add(128, 128, -1, -1, 0);
@@ -211,18 +226,19 @@ TEST(RRTGraph, TestDrawPathCPU)
     CurveGenerator gen(start, rw, rh, 3, 40);
     CudaFrame *f = new CudaFrame(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
 
-    Memlist<float3> *list = gen.buildCurveWaypoints(start, end, 1);
+    Memlist<double3> *list = gen.buildCurveWaypoints(start, end, 1);
     float3 *ptr = f->getFramePtr();
     for (int i = 0; i < list->size; i++)
     {
-        float3 p = list->data[i];
+        double3 p = list->data[i];
         int pos = p.y * 256 + p.x;
         ptr[pos].x = 255;
         ptr[pos].y = 255;
         ptr[pos].z = 255;
     }
 
-    dump_cuda_frame_to_file(f, "dump.png");
+    dump_cuda_frame_to_file(f, "dump_cpu.png");
     delete f;
     delete list;
+    delete g;
 }

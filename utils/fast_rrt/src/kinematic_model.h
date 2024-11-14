@@ -7,18 +7,18 @@
 #include "../include/fast_rrt_mem.h"
 
 class CurveGenerator {
-    float3 _center;
-    float _rate_w; 
-    float _rate_h;
-    float _lr;
-    float _max_steering_angle_deg;
+    double3 _center;
+    double _rate_w; 
+    double _rate_h;
+    double _lr;
+    double _max_steering_angle_deg;
     
 
 
 public:
-    CurveGenerator(float3 center, float rate_w, float rate_h, float lr, float max_steering_angle_deg);
-    Memlist<float3>* buildCurveWaypoints(float3 firstPos, float velocity_meters_per_s, float steering_angle_deg, float path_size);
-    Memlist<float3>* buildCurveWaypoints(float3 start, float3 end, float velocity_meters_per_s);
+    CurveGenerator(double3 center, double rate_w, double rate_h, double lr, double max_steering_angle_deg);
+    Memlist<double3>* buildCurveWaypoints(double3 firstPos, double velocity_meters_per_s, double steering_angle_deg, double path_size);
+    Memlist<double3>* buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s);
 
 
 };

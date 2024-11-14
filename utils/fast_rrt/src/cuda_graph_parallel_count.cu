@@ -3,7 +3,7 @@
 #include <math_constants.h>
 
 
-__global__ static void __CUDA_KERNEL_count_elements_in_graph(float4 *graph, int width, int height, unsigned int *count)
+__global__ static void __CUDA_KERNEL_count_elements_in_graph(double4 *graph, int width, int height, unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -19,7 +19,7 @@ __global__ static void __CUDA_KERNEL_count_elements_in_graph(float4 *graph, int 
     }
 }
 
-unsigned int CUDA_parallel_count(float4 *graph, unsigned int *pcount, int width, int height)
+unsigned int CUDA_parallel_count(double4 *graph, unsigned int *pcount, int width, int height)
 {
     int size = width * height;
 

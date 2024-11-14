@@ -4,10 +4,10 @@
 
 class CudaGraph
 {
-    float4 *graph;
+    double4 *graph;
     int3 *point;
     int *classCosts;
-    float *checkParams;
+    double *checkParams;
     unsigned int *pcount;
     int *bestValue;
     int width;
@@ -23,30 +23,30 @@ public:
         int lower_bound_ego_z,
         int upper_bound_ego_x,
         int upper_bound_ego_z,
-        float _rate_w,
-        float _rate_h,
-        float _max_steering_angle_deg,
-        float _lr,
-        float velocity_meters_per_s);
+        double _rate_w,
+        double _rate_h,
+        double _max_steering_angle_deg,
+        double _lr,
+        double velocity_meters_per_s);
 
     ~CudaGraph();
 
     // Basic stuff
     void clear();
-    void add(int x, int z, int parent_x, int parent_z, float cost);
+    void add(int x, int z, int parent_x, int parent_z, double cost);
     void remove(int x, int z);
     int2 getParent(int x, int z);
     void setParent(int x, int z, int parent_x, int parent_z);
     bool checkInGraph(int x, int z);
-    void setCost(int x, int z, float cost);
-    float getCost(int x, int z);
+    void setCost(int x, int z, double cost);
+    double getCost(int x, int z);
     unsigned int count();
 
     // Test stuff
-    void drawKinematicPath(float3 *og, float3 &start, float3 &end);
-
-    bool checkConnectionFeasible(float3 *frame, float3 &start, float3 end);
+    void drawKinematicPath(float3 *og, double3 &start, double3 &end);
 
     // RRT operations
-    //int2 find_nearest_feasible_neighbor(int x, int z);
+    bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);
+    int2 find_nearest_neighbor(int x, int z);
+    int2 find_nearest_feasible_neighbor(int x, int z);
 };

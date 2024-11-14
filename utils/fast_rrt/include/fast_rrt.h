@@ -14,25 +14,25 @@ private:
     CudaGraph *_graph;
     /* data */
 public:
-    Memlist<float3> *buildCurveWaypoints(float3 start, float velocity_meters_per_s, float steering_angle_deg, float path_size);
-    Memlist<float3> *buildCurveWaypoints(float3 start, float3 end, float velocity_meters_per_s);
+    Memlist<double3> *buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size);
+    Memlist<double3> *buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s);
 
     FastRRT(
         int og_width,
         int og_height,
-        float og_real_width_m,
-        float og_real_height_m,
+        double og_real_width_m,
+        double og_real_height_m,
         int min_dist_x,
         int min_dist_z,
         int lower_bound_x,
         int lower_bound_z,
         int upper_bound_x,
         int upper_bound_z,
-        float max_steering_angle,
-        float velocity_m_s);
+        double max_steering_angle,
+        double velocity_m_s);
     ~FastRRT();
 
-    void testDrawPath(float3 *og, float3 &start, float3 &end);
+    void testDrawPath(float3 *og, double3 &start, double3 &end);
 };
 
 #endif

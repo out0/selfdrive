@@ -9,16 +9,16 @@ extern "C"
     void *init(
         int width,
         int height,
-        float og_real_width_m,
-        float og_real_height_m,
+        double og_real_width_m,
+        double og_real_height_m,
         int min_dist_x,
         int min_dist_z,
         int lower_bound_ego_x,
         int lower_bound_ego_z,
         int upper_bound_ego_x,
         int upper_bound_ego_z,
-        float max_steering_angle,
-        float velocity_m_s)
+        double max_steering_angle,
+        double velocity_m_s)
     {
 
         return new FastRRT(
@@ -44,22 +44,22 @@ extern "C"
 
     int gen_path_waypoint(
         void *self,
-        float *res,
+        double *res,
         int start_x,
         int start_z,
-        float start_heading,
-        float velocity_m_s,
-        float sterr_angle,
-        float path_size)
+        double start_heading,
+        double velocity_m_s,
+        double sterr_angle,
+        double path_size)
     {
         FastRRT *f = (FastRRT *)self;
 
-        float3 start;
+        double3 start;
         start.x = start_x;
         start.y = start_z;
         start.z = start_heading;
 
-        Memlist<float3> *curve = f->buildCurveWaypoints(start, velocity_m_s, sterr_angle, path_size);
+        Memlist<double3> *curve = f->buildCurveWaypoints(start, velocity_m_s, sterr_angle, path_size);
 
         for (int i = 0; i < curve->size; i++)
         {
@@ -74,36 +74,36 @@ extern "C"
         return s;
     }
 
-    void connect_nodes_with_path_free(float *p) {
+    void connect_nodes_with_path_free(double *p) {
         delete []p;
     }
 
-    float * connect_nodes_with_path(
+    double * connect_nodes_with_path(
         void *self,
         int start_x,
         int start_z,
-        float start_heading,
+        double start_heading,
         int end_x,
         int end_z,
-        float end_heading,
-        float velocity_m_s)
+        double end_heading,
+        double velocity_m_s)
     {
         FastRRT *f = (FastRRT *)self;
 
-        float3 start;
+        double3 start;
         start.x = start_x;
         start.y = start_z;
         start.z = start_heading;
 
-        float3 end;
+        double3 end;
         end.x = end_x;
         end.y = end_z;
         end.z = end_heading;
 
-        Memlist<float3> *curve = f->buildCurveWaypoints(start, end, velocity_m_s);
+        Memlist<double3> *curve = f->buildCurveWaypoints(start, end, velocity_m_s);
         int arr_size = 3 * curve->size + 1;
 
-        float * res = new float[arr_size];
+        double * res = new double[arr_size];
 
         for (int i = 0; i < curve->size; i++)
         {
@@ -113,16 +113,16 @@ extern "C"
             res[pos+2] = curve->data[i].z;
         }
         
-        res[0] = static_cast<float>(curve->size); 
+        res[0] = static_cast<double>(curve->size); 
         delete curve;
         return res;
     }
 
-    void test_draw_path(void *self, void *cuda_frame, int x1, int z1, float h1, int x2, int z2, float h2)
+    void test_draw_path(void *self, void *cuda_frame, int x1, int z1, double h1, int x2, int z2, double h2)
     {
         FastRRT *f = (FastRRT *)self;
         CudaFrame *cudaf = (CudaFrame *)cuda_frame;
-        float3 start, end;
+        double3 start, end;
         start.x = x1;
         start.y = z1;
         start.z = h1;

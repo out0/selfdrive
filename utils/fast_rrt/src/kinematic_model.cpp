@@ -3,65 +3,66 @@
 #include <stdio.h>
 
 
-#ifndef PI_F
-#define PI_F 3.141592654F
+#ifndef PI
+#define PI 3.1415926535897931e+0
+#define PI_2 1.5707963267948966e+0
 #endif
 
-static float to_radians(float angle)
+static double to_radians(double angle)
 {
-    return (angle * PI_F) / 180;
+    return (angle * PI) / 180;
 }
 
-static float to_degrees(float angle)
+static double to_degrees(double angle)
 {
-    return (angle * 180) / PI_F;
+    return (angle * 180) / PI;
 }
 
-static void convert_to_map_coord(float3 &center, float rate_w, float rate_h, float3 &p)
+static void convert_to_map_coord(double3 &center, double rate_w, double rate_h, double3 &p)
 {
-    float x = p.x;
-    float z = p.y;
+    double x = p.x;
+    double z = p.y;
 
     p.x = (center.x - z) / rate_w;
     p.y = (x - center.y) / rate_h;
 }
-static void convert_to_waypoint_coord(float3 &center, float rate_w, float rate_h, float3 &p)
+static void convert_to_waypoint_coord(double3 &center, double rate_w, double rate_h, double3 &p)
 {
-    float x = p.x;
-    float y = p.y;
+    double x = p.x;
+    double y = p.y;
 
-    p.x = static_cast<int>(floor((center.y + rate_h * y)));
-    p.y = static_cast<int>(floor((center.x - rate_w * x)));
+    p.x = static_cast<int>(round((center.y + rate_h * y)));
+    p.y = static_cast<int>(round((center.x - rate_w * x)));
 }
 
-static float compute_euclidean_dist(float3 &start, float3 &end)
+static double compute_euclidean_dist(double3 &start, double3 &end)
 {
-    float dx = end.x - start.x;
-    float dy = end.y - start.y;
-    return sqrtf(dx * dx + dy * dy);
+    double dx = end.x - start.x;
+    double dy = end.y - start.y;
+    return sqrt(dx * dx + dy * dy);
 }
 
-static float compute_path_heading(float3 p1, float3 p2)
+static double compute_path_heading(double3 p1, double3 p2)
 {
-    float dy = p2.y - p1.y;
-    float dx = p2.x - p1.x;
+    double dy = p2.y - p1.y;
+    double dx = p2.x - p1.x;
 
     if (dy >= 0 && dx > 0) // Q1
         return atan(dy / dx);
     else if (dy >= 0 && dx < 0) // Q2
-        return PI_F - atan(dy / abs(dx));
+        return PI - atan(dy / abs(dx));
     else if (dy < 0 && dx > 0) // Q3
         return -atan(abs(dy) / dx);
     else if (dy < 0 && dx < 0) // Q4
-        return atan(dy / dx) - PI_F;
+        return atan(dy / dx) - PI;
     else if (dx == 0 && dy > 0)
-        return PI_F / 2;
+        return PI_2;
     else if (dx == 0 && dy < 0)
-        return -PI_F / 2;
+        return -PI_2;
     return 0.0;
 }
 
-static float clip(float val, float min, float max)
+static double clip(double val, double min, double max)
 {
     if (val < min)
         return min;
@@ -70,7 +71,7 @@ static float clip(float val, float min, float max)
     return val;
 }
 
-CurveGenerator::CurveGenerator(float3 center, float rate_w, float rate_h, float lr, float max_steering_angle_deg) {
+CurveGenerator::CurveGenerator(double3 center, double rate_w, double rate_h, double lr, double max_steering_angle_deg) {
     _center = center;
     _rate_w = rate_w;
     _rate_h = rate_h;
@@ -78,32 +79,32 @@ CurveGenerator::CurveGenerator(float3 center, float rate_w, float rate_h, float 
     _max_steering_angle_deg = max_steering_angle_deg;
 }
 
-Memlist<float3> *CurveGenerator::buildCurveWaypoints(float3 start, float velocity_meters_per_s, float steering_angle_deg, float path_size)
+Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
 {
-    float steer = tan(to_radians(steering_angle_deg));
+    double steer = tan(to_radians(steering_angle_deg));
 
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
 
-    float heading = to_radians(start.z);
-    float dt = 0.1;
+    double heading = to_radians(start.z);
+    double dt = 0.1;
     int last_x = -1, last_z = -1;
-    float ds = velocity_meters_per_s * dt;
-    float beta = atan(steer / _lr);
+    double ds = velocity_meters_per_s * dt;
+    double beta = atan(steer / _lr);
 
-    float x = start.x;
-    float y = start.y;
+    double x = start.x;
+    double y = start.y;
 
-    int max_size = static_cast<int>(floor(path_size)) + 1;
+    int max_size = static_cast<int>(round(path_size)) + 1;
 
-    Memlist<float3> *res = new Memlist<float3>();
-    res->data = new float3[max_size];
+    Memlist<double3> *res = new Memlist<double3>();
+    res->data = new double3[max_size];
     res->size = 0;
 
     while (res->size < path_size)
     {
-        x += ds * cosf(heading + beta);
-        y += ds * sinf(heading + beta);
-        heading += ds * cosf(beta) * steer / (2 * _lr);
+        x += ds * cos(heading + beta);
+        y += ds * sin(heading + beta);
+        heading += ds * cos(beta) * steer / (2 * _lr);
 
         res->data[res->size].x = x;
         res->data[res->size].y = y;
@@ -120,45 +121,41 @@ Memlist<float3> *CurveGenerator::buildCurveWaypoints(float3 start, float velocit
     return res;
 }
 
-Memlist<float3> *CurveGenerator::buildCurveWaypoints(float3 start, float3 end, float velocity_meters_per_s)
+Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
 {
-    float distance = compute_euclidean_dist(start, end);
+    double distance = compute_euclidean_dist(start, end);
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
     convert_to_map_coord(_center, _rate_w, _rate_h, end);
-    float dt = 0.1;
+    double dt = 0.1;
     
-    Memlist<float3> *res = new Memlist<float3>();
+    Memlist<double3> *res = new Memlist<double3>();
     res->size = 0;
-    int last_x = -1, last_z = -1;
+    int last_x = -1, last_y = -1;
 
-    float max_turning_angle = to_radians(_max_steering_angle_deg);
-    float heading = to_radians(start.z);
+    double max_turning_angle = to_radians(_max_steering_angle_deg);
+    double heading = to_radians(start.z);
 
-    float path_heading = compute_path_heading(start, end);
-    float steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
-    float ds = velocity_meters_per_s * dt;
+    double path_heading = compute_path_heading(start, end);
+    double steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
+    double ds = velocity_meters_per_s * dt;
 
     int total_steps = static_cast<int>(round(distance / ds));
-    res->data = new float3[total_steps + 1];
+    res->data = new double3[total_steps + 1];
 
     int best_end_pos = -1;
-    float best_end_dist = distance;
-    float x = start.x;
-    float y = start.y;
-printf("[CPU] ds=%f\n", ds);
+    double best_end_dist = distance;
+    double x = start.x;
+    double y = start.y;
+    double iL = 1 / (2 * _lr);
 
     for (int i = 0; i < total_steps; i++)
     {
-        float steer = tan(steering_angle_deg);
-        float beta = atan(steer / _lr);
+        double steer = tan(steering_angle_deg);
+        double beta = atan(steer / _lr);
 
-        x += ds * cosf(heading + beta);
-        y += ds * sinf(heading + beta);
-        heading += ds * cosf(beta) * steer / (2 * _lr);
-
-        if (i >= 9 && i < 20) {
-            printf("[CPU %d] x = %f, y=%f, heading=%f\n", i, x, y, heading);
-        }
+        x += ds * cos(heading + beta);
+        y += ds * sin(heading + beta);
+        heading += (ds * cos(beta) * steer) * iL;
 
         res->data[res->size].x = x;
         res->data[res->size].y = y;
@@ -166,11 +163,11 @@ printf("[CPU] ds=%f\n", ds);
 
         path_heading = compute_path_heading(res->data[res->size], end);
         steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
-        float dist = compute_euclidean_dist(res->data[res->size], end);
+        double dist = compute_euclidean_dist(res->data[res->size], end);
 
         convert_to_waypoint_coord(_center, _rate_w, _rate_h, res->data[res->size]);
 
-        if (res->data[res->size].x == last_x && res->data[res->size].y == last_z)
+        if (res->data[res->size].x == last_x && res->data[res->size].y == last_y)
             continue;
 
         if (best_end_dist > dist)
@@ -180,7 +177,7 @@ printf("[CPU] ds=%f\n", ds);
         }
 
         last_x = static_cast<int>(res->data[res->size].x);
-        last_z = static_cast<int>(res->data[res->size].z);
+        last_y = static_cast<int>(res->data[res->size].y);
 
         res->size++;
     }

@@ -1,7 +1,7 @@
 #include "cuda_basic.h"
 #include "class_def.h"
 
-__global__ static void __CUDA_KERNEL_Clear(float4 *graph, int width, int height)
+__global__ static void __CUDA_KERNEL_Clear(double4 *graph, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -14,7 +14,7 @@ __global__ static void __CUDA_KERNEL_Clear(float4 *graph, int width, int height)
     graph[pos].w = 0.0;
 }
 
-void CUDA_clear(float4 *graph, int width, int height)
+void CUDA_clear(double4 *graph, int width, int height)
 {
     int size = width * height;
 
