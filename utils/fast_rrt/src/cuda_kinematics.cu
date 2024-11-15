@@ -81,6 +81,7 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(float3 *frame, int 
 
     double c = cos(angle_radians);
     double s = sin(angle_radians);
+    int max_size = width * height;
 
     for (int i = -min_dist_z; i <= min_dist_z; i++)
         for (int j = -min_dist_x; j <= min_dist_x; j++)
@@ -97,10 +98,16 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(float3 *frame, int 
             if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z)
                 continue;
 
-            int segmentation_class = __double2int_rn(frame[zl * width + xl].x);
+            int pos = zl * width + xl;
+            if (pos >= max_size || pos < 0) continue;
+            
+            int segmentation_class = __double2int_rn(frame[pos].x);
 
-            if (classCost[segmentation_class] < 0)
+            if (classCost[segmentation_class] < 0) {
+                printf("[%d, %d] is not feasible on check angle because of %d, %d\n", x, z, xl, zl);
                 return false;
+
+            }
         }
 
     return true;
@@ -164,8 +171,11 @@ __device__ static double clip(double val, double min, double max)
     return val;
 }
 
-__device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkParams, double3 &start, double3 &end)
+__device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkParams, double3 start, double3 end)
 {
+    // bool DEBUG = (__double2int_rn(start.x) == 128 && __double2int_rn(start.y) == 108);
+    
+
     double distance = compute_euclidean_dist(start, end);
 
     double3 _center;
@@ -226,7 +236,10 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
 
         if (!__CUDA_KERNEL_ComputeFeasibleForAngle(og, classCost, checkParams, next_p.x, next_p.y, next_p.z))
         {
-//            printf("(%f, %f) exiting because %f, %f is not feasible for %f, %f angle %f\n", start.x, start.y, next_p.x, next_p.y, next_p.z);
+            // if (DEBUG) {
+            //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
+            //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
+            // }
             return false;
         }
 
@@ -438,7 +451,7 @@ __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph
     int dz = target_z - z;
 
     // may be optimized with a max distance to check?
-    unsigned int dist = dx * dx + dz * dz;
+    long long dist = dx * dx + dz * dz;
 
     // printf("[CUDA debug] (%d, %d) dist = %d\n", x, z, dist);
 
@@ -450,13 +463,13 @@ __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph
 
     end.x = __int2double_rn(target_x);
     end.y = __int2double_rn(target_z);
-    end.z = graph[pos].z;
+    end.z = 0.0; //NOT USED
 
     // printf("[CUDA debug] (%d, %d) checking %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
 
     if (!check_kinematic_path(og, classCost, checkParams, start, end))
     {
-        // printf("[CUDA debug] (%d, %d) not feasible for %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
+        //printf("[CUDA debug] (%d, %d) not feasible for %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
         return;
     }
 

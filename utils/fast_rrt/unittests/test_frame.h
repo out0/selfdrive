@@ -24,14 +24,14 @@ private:
     }
 
     void drawNode(CudaGraph *graph, float3 *imgPtr, int x, int z, double heading) {
-        int2 parent = graph->getParent(x, z);
+        double3 parent = graph->getParent(x, z);
 
         if (parent.x < 0 or parent.y < 0) return;
 
         double3 start, end;
         start.x = parent.x;
         start.y = parent.y;
-        start.z = heading;
+        start.z = parent.z;
         end.x = x;
         end.y = z;
         end.z = heading;
@@ -40,7 +40,7 @@ private:
     }
 
 public:
-    TestFrame(int default_fill_value = 3) {
+    TestFrame(int default_fill_value = 1) {
         og = create_default_cuda_frame(default_fill_value);
 
         double rw = OG_WIDTH / OG_REAL_WIDTH ;
@@ -72,7 +72,9 @@ public:
     CudaGraph * getGraph() {
         return graph;
     }
-
+    CudaFrame * getCudaGrame() {
+        return og;
+    }
     void drawGraph() {
         float3 * imgPtr = og->getFramePtr();
 

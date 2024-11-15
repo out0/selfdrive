@@ -201,11 +201,12 @@ void CudaGraph::setParent(int x, int z, int parent_x, int parent_z)
     this->graph[pos].x = parent_x;
     this->graph[pos].y = parent_z;
 }
-int2 CudaGraph::getParent(int x, int z)
+double3 CudaGraph::getParent(int x, int z)
 {
-    int2 p;
+    double3 p;
     p.x = -1;
     p.y = -1;
+    p.z = -1;
 
     if (x > width || x < 0)
         return p;
@@ -221,6 +222,17 @@ int2 CudaGraph::getParent(int x, int z)
 
     p.x = this->graph[pos].x;
     p.y = this->graph[pos].y;
+    p.z = 0.0;
+
+    if (p.x < 0 || p.z < 0) 
+        return p;
+        
+    int pos_parent =  p.y * width + p.x;
+    
+    if (pos_parent >= width * height || pos_parent < 0)
+        return p;
+    
+    p.z = this->graph[pos_parent].z;
     return p;
 }
 

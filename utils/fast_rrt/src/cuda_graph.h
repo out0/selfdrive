@@ -37,7 +37,7 @@ public:
     void clear();
     void add(int x, int z, double heading, int parent_x, int parent_z, double cost);
     void remove(int x, int z);
-    int2 getParent(int x, int z);
+    double3 getParent(int x, int z);
     void setParent(int x, int z, int parent_x, int parent_z);
     bool checkInGraph(int x, int z);
     void setCost(int x, int z, double cost);

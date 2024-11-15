@@ -43,31 +43,31 @@ TEST(RRTGraph, TestBasicFeatures)
     ASSERT_EQ(6, g.count());
 
     // does not exist
-    int2 p = g.getParent(20, 0);
-    ASSERT_EQ(-1, p.x);
-    ASSERT_EQ(-1, p.y);
+    double3 p = g.getParent(20, 0);
+    ASSERT_EQ(-1, static_cast<int>(round(p.x)));
+    ASSERT_EQ(-1, static_cast<int>(round(p.y)));
 
     // out-of-bound
     p = g.getParent(2000, -1000);
-    ASSERT_EQ(-1, p.x);
-    ASSERT_EQ(-1, p.y);
+    ASSERT_EQ(-1, static_cast<int>(round(p.x)));
+    ASSERT_EQ(-1, static_cast<int>(round(p.y)));
 
     // exists
     p = g.getParent(20, 5);
-    ASSERT_EQ(20, p.x);
-    ASSERT_EQ(15, p.y);
+    ASSERT_EQ(20, static_cast<int>(round(p.x)));
+    ASSERT_EQ(15, static_cast<int>(round(p.y)));
 
     // setParent of non existant node should ignore
     g.setParent(99, 99, 10, 10);
     p = g.getParent(99, 99);
-    ASSERT_EQ(-1, p.x);
-    ASSERT_EQ(-1, p.y);
+    ASSERT_EQ(-1, static_cast<int>(round(p.x)));
+    ASSERT_EQ(-1, static_cast<int>(round(p.y)));
 
     // setParent of non existant out-of-bound node should ignore
     g.setParent(999, 999, 10, 10);
     p = g.getParent(999, 999);
-    ASSERT_EQ(-1, p.x);
-    ASSERT_EQ(-1, p.y);
+    ASSERT_EQ(-1, static_cast<int>(round(p.x)));
+    ASSERT_EQ(-1, static_cast<int>(round(p.y)));
 
     // exists
     ASSERT_FLOAT_EQ(g.getCost(55, 40), 10.0);
@@ -88,7 +88,6 @@ TEST(RRTGraph, TestBasicFeatures)
     // out-of-bound
     g.setCost(999, 999, 100.0);
     ASSERT_FLOAT_EQ(g.getCost(999, 999), -1);
-
 }
 
 #define PHYS_SIZE 34.641016151377535
@@ -147,9 +146,9 @@ TEST(RRTGraph, TestList)
         ASSERT_FLOAT_EQ(heading, 0.12);
         int px = static_cast<int>(round(res[3]));
         int pz = static_cast<int>(round(res[4]));
-        int2 parent = g.getParent(x, z);
-        ASSERT_EQ(px, parent.x);
-        ASSERT_EQ(pz, parent.y);
+        double3 parent = g.getParent(x, z);
+        ASSERT_EQ(px, static_cast<int>(parent.x));
+        ASSERT_EQ(pz, static_cast<int>(parent.y));
         double cost = res[5];
         ASSERT_FLOAT_EQ(map[key], cost);
     }
@@ -157,7 +156,7 @@ TEST(RRTGraph, TestList)
 
 TEST(RRTGraph, TestNearestNeighboor)
 {
-    CudaGraph g (100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
 
     ASSERT_EQ(0, g.count());
 
@@ -168,8 +167,6 @@ TEST(RRTGraph, TestNearestNeighboor)
     g.add(20, 15, 0.12, 20, 35, 11);
     g.add(20, 5, 0.12, 20, 15, 14);
     g.add(20, 0, 0.12, 20, 5, 99);
-
-
 
     int2 res = g.find_nearest_neighbor(50, 50);
     ASSERT_EQ(res.x, 50);
@@ -192,34 +189,31 @@ TEST(RRTGraph, TestNearestFeasibleNeighboor_NoObstacles)
 {
     TestFrame tstFrame;
     CudaGraph *g = tstFrame.getGraph();
+    CudaFrame *og = tstFrame.getCudaGrame();
 
     g->add(128, 128, 0.0, -1, -1, 0);
     g->add(128, 108, 0.0, 128, 128, 0);
     g->add(128, 88, 0.0, 128, 108, 0);
     g->add(128, 48, 0.0, 128, 88, 0);
-    g->add(138, 28, 15.0, 128, 48, 0);
-    g->add(148, 0, 22.0, 138, 28, 0);
+    g->add(150, 0, 0.0, 128, 48, 0);
+    int2 res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 50, 50);
+    ASSERT_EQ(res.x, 128);
+    ASSERT_EQ(res.y, 88);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 150, 20);
+    ASSERT_EQ(res.x, 128);
+    ASSERT_EQ(res.y, 48);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 100, 70);
+    ASSERT_EQ(res.x, 128);
+    ASSERT_EQ(res.y, 88);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 140, -20);
+    ASSERT_EQ(res.x, 150);
+    ASSERT_EQ(res.y, 0);
 
     tstFrame.drawGraph();
     tstFrame.toFile();
-
-
-    // int2 res = g.find_nearest_feasible_neighbor(og.getFramePtr(), 50, 50);
-    // ASSERT_EQ(res.x, 50);
-    // ASSERT_EQ(res.y, 50);
-
-    // int2 res = g.find_nearest_feasible_neighbor(og.getFramePtr(), 50, 44);
-    // ASSERT_EQ(res.x, 50);
-    // ASSERT_EQ(res.y, 45);
-
-    // res = g.find_nearest_feasible_neighbor(og.getFramePtr(), 21, 12);
-    // ASSERT_EQ(res.x, 20);
-    // ASSERT_EQ(res.y, 15);
-
-    // res = g.find_nearest_feasible_neighbor(og.getFramePtr(), 21, -20);
-    // ASSERT_EQ(res.x, 20);
-    // ASSERT_EQ(res.y, 0);
-    // delete g;
 }
 
 TEST(RRTGraph, TestDrawPath)
@@ -282,7 +276,8 @@ TEST(RRTGraph, TestDrawPathCPU)
     {
         double3 p = list->data[i];
         int pos = p.y * 256 + p.x;
-        if (pos >= 256 * 256 || pos < 0) continue;
+        if (pos >= 256 * 256 || pos < 0)
+            continue;
         ptr[pos].x = 255;
         ptr[pos].y = 255;
         ptr[pos].z = 255;
