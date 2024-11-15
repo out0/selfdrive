@@ -97,8 +97,8 @@ CudaGraph::CudaGraph(
 
     checkParams[0] = width;
     checkParams[1] = height;
-    checkParams[2] = min_dist_x;
-    checkParams[3] = min_dist_z;
+    checkParams[2] = min_dist_x / 2;
+    checkParams[3] = min_dist_z / 2;
     checkParams[4] = lower_bound_ego_x;
     checkParams[5] = lower_bound_ego_z;
     checkParams[6] = upper_bound_ego_x;

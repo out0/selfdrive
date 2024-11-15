@@ -216,6 +216,44 @@ TEST(RRTGraph, TestNearestFeasibleNeighboor_NoObstacles)
     tstFrame.toFile();
 }
 
+TEST(RRTGraph, TestNearestFeasibleNeighboor_Obstacle)
+{
+    TestFrame tstFrame;
+    CudaGraph *g = tstFrame.getGraph();
+    CudaFrame *og = tstFrame.getCudaGrame();
+
+    g->add(128, 128, 0.0, -1, -1, 0);
+    g->add(128, 108, 0.0, 128, 128, 0);
+    g->add(128, 88, 0.0, 128, 108, 0);
+    g->add(128, 48, 0.0, 128, 88, 0);
+    g->add(150, 0, 0.0, 128, 48, 0);
+    g->add(50, 50, 0.0, 128, 128, 0);
+
+    tstFrame.addArea(130, 90, 140, 60, 28);
+    tstFrame.drawGraph();
+    tstFrame.toFile("dump2.png");
+    return;
+
+    int2 res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 50, 50);
+    ASSERT_EQ(res.x, 128);
+    ASSERT_EQ(res.y, 108);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 150, 20);
+    ASSERT_EQ(res.x, 128);
+    ASSERT_EQ(res.y, 48);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 100, 70);
+    ASSERT_EQ(res.x, 128);
+    ASSERT_EQ(res.y, 88);
+
+    res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 140, -20);
+    ASSERT_EQ(res.x, 150);
+    ASSERT_EQ(res.y, 0);
+
+    tstFrame.drawGraph();
+    tstFrame.toFile();
+}
+
 TEST(RRTGraph, TestDrawPath)
 {
     int c = 256 * 256 * 3;

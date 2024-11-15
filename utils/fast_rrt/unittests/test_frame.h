@@ -9,6 +9,7 @@
 #include "../src/cuda_graph.h"
 #include "test_utils.h"
 #include <unordered_set>
+#include <math.h>
 
 #define OG_REAL_WIDTH 34.641016151377535
 #define OG_REAL_HEIGHT 34.641016151377535
@@ -75,6 +76,17 @@ public:
     CudaFrame * getCudaGrame() {
         return og;
     }
+
+    void addArea(int x1, int z1, int x2, int z2, int classType) {
+        float3 * imgPtr = og->getFramePtr();
+        
+        for (int z = std::min(z1, z2); z < std::max(z1, z2); z++) {
+            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++) {
+                imgPtr[z * og->getWidth() + x].x = classType;
+            }
+        }
+    }
+
     void drawGraph() {
         float3 * imgPtr = og->getFramePtr();
 
@@ -101,6 +113,16 @@ public:
 
         graph->drawNodes(imgPtr);
         
+        for (int z = 0; z < og->getHeight(); z++) {
+            for (int x = 0; x < og->getWidth(); x++) {
+                int pos = z * og->getWidth() + x;
+                if (static_cast<int>(round(imgPtr[pos].x)) == 28) {
+                    imgPtr[pos].x = 0;
+                    imgPtr[pos].y = 255;
+                    imgPtr[pos].z = 0;
+                }
+            }
+        }
     }
 };
 
