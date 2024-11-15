@@ -9,6 +9,9 @@ extern void __tst_CUDA_draw_nodes(double4 *graph, float3 *og, int width, int hei
 extern int2 CUDA_find_nearest_neighbor(double4 *graph, int3 *point, long long *bestValue, int width, int height, int x, int z);
 extern int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z);
 extern void CUDA_list_elements(double4 *graph, double *graph_cost, double *result, int width, int height, int count);
+extern int2 CUDA_find_best_neighbor(double4 *graph, int3 *point, long long *bestValue, int width, int height, int x, int z, float radius);
+extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
+extern void CUDA_optimizeGraphWithNode(double4 *graph, float3 *og, int *classCost, double *checkParams, int x, int z, float radius);
 
 CudaGraph::CudaGraph(
     int width,
@@ -224,14 +227,14 @@ double3 CudaGraph::getParent(int x, int z)
     p.y = this->graph[pos].y;
     p.z = 0.0;
 
-    if (p.x < 0 || p.z < 0) 
+    if (p.x < 0 || p.z < 0)
         return p;
-        
-    int pos_parent =  p.y * width + p.x;
-    
+
+    int pos_parent = p.y * width + p.x;
+
     if (pos_parent >= width * height || pos_parent < 0)
         return p;
-    
+
     p.z = this->graph[pos_parent].z;
     return p;
 }
@@ -275,7 +278,8 @@ bool CudaGraph::checkConnectionFeasible(float3 *og, double3 &start, double3 end)
     return CUDA_check_connection_feasible(og, classCosts, checkParams, pcount, start, end);
 }
 
-void CudaGraph::drawNodes(float3 *og) {
+void CudaGraph::drawNodes(float3 *og)
+{
     __tst_CUDA_draw_nodes(graph, og, width, height, 0, 0, 255);
 }
 
@@ -292,4 +296,20 @@ int2 CudaGraph::find_nearest_neighbor(int x, int z)
 int2 CudaGraph::find_nearest_feasible_neighbor(float3 *og, int x, int z)
 {
     return CUDA_find_nearest_feasible_neighbor(graph, og, classCosts, checkParams, point, bestValue, x, z);
+}
+
+int2 CudaGraph::find_best_neighbor(int x, int z, float radius)
+{
+    return CUDA_find_best_neighbor(graph, point, bestValue, width, height, x, z, radius);
+}
+
+int2 CudaGraph::find_best_feasible_neighbor(float3 *og, int x, int z, float radius)
+{
+    return CUDA_find_best_feasible_neighbor(graph, og, classCosts, checkParams, point, bestValue, x, z, radius);
+}
+
+// orders nodes within a radius to verify if they should use x,z as their parent node.
+void CudaGraph::optimizeGraphWithNode(float3 *og, int x, int z, float radius)
+{
+    return CUDA_optimizeGraphWithNode(graph, og, classCosts, checkParams, x, z, radius);
 }

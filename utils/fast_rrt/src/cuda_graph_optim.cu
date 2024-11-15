@@ -2,13 +2,18 @@
 #include "class_def.h"
 #include <math_constants.h>
 
+extern __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, float3 *og, int *classCost, double *checkParams, int parent_candidate_x, int parent_candidate_z, float radius);
 
-/* ----------------- GLOBAL -------------------------------- */
+void CUDA_optimizeGraphWithNode(double4 *graph, float3 *og, int *classCost, double *checkParams, int x, int z, float radius)
+{
+    int width = static_cast<int>(checkParams[0]);
+    int height = static_cast<int>(checkParams[1]);
 
+    int size = width * height;
 
+    int numBlocks = floor(size / 256) + 1;
 
-/* ----------------- CALLING -------------------------------- */
+    __CUDA_KERNEL_optimizeGraphWithNode<<<numBlocks, 256>>>(graph, og, classCost, checkParams, x, z, radius);
 
-// int2 CUDA_find_nearest_feasible_neighbor(double4 *frame, int width, int height)
-// {
-// }
+    CUDA(cudaDeviceSynchronize());
+}

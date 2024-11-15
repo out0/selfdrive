@@ -56,6 +56,16 @@ public:
     bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);
     /// Returns the nearest neighbor, based on euclidean distance only
     int2 find_nearest_neighbor(int x, int z);
+    // Returns the best neighbor based on cost
+    int2 find_best_neighbor(int x, int z, float radius);   //NEEDS UNITTEST
+
+
     /// Returns the nearest neighbor p, based on euclidean distance, which can draw a feasible p -> (x,z) .
     int2 find_nearest_feasible_neighbor(float3 *og, int x, int z);
+    // Returns the best neighbor based on cost that can reach x,z
+    int2 find_best_feasible_neighbor(float3 *og, int x, int z, float radius);   //NEEDS UNITTEST
+
+    // orders nodes within a radius to verify if they should use x,z as their parent node.
+    void optimizeGraphWithNode(float3 *og, int x, int z, float radius);
+
 };
