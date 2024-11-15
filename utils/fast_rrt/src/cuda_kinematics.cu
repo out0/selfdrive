@@ -226,7 +226,7 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
 
         if (!__CUDA_KERNEL_ComputeFeasibleForAngle(og, classCost, checkParams, next_p.x, next_p.y, next_p.z))
         {
-            printf("(%f, %f) exiting because %f, %f is not feasible for %f, %f angle %f\n", start.x, start.y, next_p.x, next_p.y, next_p.z);
+//            printf("(%f, %f) exiting because %f, %f is not feasible for %f, %f angle %f\n", start.x, start.y, next_p.x, next_p.y, next_p.z);
             return false;
         }
 
@@ -402,15 +402,11 @@ __global__ void CUDA_KERNEL_draw_nodes(double4 *graph, float3 *og, int width, in
 
     if (graph[pos].w == 1.0)
     {
-        og[pos].x = 0;
-        og[pos].y = 0;
-        og[pos].z = 255.0;
-        // for (int i = -1; i <= 1; i++)
-        // {
-        //     change_color(og, width, height, r, g, b, x, z);
-        //     //change_color(og, width, height, r, g, b, x + i, z);
-        //     change_color(og, width, height, r, g, b, x, z + i);
-        // }
+        for (int i = -1; i <= 1; i++)
+        {
+            change_color(og, width, height, r, g, b, x + i, z);
+            change_color(og, width, height, r, g, b, x, z + i);
+        }
     }
 }
 

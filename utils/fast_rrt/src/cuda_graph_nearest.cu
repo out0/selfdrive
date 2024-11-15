@@ -42,7 +42,7 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_nearest_dist(double4 *frame, in
     int dx = target_x - x;
     int dz = target_z - z;
 
-    int dist = __double2int_rn(sqrtf(dx * dx + dz * dz));
+    int dist = dx * dx + dz * dz;
 
     if (dist == *bestDistance)
     {

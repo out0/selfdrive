@@ -282,6 +282,7 @@ TEST(RRTGraph, TestDrawPathCPU)
     {
         double3 p = list->data[i];
         int pos = p.y * 256 + p.x;
+        if (pos >= 256 * 256 || pos < 0) continue;
         ptr[pos].x = 255;
         ptr[pos].y = 255;
         ptr[pos].z = 255;
