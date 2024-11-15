@@ -7,7 +7,7 @@ __global__ static void __CUDA_KERNEL_count_elements_in_graph(double4 *graph, int
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     if (graph[pos].w == 1.0)
@@ -42,7 +42,7 @@ __global__ static void __CUDA_KERNEL_list_elements_in_graph(double4 *graph, doub
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int z = pos / width;

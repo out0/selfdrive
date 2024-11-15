@@ -1,3 +1,6 @@
+#ifndef H_TEST_UTILS
+#define H_TEST_UTILS
+
 #include <gtest/gtest.h>
 #include <cuda_runtime.h>
 #include <opencv2/opencv.hpp>
@@ -45,5 +48,8 @@ float *create_matrix(int rows, int cols, int channels, float fill_val)
 
 CudaFrame * create_default_cuda_frame(float fill_val) {
     float *mat = create_matrix(OG_WIDTH, OG_HEIGHT, 3, fill_val);
+    
     return new CudaFrame(mat, OG_WIDTH, OG_HEIGHT, MIN_DIST_X, MIN_DIST_Z, LOWER_BOUND_X, LOWER_BOUND_Z, UPPER_BOUND_X, UPPER_BOUND_Z);
 }
+
+#endif

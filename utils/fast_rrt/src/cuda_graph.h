@@ -11,7 +11,7 @@ class CudaGraph
     int *classCosts;
     double *checkParams;
     unsigned int *pcount;
-    int *bestValue;
+    long long *bestValue;
     int width;
     int height;
 
@@ -46,6 +46,7 @@ public:
     void list(double *result, int count);
 
     // Test stuff
+    void drawNodes(float3 *og);
     void drawKinematicPath(float3 *og, double3 &start, double3 &end);
 
     // RRT operations

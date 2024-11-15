@@ -168,7 +168,6 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
 {
     double distance = compute_euclidean_dist(start, end);
 
-
     double3 _center;
     _center.x = checkParams[13];
     _center.y = checkParams[14];
@@ -177,7 +176,6 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
     double _max_steering_angle_deg = checkParams[10];
     double _lr = checkParams[11];
     double velocity_meters_per_s = checkParams[12];
-
 
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
     convert_to_map_coord(_center, _rate_w, _rate_h, end);
@@ -216,7 +214,6 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
         steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
         double dist = compute_euclidean_dist(next_p, end);
 
-
         convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
 
         if (next_p.x == last_p.x && next_p.y == last_p.z)
@@ -228,22 +225,40 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
         }
 
         if (!__CUDA_KERNEL_ComputeFeasibleForAngle(og, classCost, checkParams, next_p.x, next_p.y, next_p.z))
+        {
+            printf("(%f, %f) exiting because %f, %f is not feasible for %f, %f angle %f\n", start.x, start.y, next_p.x, next_p.y, next_p.z);
             return false;
+        }
 
         last_p.x = next_p.x;
         last_p.z = next_p.z;
 
         best_end_dist = dist;
     }
-    
+
     return false;
 }
 
-__global__ void CUDA_KERNEL_check_connection_feasible(float3 *og, int *classCost, double *checkParams, unsigned int *pcount, double3 &start, double3 &end) {
+__global__ void CUDA_KERNEL_check_connection_feasible(float3 *og, int *classCost, double *checkParams, unsigned int *pcount, double3 &start, double3 &end)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
     int width = __double2int_rn(checkParams[0]);
     int height = __double2int_rn(checkParams[1]);
+
+    if (pos >= width * height)
+        return;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    if (__double2int_rd(start.x) != x || __double2int_rd(start.z) != z)
+        return;
+
     bool res = check_kinematic_path(og, classCost, checkParams, start, end);
-    if (res) return;
+    if (res)
+        return;
+
     atomicInc(pcount, width * height);
 }
 
@@ -260,39 +275,39 @@ bool CUDA_check_connection_feasible(float3 *og, int *classCost, double *checkPar
     CUDA(cudaDeviceSynchronize());
 
     return *pcount == 0;
-
 }
 
-
-__global__ void CUDA_KERNEL_build_path(double4 * graph, float3 *og, double *checkParams, double3 *inputParams)
+__global__ void CUDA_KERNEL_build_path(double4 *graph, float3 *og, double *checkParams, double3 *inputParams)
 {
     int width = checkParams[0];
     int height = checkParams[1];
 
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int zt = pos / width;
     int xt = pos - zt * width;
 
-    if (graph[pos].w != 1.0) return;
+    if (graph[pos].w != 1.0)
+        return;
 
     double3 start = inputParams[0];
     double3 end = inputParams[1];
-    int r,g, b;
+    int r, g, b;
     r = __double2int_rd(inputParams[2].x);
     g = __double2int_rd(inputParams[2].y);
     b = __double2int_rd(inputParams[2].z);
 
-
     // limits the process to a single thread. I dont want a bunch of threads doing the same thing...
-    if (xt != __double2int_rn(start.x) || zt != __double2int_rn(start.y)) 
+    if (xt != __double2int_rn(start.x) || zt != __double2int_rn(start.y))
         return;
 
+
+
     // Now lets build the path
-    double distance = compute_euclidean_dist(start, end);   
+    double distance = compute_euclidean_dist(start, end);
 
     double3 _center;
     _center.x = checkParams[13];
@@ -325,6 +340,7 @@ __global__ void CUDA_KERNEL_build_path(double4 * graph, float3 *og, double *chec
 
     double iL = 1 / (2 * _lr);
 
+
     for (int i = 0; i < total_steps; i++)
     {
         double steer = tan(steering_angle_deg);
@@ -333,7 +349,6 @@ __global__ void CUDA_KERNEL_build_path(double4 * graph, float3 *og, double *chec
         x += ds * cos(heading + beta);
         y += ds * sin(heading + beta);
         heading += ds * cos(beta) * steer * iL;
-
 
         next_p.x = x;
         next_p.y = y;
@@ -353,9 +368,11 @@ __global__ void CUDA_KERNEL_build_path(double4 * graph, float3 *og, double *chec
 
         int pos = next_p.y * width + next_p.x;
 
-        og[pos].x = r;
-        og[pos].y = g;
-        og[pos].z = b;
+        if (pos < width * height && pos >= 0) {
+            og[pos].x = r;
+            og[pos].y = g;
+            og[pos].z = b;
+        }
 
         last_p.x = next_p.x;
         last_p.y = next_p.y;
@@ -363,16 +380,48 @@ __global__ void CUDA_KERNEL_build_path(double4 * graph, float3 *og, double *chec
     }
 }
 
+__device__ void change_color(float3 *og, int width, int height, int r, int g, int b, int x, int z)
+{
+    int p = z * width + x;
+    if (p >= width * height || p < 0)
+        return;
+    og[p].x = r;
+    og[p].y = g;
+    og[p].z = b;
+}
 
+__global__ void CUDA_KERNEL_draw_nodes(double4 *graph, float3 *og, int width, int height, int r, int g, int b)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-__global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, int *bestDistance)
+    if (pos >= width * height)
+        return;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    if (graph[pos].w == 1.0)
+    {
+        og[pos].x = 0;
+        og[pos].y = 0;
+        og[pos].z = 255.0;
+        // for (int i = -1; i <= 1; i++)
+        // {
+        //     change_color(og, width, height, r, g, b, x, z);
+        //     //change_color(og, width, height, r, g, b, x + i, z);
+        //     change_color(og, width, height, r, g, b, x, z + i);
+        // }
+    }
+}
+
+__global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestDistance)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
     int width = __double2int_rn(checkParams[0]);
     int height = __double2int_rn(checkParams[1]);
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int z = pos / width;
@@ -381,25 +430,39 @@ __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph
     if (graph[pos].w != 1.0) // w means that the point is part of the graph
         return;
 
+    // printf("[CUDA debug] (%d, %d) in graph\n", x, z);
+
+    if (target_x == x && target_z == z)
+    {
+        atomicMin(bestDistance, 0);
+        return;
+    }
+
     int dx = target_x - x;
     int dz = target_z - z;
 
-    // may be optimized with a max distance to check? 
-    int dist = __double2int_rn(sqrtf(dx * dx + dz * dz));
+    // may be optimized with a max distance to check?
+    unsigned int dist = dx * dx + dz * dz;
+
+    // printf("[CUDA debug] (%d, %d) dist = %d\n", x, z, dist);
 
     double3 start, end;
 
-    start.x = x;
-    start.y = z;
+    start.x = __int2double_rn(x);
+    start.y = __int2double_rn(z);
     start.z = graph[pos].z;
 
-    end.x = target_x;
-    end.y = target_z;
+    end.x = __int2double_rn(target_x);
+    end.y = __int2double_rn(target_z);
     end.z = graph[pos].z;
 
+    // printf("[CUDA debug] (%d, %d) checking %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
 
     if (!check_kinematic_path(og, classCost, checkParams, start, end))
+    {
+        // printf("[CUDA debug] (%d, %d) not feasible for %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
         return;
+    }
 
     atomicMin(bestDistance, dist);
 }
@@ -428,8 +491,17 @@ void __tst_CUDA_build_path(double4 *graph, float3 *og, double *checkParams, doub
     inputParams[2].x = r;
     inputParams[2].y = g;
     inputParams[2].z = b;
-    
 
     CUDA_KERNEL_build_path<<<numBlocks, 256>>>(graph, og, checkParams, inputParams);
+    CUDA(cudaDeviceSynchronize());
+}
+
+void __tst_CUDA_draw_nodes(double4 *graph, float3 *og, int width, int height, int r, int g, int b)
+{
+    int size = width * height;
+
+    int numBlocks = floor(size / 256) + 1;
+
+    CUDA_KERNEL_draw_nodes<<<numBlocks, 256>>>(graph, og, width, height, r, g, b);
     CUDA(cudaDeviceSynchronize());
 }

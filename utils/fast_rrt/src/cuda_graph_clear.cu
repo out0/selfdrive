@@ -5,7 +5,7 @@ __global__ static void __CUDA_KERNEL_Clear(double4 *graph, double *graph_cost, i
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     graph[pos].x = 0.0;

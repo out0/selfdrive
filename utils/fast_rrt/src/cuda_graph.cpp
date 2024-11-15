@@ -5,8 +5,9 @@ extern void CUDA_clear(double4 *graph, double *graph_cost, int width, int height
 extern unsigned int CUDA_parallel_count(double4 *graph, unsigned int *pcount, int width, int height);
 extern bool CUDA_check_connection_feasible(float3 *og, int *classCost, double *checkParams, unsigned int *pcount, double3 &start, double3 &end);
 extern void __tst_CUDA_build_path(double4 *graph, float3 *og, double *checkParams, double3 &start, double3 &end, int r, int g, int b);
-extern int2 CUDA_find_nearest_neighbor(double4 *graph, int3 *point, int *bestValue, int width, int height, int x, int z);
-extern int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, int *bestValue, int x, int z);
+extern void __tst_CUDA_draw_nodes(double4 *graph, float3 *og, int width, int height, int r, int g, int b);
+extern int2 CUDA_find_nearest_neighbor(double4 *graph, int3 *point, long long *bestValue, int width, int height, int x, int z);
+extern int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z);
 extern void CUDA_list_elements(double4 *graph, double *graph_cost, double *result, int width, int height, int count);
 
 CudaGraph::CudaGraph(
@@ -71,9 +72,9 @@ CudaGraph::CudaGraph(
         return;
     }
 
-    if (!cudaAllocMapped(&bestValue, sizeof(int)))
+    if (!cudaAllocMapped(&bestValue, sizeof(long long)))
     {
-        fprintf(stderr, "[CUDA GRAPH] unable to allocate %ld bytes for computing best value tasks\n", sizeof(int));
+        fprintf(stderr, "[CUDA GRAPH] unable to allocate %ld bytes for computing best value tasks\n", sizeof(long long));
         cudaFreeHost(graph);
         cudaFreeHost(graph_cost);
         cudaFreeHost(point);
@@ -260,6 +261,10 @@ void CudaGraph::list(double *result, int count)
 bool CudaGraph::checkConnectionFeasible(float3 *og, double3 &start, double3 end)
 {
     return CUDA_check_connection_feasible(og, classCosts, checkParams, pcount, start, end);
+}
+
+void CudaGraph::drawNodes(float3 *og) {
+    __tst_CUDA_draw_nodes(graph, og, width, height, 0, 0, 255);
 }
 
 void CudaGraph::drawKinematicPath(float3 *og, double3 &start, double3 &end)
