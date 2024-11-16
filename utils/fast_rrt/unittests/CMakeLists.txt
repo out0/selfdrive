@@ -50,6 +50,8 @@ add_executable(
   unittests.cpp
   test_kinematic_model.cpp
   test_rrt_graph.cpp
+  test_find_nearest_neighbor.cpp
+  test_frame.cpp
   ../../src/kinematic_model.cpp
   ../../src/python_bind.cpp
   ../../src/fast_rrt.cpp
