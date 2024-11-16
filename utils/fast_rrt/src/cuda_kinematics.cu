@@ -2,6 +2,15 @@
 #include "class_def.h"
 #include <math_constants.h>
 
+__device__ static double to_radians(double angle)
+{
+    return (angle * CUDART_PI) / 180;
+}
+__device__ static double to_degrees(double angle)
+{
+    return (angle * 180) / CUDART_PI;
+}
+
 #define NUM_POINTS_ON_MEAN 3
 
 __device__ static double __CUDA_KERNEL_ComputeHeading(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height)
@@ -106,21 +115,14 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(float3 *frame, int 
 
             if (classCost[segmentation_class] < 0)
             {
-                printf("[%d, %d] is not feasible on check angle because of %d, %d\n", x, z, xl, zl);
+                // printf("[%d, %d] is not feasible on check angle because of %d, %d, angle: %f deg\n", x, z, xl, zl, to_degrees(angle_radians));
                 return false;
             }
         }
 
     return true;
 }
-__device__ static double to_radians(double angle)
-{
-    return (angle * CUDART_PI) / 180;
-}
-__device__ static double to_degrees(double angle)
-{
-    return (angle * 180) / CUDART_PI;
-}
+
 __device__ static void convert_to_map_coord(double3 &center, double rate_w, double rate_h, double3 &p)
 {
     double x = p.x;
@@ -172,7 +174,7 @@ __device__ static double clip(double val, double min, double max)
     return val;
 }
 
-__device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkParams, double3 start, double3 end)
+__device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkParams, double3 start, double3 end, double &final_heading)
 {
     // bool DEBUG = (__double2int_rn(start.x) == 128 && __double2int_rn(start.y) == 108);
 
@@ -215,6 +217,8 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
         x += ds * cos(heading + beta);
         y += ds * sin(heading + beta);
         heading += ds * cos(beta) * steer / (2 * _lr);
+        final_heading = to_degrees(heading);
+
 
         next_p.x = x;
         next_p.y = y;
@@ -268,7 +272,9 @@ __global__ void CUDA_KERNEL_check_connection_feasible(float3 *og, int *classCost
     if (__double2int_rd(start.x) != x || __double2int_rd(start.z) != z)
         return;
 
-    bool res = check_kinematic_path(og, classCost, checkParams, start, end);
+    double final_heading;
+
+    bool res = check_kinematic_path(og, classCost, checkParams, start, end, final_heading);
     if (res)
         return;
 
@@ -437,7 +443,7 @@ __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph
     if (graph[pos].w != 1.0) // w means that the point is part of the graph
         return;
 
-    // printf("[CUDA debug] (%d, %d) in graph\n", x, z);
+    //printf("[CUDA debug] (%d, %d) in graph\n", x, z);
 
     if (target_x == x && target_z == z)
     {
@@ -465,7 +471,9 @@ __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph
 
     // printf("[CUDA debug] (%d, %d) checking %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
 
-    if (!check_kinematic_path(og, classCost, checkParams, start, end))
+    double final_heading;
+
+    if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
     {
         // printf("[CUDA debug] (%d, %d) not feasible for %f, %f, %f -> %f, %f\n", x, z, start.x, start.y, start.z, end.x, end.y);
         return;
@@ -546,11 +554,13 @@ __global__ void __CUDA_KERNEL_find_feasible_lowest_neighbor_cost(double4 *graph,
     end.x = target_x;
     end.y = target_z;
 
-    if (!check_kinematic_path(og, classCost, checkParams, start, end))
+    double final_heading;
+
+    if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
         return;
 
     // self cost + dist
-    long long cost = __float2ll_rd(sqrt(dist) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dist) + graph[pos].z);
 
     atomicMin(bestCost, cost);
 }
@@ -574,7 +584,7 @@ __global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, f
     int dz = target_z - z;
 
     long long dist = __float2ll_rd(dx * dx + dz * dz);
-    long long cost = __float2ll_rd(sqrt(dist) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dist) + graph[pos].z);
 
     if (cost != *bestCost)
         return;
@@ -587,7 +597,9 @@ __global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, f
     end.x = target_x;
     end.y = target_z;
 
-    if (!check_kinematic_path(og, classCost, checkParams, start, end))
+    double final_heading;
+
+    if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
         return;
 
     point->x = x;
@@ -631,7 +643,7 @@ __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double * gra
     int dx = parent_candidate_x - x;
     int dz = parent_candidate_z - z;
 
-    double dist = sqrt(dx * dx + dz * dz);
+    double dist = sqrtf(dx * dx + dz * dz);
     if (dist > radius)
         return;
 
@@ -655,11 +667,16 @@ __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double * gra
     if (check_node_in_subgraph(graph, width, pos, parent_candidate_pos))
         return;
 
-    if (!check_kinematic_path(og, classCost, checkParams, start, end))
+    double final_heading;
+
+    if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
         return;
 
     // we should optimize
     graph_cost[pos] = parent_cost + dist;
-    //graph[]
+    graph[pos].x = parent_candidate_x;
+    graph[pos].y = parent_candidate_z;
+    graph[pos].z = final_heading;
+    graph[pos].w = 1.0;
 
 }

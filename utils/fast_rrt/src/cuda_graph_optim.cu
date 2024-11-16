@@ -2,9 +2,9 @@
 #include "class_def.h"
 #include <math_constants.h>
 
-extern __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, float3 *og, int *classCost, double *checkParams, int parent_candidate_x, int parent_candidate_z, float radius);
+extern __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double * graph_cost, float3 *og, int *classCost, double *checkParams, int parent_candidate_x, int parent_candidate_z, float radius);
 
-void CUDA_optimizeGraphWithNode(double4 *graph, float3 *og, int *classCost, double *checkParams, int x, int z, float radius)
+void CUDA_optimizeGraphWithNode(double4 *graph, double * graph_cost, float3 *og, int *classCost, double *checkParams, int x, int z, float radius)
 {
     int width = static_cast<int>(checkParams[0]);
     int height = static_cast<int>(checkParams[1]);
@@ -13,7 +13,7 @@ void CUDA_optimizeGraphWithNode(double4 *graph, float3 *og, int *classCost, doub
 
     int numBlocks = floor(size / 256) + 1;
 
-    __CUDA_KERNEL_optimizeGraphWithNode<<<numBlocks, 256>>>(graph, og, classCost, checkParams, x, z, radius);
+    __CUDA_KERNEL_optimizeGraphWithNode<<<numBlocks, 256>>>(graph,  graph_cost, og, classCost, checkParams, x, z, radius);
 
     CUDA(cudaDeviceSynchronize());
 }

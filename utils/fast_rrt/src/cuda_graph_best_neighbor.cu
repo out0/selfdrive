@@ -28,7 +28,7 @@ __global__ void __CUDA_KERNEL_find_lowest_neighbor_cost(double4 *graph, int widt
         return;
 
     // self cost + dist
-    long long cost = __float2ll_rd(sqrt(dist) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dist) + graph[pos].z);
 
     atomicMin(bestCost, cost);
 }
@@ -49,7 +49,7 @@ __global__ void __CUDA_KERNEL_find_neighbor_with_cost(double4 *graph, int width,
     int dx = target_x - x;
     int dz = target_z - z;
 
-    long long cost = __float2ll_rd(sqrt(dx * dx + dz * dz) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dx * dx + dz * dz) + graph[pos].z);
 
     if (cost == *bestCost)
     {
@@ -93,8 +93,8 @@ int2 CUDA_find_best_neighbor(double4 *graph, int3 *point, long long *bestValue, 
 
 int2 CUDA_find_best_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double * checkParams, int3 *point, long long *bestValue, int x, int z, float radius)
 {
-    int width = __double2int_rn(checkParams[0]);
-    int height = __double2int_rn(checkParams[1]);
+    int width = static_cast<int>(checkParams[0]);
+    int height = static_cast<int>(checkParams[1]);
     int size = width * height;
 
     int numBlocks = floor(size / 256) + 1;

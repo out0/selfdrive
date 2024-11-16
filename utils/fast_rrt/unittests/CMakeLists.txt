@@ -59,6 +59,7 @@ add_executable(
   ../../src/cuda_graph_list.cu
   ../../src/cuda_kinematics.cu
   ../../src/cuda_graph_nearest.cu
+  ../../src/cuda_graph_best_neighbor.cu
 )
 
 if(THREADS_HAVE_PTHREAD_ARG)

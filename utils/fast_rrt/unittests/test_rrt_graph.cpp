@@ -196,6 +196,7 @@ TEST(RRTGraph, TestNearestFeasibleNeighboor_NoObstacles)
     g->add(128, 88, 0.0, 128, 108, 0);
     g->add(128, 48, 0.0, 128, 88, 0);
     g->add(150, 0, 0.0, 128, 48, 0);
+    
     int2 res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 50, 50);
     ASSERT_EQ(res.x, 128);
     ASSERT_EQ(res.y, 88);
@@ -212,8 +213,8 @@ TEST(RRTGraph, TestNearestFeasibleNeighboor_NoObstacles)
     ASSERT_EQ(res.x, 150);
     ASSERT_EQ(res.y, 0);
 
-    tstFrame.drawGraph();
-    tstFrame.toFile();
+    // tstFrame.drawGraph();
+    // tstFrame.toFile();
 }
 
 TEST(RRTGraph, TestNearestFeasibleNeighboor_Obstacle)
@@ -222,36 +223,39 @@ TEST(RRTGraph, TestNearestFeasibleNeighboor_Obstacle)
     CudaGraph *g = tstFrame.getGraph();
     CudaFrame *og = tstFrame.getCudaGrame();
 
-    g->add(128, 128, 0.0, -1, -1, 0);
-    g->add(128, 108, 0.0, 128, 128, 0);
-    g->add(128, 88, 0.0, 128, 108, 0);
-    g->add(128, 48, 0.0, 128, 88, 0);
-    g->add(150, 0, 0.0, 128, 48, 0);
-    g->add(50, 50, 0.0, 128, 128, 0);
+    g->add(128.0, 128.0, 0.0, -1, -1, 0);
+    g->add(128.0, 108.0, 0.0, 128.0, 128.0, 0);
+    g->add(128.0, 88.0, 0.0, 128.0, 108.0, 0);
+    g->add(128.0, 48.0, 0.0, 128.0, 88.0, 0);
+    g->add(150.0, 0.0, 0.0, 128.0, 48.0, 0);
 
-    tstFrame.addArea(130, 90, 140, 60, 28);
-    tstFrame.drawGraph();
-    tstFrame.toFile("dump2.png");
-    return;
+    tstFrame.addArea(130, 90, 140, 70, 28);
+    // tstFrame.drawGraph();
+    // tstFrame.toFile("dump_obstacle.png");
 
     int2 res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 50, 50);
     ASSERT_EQ(res.x, 128);
-    ASSERT_EQ(res.y, 108);
+    ASSERT_EQ(res.y, 128);
 
     res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 150, 20);
     ASSERT_EQ(res.x, 128);
     ASSERT_EQ(res.y, 48);
 
     res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 100, 70);
-    ASSERT_EQ(res.x, 128);
-    ASSERT_EQ(res.y, 88);
+    ASSERT_EQ(res.x, -1);
+    ASSERT_EQ(res.y, -1);
 
     res = g->find_nearest_feasible_neighbor(og->getFramePtr(), 140, -20);
     ASSERT_EQ(res.x, 150);
     ASSERT_EQ(res.y, 0);
 
-    tstFrame.drawGraph();
-    tstFrame.toFile();
+    // g->add(50, 50, -20, 128, 128, 200);
+    // g->add(150, 20, -20, 128, 48, 200);
+
+
+    // tstFrame.drawGraph();
+    // tstFrame.toFile("dump_obstacle.png");
+
 }
 
 TEST(RRTGraph, TestDrawPath)
@@ -323,4 +327,14 @@ TEST(RRTGraph, TestDrawPathCPU)
 
     dump_cuda_frame_to_file(&f, "dump_cpu.png");
     delete list;
+}
+
+
+TEST(RRTGraph, TestFindBestNeighbor)
+{
+    TestFrame tstFrame;
+    CudaGraph *g = tstFrame.getGraph();
+    CudaFrame *og = tstFrame.getCudaGrame();
+
+   
 }
