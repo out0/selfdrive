@@ -1,14 +1,14 @@
 #include "cuda_basic.h"
 #include "class_def.h"
 
-extern __global__ void __CUDA_KERNEL_find_feasible_lowest_neighbor_cost(double4 *graph, float3 *og, int *classCost,  double *checkParams, int target_x, int target_z, float radius, long long *bestCost);
-extern __global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestCost, int3 *point);
+extern __global__ void __CUDA_KERNEL_find_feasible_lowest_neighbor_cost(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, float radius, long long *bestCost);
+extern __global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestCost, int3 *point);
 
-__global__ void __CUDA_KERNEL_find_lowest_neighbor_cost(double4 *graph, int width, int height, int target_x, int target_z, float radius, long long *bestCost)
+__global__ void __CUDA_KERNEL_find_lowest_neighbor_cost(double4 *graph, double *graph_cost, int width, int height, int target_x, int target_z, float radius, long long *bestCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int z = pos / width;
@@ -28,16 +28,16 @@ __global__ void __CUDA_KERNEL_find_lowest_neighbor_cost(double4 *graph, int widt
         return;
 
     // self cost + dist
-    long long cost = __float2ll_rd(sqrtf(dist) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dist) + graph_cost[pos]);
 
     atomicMin(bestCost, cost);
 }
 
-__global__ void __CUDA_KERNEL_find_neighbor_with_cost(double4 *graph, int width, int height, int target_x, int target_z, float radius, long long *bestCost, int3 *point)
+__global__ void __CUDA_KERNEL_find_neighbor_with_cost(double4 *graph, double *graph_cost, int width, int height, int target_x, int target_z, float radius, long long *bestCost, int3 *point)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int z = pos / width;
@@ -49,7 +49,7 @@ __global__ void __CUDA_KERNEL_find_neighbor_with_cost(double4 *graph, int width,
     int dx = target_x - x;
     int dz = target_z - z;
 
-    long long cost = __float2ll_rd(sqrtf(dx * dx + dz * dz) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dx * dx + dz * dz) + graph_cost[pos]);
 
     if (cost == *bestCost)
     {
@@ -59,7 +59,7 @@ __global__ void __CUDA_KERNEL_find_neighbor_with_cost(double4 *graph, int width,
     }
 }
 
-int2 CUDA_find_best_neighbor(double4 *graph, int3 *point, long long *bestValue, int width, int height, int x, int z, float radius)
+int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *point, long long *bestValue, int width, int height, int x, int z, float radius)
 {
 
     int size = width * height;
@@ -67,14 +67,14 @@ int2 CUDA_find_best_neighbor(double4 *graph, int3 *point, long long *bestValue, 
     int numBlocks = floor(size / 256) + 1;
 
     *bestValue = 999999999;
-    __CUDA_KERNEL_find_lowest_neighbor_cost<<<numBlocks, 256>>>(graph, width, height, x, z, radius, bestValue);
+    __CUDA_KERNEL_find_lowest_neighbor_cost<<<numBlocks, 256>>>(graph, graph_cost, width, height, x, z, radius, bestValue);
     CUDA(cudaDeviceSynchronize());
 
     point->z = 0.0;
 
     if (*bestValue < 999999999)
     {
-        __CUDA_KERNEL_find_neighbor_with_cost<<<numBlocks, 256>>>(graph, width, height, x, z, radius, bestValue, point);
+        __CUDA_KERNEL_find_neighbor_with_cost<<<numBlocks, 256>>>(graph, graph_cost, width, height, x, z, radius, bestValue, point);
         CUDA(cudaDeviceSynchronize());
     }
 
@@ -91,7 +91,7 @@ int2 CUDA_find_best_neighbor(double4 *graph, int3 *point, long long *bestValue, 
     return ret;
 }
 
-int2 CUDA_find_best_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double * checkParams, int3 *point, long long *bestValue, int x, int z, float radius)
+int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius)
 {
     int width = static_cast<int>(checkParams[0]);
     int height = static_cast<int>(checkParams[1]);
@@ -100,14 +100,14 @@ int2 CUDA_find_best_feasible_neighbor(double4 *graph, float3 *og, int *classCost
     int numBlocks = floor(size / 256) + 1;
 
     *bestValue = 999999999;
-    __CUDA_KERNEL_find_feasible_lowest_neighbor_cost<<<numBlocks, 256>>>(graph, og, classCost, checkParams, x, z, radius, bestValue);
+    __CUDA_KERNEL_find_feasible_lowest_neighbor_cost<<<numBlocks, 256>>>(graph, graph_cost, og, classCost, checkParams, x, z, radius, bestValue);
     CUDA(cudaDeviceSynchronize());
 
     point->z = 0.0;
 
     if (*bestValue < 999999999)
     {
-        __CUDA_KERNEL_find_feasible_neighbor_with_cost<<<numBlocks, 256>>>(graph, og, classCost, checkParams, x, z, bestValue, point);
+        __CUDA_KERNEL_find_feasible_neighbor_with_cost<<<numBlocks, 256>>>(graph, graph_cost, og, classCost, checkParams, x, z, bestValue, point);
         CUDA(cudaDeviceSynchronize());
     }
 

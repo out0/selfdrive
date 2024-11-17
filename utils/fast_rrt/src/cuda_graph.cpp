@@ -6,12 +6,12 @@ extern unsigned int CUDA_parallel_count(double4 *graph, unsigned int *pcount, in
 extern bool CUDA_check_connection_feasible(float3 *og, int *classCost, double *checkParams, unsigned int *pcount, double3 &start, double3 &end);
 extern void __tst_CUDA_build_path(double4 *graph, float3 *og, double *checkParams, double3 &start, double3 &end, int r, int g, int b);
 extern void __tst_CUDA_draw_nodes(double4 *graph, float3 *og, int width, int height, int r, int g, int b);
-extern int2 CUDA_find_nearest_neighbor(double4 *graph, int3 *point, long long *bestValue, int width, int height, int x, int z);
+extern int2 CUDA_find_nearest_neighbor(double4 *graph, double *graph_cost, int3 *point, long long *bestValue, int width, int height, int x, int z);
 extern int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z);
 extern void CUDA_list_elements(double4 *graph, double *graph_cost, double *result, int width, int height, int count);
-extern int2 CUDA_find_best_neighbor(double4 *graph, int3 *point, long long *bestValue, int width, int height, int x, int z, float radius);
-extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
-extern void CUDA_optimizeGraphWithNode(double4 *graph, double * graph_cost, float3 *og, int *classCost, double *checkParams, int x, int z, float radius);
+extern int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *point, long long *bestValue, int width, int height, int x, int z, float radius);
+extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
+extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int x, int z, float radius);
 
 CudaGraph::CudaGraph(
     int width,
@@ -290,7 +290,7 @@ void CudaGraph::drawKinematicPath(float3 *og, double3 &start, double3 &end)
 
 int2 CudaGraph::find_nearest_neighbor(int x, int z)
 {
-    return CUDA_find_nearest_neighbor(graph, point, bestValue, width, height, x, z);
+    return CUDA_find_nearest_neighbor(graph, graph_cost, point, bestValue, width, height, x, z);
 }
 
 int2 CudaGraph::find_nearest_feasible_neighbor(float3 *og, int x, int z)
@@ -300,12 +300,12 @@ int2 CudaGraph::find_nearest_feasible_neighbor(float3 *og, int x, int z)
 
 int2 CudaGraph::find_best_neighbor(int x, int z, float radius)
 {
-    return CUDA_find_best_neighbor(graph, point, bestValue, width, height, x, z, radius);
+    return CUDA_find_best_neighbor(graph, graph_cost, point, bestValue, width, height, x, z, radius);
 }
 
 int2 CudaGraph::find_best_feasible_neighbor(float3 *og, int x, int z, float radius)
 {
-    return CUDA_find_best_feasible_neighbor(graph, og, classCosts, checkParams, point, bestValue, x, z, radius);
+    return CUDA_find_best_feasible_neighbor(graph, graph_cost, og, classCosts, checkParams, point, bestValue, x, z, radius);
 }
 
 // orders nodes within a radius to verify if they should use x,z as their parent node.

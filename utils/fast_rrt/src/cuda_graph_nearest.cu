@@ -1,10 +1,10 @@
 #include "cuda_basic.h"
 #include "class_def.h"
 
-extern __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestDistance);
+extern __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph,  float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestDistance);
 
 
-__global__ void __CUDA_KERNEL_find_nearest_neighbor_dist(double4 *graph, int width, int height, int target_x, int target_z, long long *bestDistance)
+__global__ void __CUDA_KERNEL_find_nearest_neighbor_dist(double4 *graph,  int width, int height, int target_x, int target_z, long long *bestDistance)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -53,7 +53,7 @@ __global__ void __CUDA_KERNEL_find_waypoint_with_nearest_dist(double4 *frame, in
 }
 
 
-int2 CUDA_find_nearest_neighbor(double4 *graph, int3* point, long long *bestValue, int width, int height, int x, int z) {
+int2 CUDA_find_nearest_neighbor(double4 *graph, double *graph_cost, int3* point, long long *bestValue, int width, int height, int x, int z) {
 
     int size = width * height;
 
@@ -84,7 +84,7 @@ int2 CUDA_find_nearest_neighbor(double4 *graph, int3* point, long long *bestValu
 }
 
 
-int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int *classCost, double *checkParams, int3* point, long long *bestValue, int x, int z) {
+int2 CUDA_find_nearest_feasible_neighbor(double4 *graph,  float3 *og, int *classCost, double *checkParams, int3* point, long long *bestValue, int x, int z) {
 
     int width = static_cast<int>(checkParams[0]);
     int height = static_cast<int>(checkParams[1]);

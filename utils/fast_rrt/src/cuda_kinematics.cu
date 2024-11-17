@@ -521,13 +521,13 @@ void __tst_CUDA_draw_nodes(double4 *graph, float3 *og, int width, int height, in
     CUDA(cudaDeviceSynchronize());
 }
 
-__global__ void __CUDA_KERNEL_find_feasible_lowest_neighbor_cost(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, float radius, long long *bestCost)
+__global__ void __CUDA_KERNEL_find_feasible_lowest_neighbor_cost(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, float radius, long long *bestCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     int width = __double2int_rn(checkParams[0]);
     int height = __double2int_rn(checkParams[1]);
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int z = pos / width;
@@ -556,22 +556,26 @@ __global__ void __CUDA_KERNEL_find_feasible_lowest_neighbor_cost(double4 *graph,
 
     double final_heading;
 
+    // printf("[CODE] checking %d, %d to %d, %d\n", x, z, target_x, target_z);
+
     if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
         return;
 
     // self cost + dist
-    long long cost = __float2ll_rd(sqrtf(dist) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dist) + graph_cost[pos]);
+
+    // printf("[CODE] %d, %d is feasible to  %d, %d with cost %lld \n", x, z, target_x, target_z, cost);
 
     atomicMin(bestCost, cost);
 }
 
-__global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestCost, int3 *point)
+__global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int target_x, int target_z, long long *bestCost, int3 *point)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     int width = __double2int_rn(checkParams[0]);
     int height = __double2int_rn(checkParams[1]);
 
-    if (pos > width * height)
+    if (pos >= width * height)
         return;
 
     int z = pos / width;
@@ -584,7 +588,7 @@ __global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, f
     int dz = target_z - z;
 
     long long dist = __float2ll_rd(dx * dx + dz * dz);
-    long long cost = __float2ll_rd(sqrtf(dist) + graph[pos].z);
+    long long cost = __float2ll_rd(sqrtf(dist) + graph_cost[pos]);
 
     if (cost != *bestCost)
         return;
