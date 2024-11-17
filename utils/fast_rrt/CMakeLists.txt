@@ -27,6 +27,12 @@ if(CUDA_LIB_JETSON)
     find_package(jetson-utils REQUIRED)
 endif(CUDA_LIB_JETSON)
 
+find_library(CUDA_FRAME REQUIRED
+    NAMES driveless-cudac
+    HINTS /usr/lib
+)
+
+
 include(FindPackageHandleStandardArgs)
 
 
@@ -48,17 +54,20 @@ add_library( ${CMAKE_PROJECT_NAME} SHARED
     src/cuda_graph_list.cu
     src/cuda_kinematics.cu
     src/cuda_graph_nearest.cu
+    src/cuda_graph_best_neighbor.cu
 )
 
 if(CUDA_LIB_JETSON)
     target_link_libraries( ${PROJECT_NAME}
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
+            ${CUDA_FRAME}
             jetson-utils)
 else()
     target_link_libraries( ${PROJECT_NAME} 
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
+            ${CUDA_FRAME}
             cuda
     )
 endif(CUDA_LIB_JETSON)

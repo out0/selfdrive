@@ -79,7 +79,7 @@ CurveGenerator::CurveGenerator(double3 center, double rate_w, double rate_h, dou
     _max_steering_angle_deg = max_steering_angle_deg;
 }
 
-Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
+std::vector<double3> CurveGenerator::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
 {
     double steer = tan(to_radians(steering_angle_deg));
 
@@ -96,40 +96,38 @@ Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double velo
 
     int max_size = static_cast<int>(round(path_size)) + 1;
 
-    Memlist<double3> *res = new Memlist<double3>();
-    res->data = new double3[max_size];
-    res->size = 0;
+    std::vector<double3> res;
+    res.reserve(max_size % 100);
 
-    while (res->size < path_size)
+    while (res.size() < path_size)
     {
         x += ds * cos(heading + beta);
         y += ds * sin(heading + beta);
         heading += ds * cos(beta) * steer / (2 * _lr);
 
-        res->data[res->size].x = x;
-        res->data[res->size].y = y;
-        res->data[res->size].z = to_degrees(heading);
+        double3 p;
+        p.x = x;
+        p.y = y;
+        p.z = to_degrees(heading);
 
-        convert_to_waypoint_coord(_center, _rate_w, _rate_h, res->data[res->size]);
+        convert_to_waypoint_coord(_center, _rate_w, _rate_h, p);
 
-        if (res->data[res->size].x == last_x && res->data[res->size].y == last_z)
+        if (p.x == last_x && p.y == last_z)
             continue;
 
-        res->size++;
+        res.push_back(p);
     }
 
     return res;
 }
 
-Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
+std::vector<double3>  CurveGenerator::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
 {
     double distance = compute_euclidean_dist(start, end);
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
     convert_to_map_coord(_center, _rate_w, _rate_h, end);
     double dt = 0.1;
     
-    Memlist<double3> *res = new Memlist<double3>();
-    res->size = 0;
     int last_x = -1, last_y = -1;
 
     double max_turning_angle = to_radians(_max_steering_angle_deg);
@@ -140,7 +138,9 @@ Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double3 end
     double ds = velocity_meters_per_s * dt;
 
     int total_steps = static_cast<int>(round(distance / ds));
-    res->data = new double3[total_steps + 1];
+
+    std::vector<double3> res;
+    res.reserve(total_steps % 100);
 
     int best_end_pos = -1;
     double best_end_dist = distance;
@@ -157,32 +157,33 @@ Memlist<double3> *CurveGenerator::buildCurveWaypoints(double3 start, double3 end
         y += ds * sin(heading + beta);
         heading += (ds * cos(beta) * steer) * iL;
 
-        res->data[res->size].x = x;
-        res->data[res->size].y = y;
-        res->data[res->size].z = to_degrees(heading);
+        double3 p;
+        p.x = x;
+        p.y = y;
+        p.z = to_degrees(heading);
 
-        path_heading = compute_path_heading(res->data[res->size], end);
+        path_heading = compute_path_heading(p, end);
         steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
-        double dist = compute_euclidean_dist(res->data[res->size], end);
+        double dist = compute_euclidean_dist(p, end);
 
-        convert_to_waypoint_coord(_center, _rate_w, _rate_h, res->data[res->size]);
+        
+        convert_to_waypoint_coord(_center, _rate_w, _rate_h, p);
 
-        if (res->data[res->size].x == last_x && res->data[res->size].y == last_y)
+        if (p.x == last_x && p.y == last_y)
             continue;
 
         if (best_end_dist > dist)
         {
             best_end_dist = dist;
-            best_end_pos = res->size;
+            best_end_pos = res.size();
         }
 
-        last_x = static_cast<int>(res->data[res->size].x);
-        last_y = static_cast<int>(res->data[res->size].y);
+        last_x = static_cast<int>(p.x);
+        last_y = static_cast<int>(p.y);
 
-        res->size++;
+        res.push_back(p);
     }
 
-    
-    res->size = best_end_pos + 1;
+    res.erase(res.begin() + best_end_pos + 1, res.end());
     return res;
 }

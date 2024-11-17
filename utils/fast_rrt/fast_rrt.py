@@ -53,7 +53,6 @@ lib.connect_nodes_with_path.argtypes = [
     ctypes.c_float, # start_heading,
     ctypes.c_int, #end_x,
     ctypes.c_int, # end_z,
-    ctypes.c_float, # end_heading,
     ctypes.c_float # velocity_m_s,
 ]
 
@@ -127,14 +126,14 @@ class FastRRT:
                             end: Waypoint,
                             velocity_m_s: float) -> list[Waypoint]:
         
-        points = lib.connect_nodes_with_path(self.__fast_rrt_cuda,
-                                    start.x,
-                                    start.z,
-                                    start.heading,
-                                    end.x,
-                                    end.z,
-                                    end.heading,
-                                    velocity_m_s)
+        points = lib.connect_nodes_with_path(
+            self.__fast_rrt_cuda,
+            start.x,
+            start.z,
+            start.heading,
+            end.x,
+            end.z,
+            velocity_m_s)
 
         data = ctypes.cast(points, ctypes.POINTER(ctypes.c_float))
 

@@ -2,8 +2,7 @@
 #define H_FAST_RRT
 
 #include <cuda_runtime.h>
-#include "fast_rrt_mem.h"
-#include <cuda_runtime.h>
+#include <vector>
 #include "../src/kinematic_model.h"
 #include "../src/cuda_graph.h"
 
@@ -14,8 +13,8 @@ private:
     CudaGraph *_graph;
     /* data */
 public:
-    Memlist<double3> *buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size);
-    Memlist<double3> *buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s);
+    std::vector<double3> buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size);
+    std::vector<double3> buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s);
 
     FastRRT(
         int og_width,

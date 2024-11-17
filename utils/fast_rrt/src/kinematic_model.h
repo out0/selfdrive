@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cstring>
 #include <cuda_runtime.h>
-#include "../include/fast_rrt_mem.h"
+#include <vector>
 
 class CurveGenerator {
     double3 _center;
@@ -17,8 +17,8 @@ class CurveGenerator {
 
 public:
     CurveGenerator(double3 center, double rate_w, double rate_h, double lr, double max_steering_angle_deg);
-    Memlist<double3>* buildCurveWaypoints(double3 firstPos, double velocity_meters_per_s, double steering_angle_deg, double path_size);
-    Memlist<double3>* buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s);
+    std::vector<double3> buildCurveWaypoints(double3 firstPos, double velocity_meters_per_s, double steering_angle_deg, double path_size);
+    std::vector<double3> buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s);
 
 
 };

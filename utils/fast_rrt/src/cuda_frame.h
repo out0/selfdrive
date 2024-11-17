@@ -49,5 +49,5 @@ public:
 
     float getCost(int x, int z);
 
-    float3* getFramePtr();
+    float3 * getFramePtr();
 };

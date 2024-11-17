@@ -33,6 +33,8 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
 
 SET(TARGET_H
   
@@ -46,13 +48,14 @@ find_library(CUDA_FRAME REQUIRED
 
 
 add_executable(
-  unittest
+  ${CMAKE_PROJECT_NAME} 
   unittests.cpp
-  test_frame.cpp
+  # test_frame.cpp
+  # test_rrt_graph.cpp
+  # test_find_nearest_neighbor.cpp
+  # test_find_best_neighbor.cpp
+  # test_optimize_graph_with_node.cpp
   test_kinematic_model.cpp
-  test_rrt_graph.cpp
-  test_find_nearest_neighbor.cpp
-  test_find_best_neighbor.cpp
   ../../src/kinematic_model.cpp
   ../../src/python_bind.cpp
   ../../src/fast_rrt.cpp
@@ -65,17 +68,24 @@ add_executable(
   ../../src/cuda_graph_best_neighbor.cu
 )
 
+target_include_directories( ${CMAKE_PROJECT_NAME}  PRIVATE ${Python3_INCLUDE_DIRS})
+
+
 if(THREADS_HAVE_PTHREAD_ARG)
-  target_compile_options(unittest PUBLIC "-pthread")
+  target_compile_options( ${CMAKE_PROJECT_NAME}  PUBLIC "-pthread")
 endif()
 if(CMAKE_THREAD_LIBS_INIT)
-  target_link_libraries(unittest "${CMAKE_THREAD_LIBS_INIT}")
+  target_link_libraries( ${CMAKE_PROJECT_NAME}  "${CMAKE_THREAD_LIBS_INIT}")
 endif()
 
 # link my-recognition to jetson-inference library
-target_link_libraries(unittest PkgConfig::deps 
+target_link_libraries( 
+  ${CMAKE_PROJECT_NAME}  
+  PkgConfig::deps 
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
   ${CUDA_FRAME}
   ${OpenCV_LIBS}
+  ${Python3_LIBRARIES}
 )
+

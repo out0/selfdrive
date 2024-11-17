@@ -51,11 +51,11 @@ FastRRT::~FastRRT()
     delete _curveGenerator;
 }
 
-Memlist<double3> *FastRRT::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
+std::vector<double3> FastRRT::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
 {
     return _curveGenerator->buildCurveWaypoints(start, velocity_meters_per_s, steering_angle_deg, path_size);
 }
-Memlist<double3> *FastRRT::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
+std::vector<double3> FastRRT::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
 {
     return _curveGenerator->buildCurveWaypoints(start, end, velocity_meters_per_s);
 }

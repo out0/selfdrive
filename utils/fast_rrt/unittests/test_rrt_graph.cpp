@@ -10,7 +10,7 @@
 #include <chrono>
 #include <unordered_map>
 #include "../include/physical_parameters.h"
-
+#include <vector>
 
 int convert_to_point(int x, int z)
 {
@@ -102,8 +102,6 @@ TEST(RRTGraph, TestBasicFeatures)
     ASSERT_FLOAT_EQ(g.getCost(999, 999), -1);
 }
 
-
-
 TEST(RRTGraph, TestList)
 {
     CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
@@ -155,7 +153,6 @@ TEST(RRTGraph, TestList)
         ASSERT_FLOAT_EQ(map[key], cost);
     }
 }
-
 
 TEST(RRTGraph, TestDrawPath)
 {
@@ -211,11 +208,11 @@ TEST(RRTGraph, TestDrawPathCPU)
     CurveGenerator gen(start, rw, rh, 3, 40);
     CudaFrame f(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
 
-    Memlist<double3> *list = gen.buildCurveWaypoints(start, end, 1);
+    std::vector<double3> list = gen.buildCurveWaypoints(start, end, 1);
     float3 *ptr = f.getFramePtr();
-    for (int i = 0; i < list->size; i++)
+
+    for (double3 p : list)
     {
-        double3 p = list->data[i];
         int pos = p.y * 256 + p.x;
         if (pos >= 256 * 256 || pos < 0)
             continue;
@@ -225,6 +222,4 @@ TEST(RRTGraph, TestDrawPathCPU)
     }
 
     TestFrame::dump_cuda_frame_to_file(&f, "dump_cpu.png");
-    delete list;
 }
-
