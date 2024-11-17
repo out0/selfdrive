@@ -14,6 +14,7 @@ class CudaGraph
     long long *bestValue;
     int width;
     int height;
+    double3 _center;
 
 public:
     CudaGraph(
@@ -35,6 +36,7 @@ public:
 
     // Basic stuff
     void clear();
+    double getHeading(int x, int z);
     void add(int x, int z, double heading, int parent_x, int parent_z, double cost);
     void remove(int x, int z);
     double3 getParent(int x, int z);
@@ -52,8 +54,12 @@ public:
     // RRT operations
     // ------------------------------------------------------------------------------------
 
-    // connects the node (parent_x, parent_z) to the node candidate (x, z) if a feasible connection is possible; returns true if connected
-    bool connectToGraphIfFeasible(float3 *og, int parent_x, int parent_z, int x, int z);
+    // connects (parent_x, parent_z) to (x', z') which is the kinematic-closest point from x,z, if feasible
+    bool connectToGraph(float3 *og, int parent_x, int parent_z, int x, int z);
+
+    // connects (parent_x, parent_z) to (x', z') which is the kinematic-closest point from x,z, if feasible
+    int2 deriveNode(float3 *og, int parent_x, int parent_z, double angle_deg, double size);
+
 
     // checks that the connection between start and end is feasible
     bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);

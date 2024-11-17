@@ -12,7 +12,7 @@ static double to_radians(double angle)
     return (angle * PI) / 180;
 }
 
-static double to_degrees(double angle)
+double CurveGenerator::to_degrees(double angle)
 {
     return (angle * 180) / PI;
 }
@@ -34,7 +34,7 @@ static void convert_to_waypoint_coord(double3 &center, double rate_w, double rat
     p.y = static_cast<int>(round((center.x - rate_w * x)));
 }
 
-static double compute_euclidean_dist(double3 &start, double3 &end)
+double CurveGenerator::compute_euclidean_dist(double3 &start, double3 &end)
 {
     double dx = end.x - start.x;
     double dy = end.y - start.y;
@@ -79,7 +79,8 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
     double3 start,
     double velocity_meters_per_s,
     double steering_angle_deg,
-    double path_size)
+    double path_size,
+    bool output_heading_in_degrees)
 {
     double steer = tan(to_radians(steering_angle_deg));
 
@@ -108,7 +109,11 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
         double3 p;
         p.x = x;
         p.y = y;
-        p.z = to_degrees(heading);
+
+        if (output_heading_in_degrees)
+            p.z = to_degrees(heading);
+        else
+            p.z = heading;
 
         convert_to_waypoint_coord(_center, _rate_w, _rate_h, p);
 
@@ -129,7 +134,8 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
     double _max_steering_angle_deg,
     double3 start,
     double3 end,
-    double velocity_meters_per_s)
+    double velocity_meters_per_s,
+    bool output_heading_in_degrees)
 {
     double distance = compute_euclidean_dist(start, end);
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
@@ -168,7 +174,11 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
         double3 p;
         p.x = x;
         p.y = y;
-        p.z = to_degrees(heading);
+
+        if (output_heading_in_degrees)
+            p.z = to_degrees(heading);
+        else
+            p.z = heading;
 
         path_heading = compute_path_heading(p, end);
         steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
@@ -193,4 +203,50 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
 
     res.erase(res.begin() + best_end_pos + 1, res.end());
     return res;
+}
+
+bool ConstraintsCheckCPU::computeFeasibleForAngle(
+    float3 *frame,
+    int *classCost,
+    int x,
+    int z,
+    float angle_radians,
+    int width,
+    int height,
+    int min_dist_x,
+    int min_dist_z,
+    int lower_bound_ego_x,
+    int lower_bound_ego_z,
+    int upper_bound_ego_x,
+    int upper_bound_ego_z)
+{
+
+    float c = cosf(angle_radians);
+    float s = sinf(angle_radians);
+
+    for (int i = -min_dist_z; i <= min_dist_z; i++)
+        for (int j = -min_dist_x; j <= min_dist_x; j++)
+        {
+            int xl = round(j * c - i * s) + x;
+            int zl = round(j * s + i * c) + z;
+
+            if (xl < 0 || xl >= width)
+                continue;
+
+            if (zl < 0 || zl >= height)
+                continue;
+
+            if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z)
+                continue;
+
+            int segmentation_class = round(frame[zl * width + xl].x);
+
+            if (classCost[segmentation_class] < 0)
+            {
+                // printf ("(%d, %d) not feasible on angle %f because of (%d, %d)\n", x, z, (180 * angle_radians) / 3.141592654F,  xl, zl);
+                return false;
+            }
+        }
+
+    return true;
 }

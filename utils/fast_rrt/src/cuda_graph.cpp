@@ -14,6 +14,7 @@ extern int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *po
 extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
 extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int x, int z, float radius);
 
+// TODO: receive center instead of assuming OG_WIDTH/2, OG_HEIGHT/2
 CudaGraph::CudaGraph(
     int width,
     int height,
@@ -115,6 +116,10 @@ CudaGraph::CudaGraph(
     checkParams[13] = width / 2;  // OG center
     checkParams[14] = height / 2; // OG center
 
+    _center.x = checkParams[13];
+    _center.y = checkParams[14];
+    _center.z = 0.0;
+
     clear();
 }
 
@@ -151,6 +156,24 @@ void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, do
     this->graph[pos].z = heading;
     this->graph[pos].w = 1.0;
     this->graph_cost[pos] = cost;
+}
+
+double CudaGraph::getHeading(int x, int z)
+{
+    if (x > width || x < 0)
+        return 0.0;
+    if (z > height || z < 0)
+        return 0.0;
+
+    int pos = z * width + x;
+
+    if (pos > width * height || pos < 0)
+        return 0.0;
+
+    if (this->graph[pos].w != 1.0)
+        return 0.0;
+
+    return graph[pos].z;
 }
 
 void CudaGraph::remove(int x, int z)
@@ -315,6 +338,137 @@ void CudaGraph::optimizeGraphWithNode(float3 *og, int x, int z, float radius)
     return CUDA_optimizeGraphWithNode(graph, graph_cost, og, classCosts, checkParams, x, z, radius);
 }
 
-bool CudaGraph::connectToGraphIfFeasible(float3 *og, int parent_x, int parent_z, int x, int z) {
+bool CudaGraph::connectToGraph(float3 *og, int parent_x, int parent_z, int x, int z)
+{
+    if (!checkInGraph(parent_x, parent_z))
+        return false;
+
+    if (checkInGraph(x, z))
+        return true;
+
+    double3 start, end;
+
+    start.x = parent_x;
+    start.y = parent_z;
+    start.z = getHeading(parent_x, parent_z);
+
+    end.x = x;
+    end.y = z;
+    end.z = 0; // not used
+
+    std::vector<double3> curve = CurveGenerator::buildCurveWaypoints(_center,
+                                                                     checkParams[8],
+                                                                     checkParams[9],
+                                                                     checkParams[11],
+                                                                     checkParams[10],
+                                                                     start,
+                                                                     end,
+                                                                     checkParams[12],
+                                                                     false);
+
+    double last_heading = 0.0;
+    double last_x;
+    double last_z;
+
+    for (double3 p : curve)
+    {
+        last_x = p.x;
+        last_z = p.y;
+        last_heading = p.z;
+
+        if (!ConstraintsCheckCPU::computeFeasibleForAngle(og,
+                                                          classCosts,
+                                                          p.x,
+                                                          p.y,
+                                                          p.z,
+                                                          checkParams[0],
+                                                          checkParams[1],
+                                                          checkParams[2],
+                                                          checkParams[3],
+                                                          checkParams[4],
+                                                          checkParams[5],
+                                                          checkParams[6],
+                                                          checkParams[7]))
+            return false;
+    }
+
+    double cost = getCost(parent_x, parent_z) + CurveGenerator::compute_euclidean_dist(start, end);
+
+    add(static_cast<int>(last_x),
+        static_cast<int>(last_z),
+        CurveGenerator::to_degrees(last_heading),
+        parent_x,
+        parent_z,
+        cost);
+
+    return true;
+}
+
+int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_deg, double size)
+{
+    int2 res;
+    res.x = -1;
+    res.y = -1;
+
+    if (!checkInGraph(parent_x, parent_z))
+        return res;
+
+    double3 start;
+
+    start.x = parent_x;
+    start.y = parent_z;
+    start.z = getHeading(parent_x, parent_z);
+
+    std::vector<double3> curve = CurveGenerator::buildCurveWaypoints(_center,
+                                                                     checkParams[8],
+                                                                     checkParams[9],
+                                                                     checkParams[11],
+                                                                     checkParams[10],
+                                                                     start,
+                                                                     checkParams[12],
+                                                                     angle_deg,
+                                                                     size,
+                                                                     false);
+
+    double3 end;
+    end.x = parent_x;
+    end.y = parent_z;
+    end.z = start.z;
+
+    for (double3 p : curve)
+    {
+        end.x = p.x;
+        end.y = p.y;
+        end.z = p.z;
+
+        if (!ConstraintsCheckCPU::computeFeasibleForAngle(og,
+                                                          classCosts,
+                                                          p.x,
+                                                          p.y,
+                                                          p.z,
+                                                          checkParams[0],
+                                                          checkParams[1],
+                                                          checkParams[2],
+                                                          checkParams[3],
+                                                          checkParams[4],
+                                                          checkParams[5],
+                                                          checkParams[6],
+                                                          checkParams[7]))
+            return res;
+    }
+
+    double cost = getCost(parent_x, parent_z) + CurveGenerator::compute_euclidean_dist(start, end);
+    res.x = static_cast<int>(end.x);
+    res.y = static_cast<int>(end.y);
+
+    add(res.x,
+        res.y,
+        CurveGenerator::to_degrees(end.z),
+        parent_x,
+        parent_z,
+        cost);
+
     
+
+    return res;
 }
