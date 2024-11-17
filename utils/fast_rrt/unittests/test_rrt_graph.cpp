@@ -205,10 +205,9 @@ TEST(RRTGraph, TestDrawPathCPU)
 
     g.add(128, 128, 0.0, -1, -1, 0);
 
-    CurveGenerator gen(start, rw, rh, 3, 40);
     CudaFrame f(frame, 256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0);
 
-    std::vector<double3> list = gen.buildCurveWaypoints(start, end, 1);
+    std::vector<double3> list = CurveGenerator::buildCurveWaypoints(start, rw, rh, 3, 40, start, end, 1);
     float3 *ptr = f.getFramePtr();
 
     for (double3 p : list)

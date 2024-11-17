@@ -2,7 +2,6 @@
 #include "kinematic_model.h"
 #include <stdio.h>
 
-
 #ifndef PI
 #define PI 3.1415926535897931e+0
 #define PI_2 1.5707963267948966e+0
@@ -71,15 +70,16 @@ static double clip(double val, double min, double max)
     return val;
 }
 
-CurveGenerator::CurveGenerator(double3 center, double rate_w, double rate_h, double lr, double max_steering_angle_deg) {
-    _center = center;
-    _rate_w = rate_w;
-    _rate_h = rate_h;
-    _lr = lr;
-    _max_steering_angle_deg = max_steering_angle_deg;
-}
-
-std::vector<double3> CurveGenerator::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
+std::vector<double3> CurveGenerator::buildCurveWaypoints(
+    double3 _center,
+    double _rate_w,
+    double _rate_h,
+    double _lr,
+    double _max_steering_angle_deg,
+    double3 start,
+    double velocity_meters_per_s,
+    double steering_angle_deg,
+    double path_size)
 {
     double steer = tan(to_radians(steering_angle_deg));
 
@@ -121,13 +121,21 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(double3 start, double v
     return res;
 }
 
-std::vector<double3>  CurveGenerator::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
+std::vector<double3> CurveGenerator::buildCurveWaypoints(
+    double3 _center,
+    double _rate_w,
+    double _rate_h,
+    double _lr,
+    double _max_steering_angle_deg,
+    double3 start,
+    double3 end,
+    double velocity_meters_per_s)
 {
     double distance = compute_euclidean_dist(start, end);
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
     convert_to_map_coord(_center, _rate_w, _rate_h, end);
     double dt = 0.1;
-    
+
     int last_x = -1, last_y = -1;
 
     double max_turning_angle = to_radians(_max_steering_angle_deg);
@@ -166,7 +174,6 @@ std::vector<double3>  CurveGenerator::buildCurveWaypoints(double3 start, double3
         steering_angle_deg = clip(path_heading - heading, -max_turning_angle, max_turning_angle);
         double dist = compute_euclidean_dist(p, end);
 
-        
         convert_to_waypoint_coord(_center, _rate_w, _rate_h, p);
 
         if (p.x == last_x && p.y == last_y)

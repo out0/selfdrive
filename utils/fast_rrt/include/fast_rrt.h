@@ -3,14 +3,17 @@
 
 #include <cuda_runtime.h>
 #include <vector>
-#include "../src/kinematic_model.h"
 #include "../src/cuda_graph.h"
 
 class FastRRT
 {
 private:
-    CurveGenerator *_curveGenerator;
     CudaGraph *_graph;
+    double3 _center;
+    double _rw;
+    double _rh;
+    double _lr;
+    double _max_steering_angle;
     /* data */
 public:
     std::vector<double3> buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size);

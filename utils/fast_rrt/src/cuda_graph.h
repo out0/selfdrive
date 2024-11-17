@@ -52,6 +52,9 @@ public:
     // RRT operations
     // ------------------------------------------------------------------------------------
 
+    // connects the node (parent_x, parent_z) to the node candidate (x, z) if a feasible connection is possible; returns true if connected
+    bool connectToGraphIfFeasible(float3 *og, int parent_x, int parent_z, int x, int z);
+
     // checks that the connection between start and end is feasible
     bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);
 

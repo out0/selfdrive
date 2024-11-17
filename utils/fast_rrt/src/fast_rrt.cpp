@@ -1,4 +1,5 @@
 #include "../include/fast_rrt.h"
+#include "../src/kinematic_model.h"
 
 FastRRT::FastRRT(
     int og_width,
@@ -14,21 +15,15 @@ FastRRT::FastRRT(
     double max_steering_angle,
     double velocity_m_s)
 {
-    double rw = og_width / og_real_width_m;
-    double rh = og_height / og_real_height_m;
+    _rw = og_width / og_real_width_m;
+    _rh = og_height / og_real_height_m;
 
-    double3 center;
-    center.x = static_cast<int>(round(og_width / 2));
-    center.y = static_cast<int>(round(og_height / 2));
+    _center.x = static_cast<int>(round(og_width / 2));
+    _center.y = static_cast<int>(round(og_height / 2));
+    _center.z = 0.0;
 
-    double lr = 0.5 * (lower_bound_z - upper_bound_z) / (og_height / og_real_height_m);
-
-    _curveGenerator = new CurveGenerator(
-        center,
-        rw,
-        rh,
-        lr,
-        max_steering_angle);
+    _lr = 0.5 * (lower_bound_z - upper_bound_z) / (og_height / og_real_height_m);
+    _max_steering_angle = max_steering_angle;
 
     _graph = new CudaGraph(
         og_width,
@@ -39,27 +34,44 @@ FastRRT::FastRRT(
         lower_bound_z,
         upper_bound_x,
         upper_bound_z,
-        rw,
-        rh,
+        _rw,
+        _rh,
         max_steering_angle,
-        lr,
+        _lr,
         velocity_m_s);
 }
 
 FastRRT::~FastRRT()
 {
-    delete _curveGenerator;
 }
 
 std::vector<double3> FastRRT::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
 {
-    return _curveGenerator->buildCurveWaypoints(start, velocity_meters_per_s, steering_angle_deg, path_size);
+    return CurveGenerator::buildCurveWaypoints(
+        _center,
+        _rw,
+        _rh,
+        _lr,
+        _max_steering_angle,
+        start,
+        velocity_meters_per_s,
+        steering_angle_deg,
+        path_size);
 }
 std::vector<double3> FastRRT::buildCurveWaypoints(double3 start, double3 end, double velocity_meters_per_s)
 {
-    return _curveGenerator->buildCurveWaypoints(start, end, velocity_meters_per_s);
+    return CurveGenerator::buildCurveWaypoints(
+        _center,
+        _rw,
+        _rh,
+        _lr,
+        _max_steering_angle,
+        start,
+        end,
+        velocity_meters_per_s);
 }
 
-void FastRRT::testDrawPath(float3 *og, double3 &start, double3 &end) {
+void FastRRT::testDrawPath(float3 *og, double3 &start, double3 &end)
+{
     _graph->drawKinematicPath(og, start, end);
 }

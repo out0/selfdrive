@@ -20,6 +20,9 @@ TEST(RRTGraph, TestOptimize_NoObstacle)
     CudaFrame *og = tstFrame.getCudaGrame();
 
     g->add(128, 230, 0.0, -1, -1, 0);
+
+
+
     g->add(128, 108, 0.0, 128, 230, 0);
     g->add(128, 88, 0.0, 128, 108, 0);
     g->add(128, 48, 0.0, 128, 88, 0);

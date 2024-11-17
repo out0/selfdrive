@@ -1,5 +1,6 @@
 #include "cuda_graph.h"
 #include "class_def.h"
+#include "kinematic_model.h"
 
 extern void CUDA_clear(double4 *graph, double *graph_cost, int width, int height);
 extern unsigned int CUDA_parallel_count(double4 *graph, unsigned int *pcount, int width, int height);
@@ -312,4 +313,8 @@ int2 CudaGraph::find_best_feasible_neighbor(float3 *og, int x, int z, float radi
 void CudaGraph::optimizeGraphWithNode(float3 *og, int x, int z, float radius)
 {
     return CUDA_optimizeGraphWithNode(graph, graph_cost, og, classCosts, checkParams, x, z, radius);
+}
+
+bool CudaGraph::connectToGraphIfFeasible(float3 *og, int parent_x, int parent_z, int x, int z) {
+    
 }
