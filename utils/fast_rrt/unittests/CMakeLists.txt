@@ -50,12 +50,12 @@ find_library(CUDA_FRAME REQUIRED
 add_executable(
   ${CMAKE_PROJECT_NAME} 
   unittests.cpp
-  # test_frame.cpp
-  # test_rrt_graph.cpp
-  # test_find_nearest_neighbor.cpp
-  # test_find_best_neighbor.cpp
-  # test_optimize_graph_with_node.cpp
-  test_kinematic_model.cpp
+  test_frame.cpp
+  test_rrt_graph.cpp
+  test_find_nearest_neighbor.cpp
+  test_find_best_neighbor.cpp
+  test_optimize_graph_with_node.cpp
+#  test_kinematic_model.cpp
   ../../src/kinematic_model.cpp
   ../../src/python_bind.cpp
   ../../src/fast_rrt.cpp

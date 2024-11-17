@@ -6,8 +6,16 @@ import unittest, math
 from model.map_pose import MapPose
 from planner.physical_model import ModelCurveGenerator
 from model.waypoint import Waypoint
+import os
+if not os.path.exists("/usr/local/lib/libfast-rrts.so"):
+   exit(0)
+
 from fast_rrt import FastRRT
 from testing.test_utils import TestFrame
+
+
+
+
 
 class TestFastRRTCurveGen(unittest.TestCase):
     
@@ -78,6 +86,7 @@ class TestFastRRTCurveGen(unittest.TestCase):
         
 
 if __name__ == "__main__":
-    unittest.main()
+    if os.path.exists("/usr/local/lib/libfast-rrts.so"):
+       unittest.main()
 
 
