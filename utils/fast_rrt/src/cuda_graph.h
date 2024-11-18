@@ -15,6 +15,7 @@ class CudaGraph
     int width;
     int height;
     double3 _center;
+    double _goal_heading_deg;
 
 public:
     CudaGraph(
@@ -46,6 +47,8 @@ public:
     double getCost(int x, int z);
     unsigned int count();
     void list(double *result, int count);
+
+    void setGoalHeading(double heading);
 
     // Test stuff
     void drawNodes(float3 *og);

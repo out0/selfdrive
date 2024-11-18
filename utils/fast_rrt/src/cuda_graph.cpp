@@ -12,7 +12,7 @@ extern int2 CUDA_find_nearest_feasible_neighbor(double4 *graph, float3 *og, int 
 extern void CUDA_list_elements(double4 *graph, double *graph_cost, double *result, int width, int height, int count);
 extern int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *point, long long *bestValue, int width, int height, int x, int z, float radius);
 extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
-extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int x, int z, float radius);
+extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, double goal_heading, int x, int z, float radius);
 
 // TODO: receive center instead of assuming OG_WIDTH/2, OG_HEIGHT/2
 CudaGraph::CudaGraph(
@@ -32,6 +32,7 @@ CudaGraph::CudaGraph(
 {
     this->width = width;
     this->height = height;
+    this->_goal_heading_deg = 0.0;
 
     if (!cudaAllocMapped(&this->graph, sizeof(double4) * (width * height)))
     {
@@ -335,7 +336,12 @@ int2 CudaGraph::find_best_feasible_neighbor(float3 *og, int x, int z, float radi
 // orders nodes within a radius to verify if they should use x,z as their parent node.
 void CudaGraph::optimizeGraphWithNode(float3 *og, int x, int z, float radius)
 {
-    return CUDA_optimizeGraphWithNode(graph, graph_cost, og, classCosts, checkParams, x, z, radius);
+    return CUDA_optimizeGraphWithNode(graph, graph_cost, og, classCosts, checkParams, _goal_heading_deg, x, z, radius);
+}
+
+void CudaGraph::setGoalHeading(double heading_deg)
+{
+    _goal_heading_deg = heading_deg;
 }
 
 bool CudaGraph::connectToGraph(float3 *og, int parent_x, int parent_z, int x, int z)
@@ -392,11 +398,17 @@ bool CudaGraph::connectToGraph(float3 *og, int parent_x, int parent_z, int x, in
             return false;
     }
 
-    double cost = getCost(parent_x, parent_z) + CurveGenerator::compute_euclidean_dist(start, end);
+    last_heading = CurveGenerator::to_degrees(last_heading);
+    double heading_error = abs(last_heading - _goal_heading_deg);
+    double diff_cost = CurveGenerator::compute_euclidean_dist(start, end) + (height - z) * heading_error;
+
+    // we should optimize
+
+    double cost = getCost(parent_x, parent_z) + diff_cost;
 
     add(static_cast<int>(last_x),
         static_cast<int>(last_z),
-        CurveGenerator::to_degrees(last_heading),
+        last_heading,
         parent_x,
         parent_z,
         cost);
@@ -457,18 +469,20 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
             return res;
     }
 
-    double cost = getCost(parent_x, parent_z) + CurveGenerator::compute_euclidean_dist(start, end);
+    double last_heading = CurveGenerator::to_degrees(end.z);
+    double heading_error = abs(last_heading - _goal_heading_deg);
+    double diff_cost = CurveGenerator::compute_euclidean_dist(start, end) + (height - end.z) * heading_error;
+    double cost = getCost(parent_x, parent_z) + diff_cost;
+
     res.x = static_cast<int>(end.x);
     res.y = static_cast<int>(end.y);
 
     add(res.x,
         res.y,
-        CurveGenerator::to_degrees(end.z),
+        last_heading,
         parent_x,
         parent_z,
         cost);
-
-    
 
     return res;
 }

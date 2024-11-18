@@ -7,7 +7,7 @@
 #define PI_2 1.5707963267948966e+0
 #endif
 
-static double to_radians(double angle)
+double CurveGenerator::to_radians(double angle)
 {
     return (angle * PI) / 180;
 }

@@ -34,6 +34,7 @@ public:
         bool output_heading_in_degrees = true);
 
     static double to_degrees(double angle);
+    static double to_radians(double angle);
 
     static double compute_euclidean_dist(double3 &start, double3 &end);
 };

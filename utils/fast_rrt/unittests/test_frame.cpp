@@ -6,6 +6,7 @@
 #include "../src/cuda_graph.h"
 #include "test_utils.h"
 #include "test_frame.h"
+#include "../src/kinematic_model.h"
 #include <unordered_set>
 #include <math.h>
 
@@ -38,13 +39,139 @@ void TestFrame::drawNode(CudaGraph *graph, float3 *imgPtr, int x, int z, double 
     graph->drawKinematicPath(imgPtr, start, end);
 }
 
+void change_color(int3 *imgPtr, int width, int x, int z, int r, int g, int b)
+{
+    int pos = z * width + x;
+    imgPtr[pos].x = r;
+    imgPtr[pos].y = g;
+    imgPtr[pos].z = b;
+}
+
+void debug_draw_point(int3 *imgPtr, int width, int x, int z)
+{
+    for (int i = -1; i <= 1; i++)
+    {
+        change_color(imgPtr, width, x + i, z, 255, 0, 0);
+        change_color(imgPtr, width, x, z + i, 255, 0, 0);
+    }
+}
+
+void draw_obstacles(float3 *imgPtr, CudaFrame *og)
+{
+
+    for (int z = 0; z < og->getHeight(); z++)
+    {
+        for (int x = 0; x < og->getWidth(); x++)
+        {
+            int pos = z * og->getWidth() + x;
+            if (static_cast<int>(round(imgPtr[pos].x)) == 28)
+            {
+                imgPtr[pos].x = 0;
+                imgPtr[pos].y = 255;
+                imgPtr[pos].z = 0;
+            }
+        }
+    }
+}
+void draw_obstacles(int3 *imgPtr, CudaFrame *og)
+{
+
+    for (int z = 0; z < og->getHeight(); z++)
+    {
+        for (int x = 0; x < og->getWidth(); x++)
+        {
+            int pos = z * og->getWidth() + x;
+            if (static_cast<int>(round(imgPtr[pos].x)) == 28)
+            {
+                imgPtr[pos].x = 0;
+                imgPtr[pos].y = 255;
+                imgPtr[pos].z = 0;
+            }
+        }
+    }
+}
+
+void TestFrame::drawNodeDebug(CudaGraph *graph, float3 *imgPtr, int3 *imgPtrOutput, int x, int z, double heading)
+{
+    double3 parent = graph->getParent(x, z);
+    int width = OG_WIDTH;
+    int height = OG_HEIGHT;
+    int min_dist_x = MIN_DIST_X / 2;
+    int min_dist_z = MIN_DIST_Z / 2;
+    // int lower_bound_ego_x = LOWER_BOUND_X;
+    // int lower_bound_ego_z = LOWER_BOUND_Z;
+    // int upper_bound_ego_x = UPPER_BOUND_X;
+    // int upper_bound_ego_z = UPPER_BOUND_Z;
+    int lower_bound_ego_x = -1;
+    int lower_bound_ego_z = -1;
+    int upper_bound_ego_x = -1;
+    int upper_bound_ego_z = -1;
+
+    if (parent.x < 0 or parent.y < 0)
+        return;
+
+    double3 start, end;
+    start.x = parent.x;
+    start.y = parent.y;
+    start.z = parent.z;
+    end.x = x;
+    end.y = z;
+    end.z = heading;
+
+    double3 center = {128, 128, 0};
+
+    debug_draw_point(imgPtrOutput, width, x, z);
+
+    std::vector<double3> curve = CurveGenerator::buildCurveWaypoints(center, _rw, _rh, _lr, MAX_STEERING_ANGLE, start, end, 1.0, false);
+
+    for (auto p : curve)
+    {
+        change_color(imgPtrOutput, width, p.x, p.y, 255, 255, 255);
+
+        double c = cos(p.z);
+        double s = sin(p.z);
+        int max_size = width * height;
+
+        for (int i = -min_dist_z; i <= min_dist_z; i++)
+            for (int j = -min_dist_x; j <= min_dist_x; j++)
+            {
+                int xl = static_cast<int>(j * c - i * s + x);
+                int zl = static_cast<int>(j * s + i * c + z);
+
+                if (xl < 0 || xl >= width)
+                    continue;
+
+                if (zl < 0 || zl >= height)
+                    continue;
+
+                if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z)
+                    continue;
+
+                int pos = zl * width + xl;
+                if (pos >= max_size || pos < 0)
+                    continue;
+
+                int segmentation_class = static_cast<int>(imgPtr[pos].x);
+
+                if (segmentation_class == 0 || segmentation_class == 28)
+                {
+                    change_color(imgPtrOutput, width, xl, zl, 0, 0, 255);
+                }
+                else
+                {
+                    change_color(imgPtrOutput, width, xl, zl, 0, 255, 255);
+                }
+            }
+    }
+}
+
 TestFrame::TestFrame(int default_fill_value)
 {
     og = create_default_cuda_frame(default_fill_value);
 
-    double rw = OG_WIDTH / OG_REAL_WIDTH;
-    double rh = OG_HEIGHT / OG_REAL_HEIGHT;
-    double lr = 0.5 * (LOWER_BOUND_Z - UPPER_BOUND_Z) / rh;
+    _rw = OG_WIDTH / OG_REAL_WIDTH;
+    _rh = OG_HEIGHT / OG_REAL_HEIGHT;
+    _lr = 0.5 * (LOWER_BOUND_Z - UPPER_BOUND_Z) / _rh;
 
     graph = new CudaGraph(
         OG_WIDTH,
@@ -55,9 +182,9 @@ TestFrame::TestFrame(int default_fill_value)
         LOWER_BOUND_Z,
         UPPER_BOUND_X,
         UPPER_BOUND_Z,
-        rw, rh,
+        _rw, _rh,
         MAX_STEERING_ANGLE,
-        lr, 1.0);
+        _lr, 1.0);
 }
 
 TestFrame::~TestFrame()
@@ -121,20 +248,56 @@ void TestFrame::drawGraph()
     }
 
     graph->drawNodes(imgPtr);
+    draw_obstacles(imgPtr, og);
+}
 
-    for (int z = 0; z < og->getHeight(); z++)
+void TestFrame::drawGraphDebugTo(const char *filename)
+{
+    float3 *imgPtr = og->getFramePtr();
+
+    int3 *output = new int3[og->getWidth() * og->getHeight()];
+
+    int num_nodes = graph->count();
+    if (num_nodes == 0)
+        return;
+
+    double *nodes = new double[6 * sizeof(double) * num_nodes];
+    graph->list(nodes, num_nodes);
+
+    std::unordered_set<int> drawn;
+
+    for (int i = 0; i < num_nodes; i++)
     {
-        for (int x = 0; x < og->getWidth(); x++)
-        {
-            int pos = z * og->getWidth() + x;
-            if (static_cast<int>(round(imgPtr[pos].x)) == 28)
-            {
-                imgPtr[pos].x = 0;
-                imgPtr[pos].y = 255;
-                imgPtr[pos].z = 0;
-            }
-        }
+        int pos = 6 * i;
+        int x = static_cast<int>(nodes[pos]);
+        int z = static_cast<int>(nodes[pos + 1]);
+        int key = toSetKey(x, z);
+
+        if (drawn.find(key) != drawn.end())
+            continue;
+
+        double heading = static_cast<int>(nodes[pos + 2]);
+        drawNodeDebug(graph, imgPtr, output, x, z, heading);
+        drawn.insert(key);
     }
+
+    draw_obstacles(output, og);
+
+    cv::Mat cimg = cv::Mat(og->getHeight(), og->getWidth(), CV_8UC3);
+
+    for (int i = 0; i < og->getHeight(); i++)
+        for (int j = 0; j < og->getWidth(); j++)
+        {
+            cv::Vec3b &pixel = cimg.at<cv::Vec3b>(i, j);
+            int idx = i * 256 + j;
+
+            // Set the channels: Blue, Green, Red
+            pixel[0] = output[idx].x; // Blue
+            pixel[1] = output[idx].y; // Green
+            pixel[2] = output[idx].z; // Red
+        }
+
+    cv::imwrite(filename, cimg);
 }
 
 void TestFrame::dump_cuda_frame_to_file(CudaFrame *frame, const char *filename)

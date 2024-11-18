@@ -219,7 +219,6 @@ __device__ bool check_kinematic_path(float3 *og, int *classCost, double *checkPa
         heading += ds * cos(beta) * steer / (2 * _lr);
         final_heading = to_degrees(heading);
 
-
         next_p.x = x;
         next_p.y = y;
         next_p.z = heading;
@@ -443,7 +442,7 @@ __global__ void __CUDA_KERNEL_find_nearest_feasible_neighbor_dist(double4 *graph
     if (graph[pos].w != 1.0) // w means that the point is part of the graph
         return;
 
-    //printf("[CUDA debug] (%d, %d) in graph\n", x, z);
+    // printf("[CUDA debug] (%d, %d) in graph\n", x, z);
 
     if (target_x == x && target_z == z)
     {
@@ -611,25 +610,27 @@ __global__ void __CUDA_KERNEL_find_feasible_neighbor_with_cost(double4 *graph, d
     point->z = 1;
 }
 
-__device__ bool check_node_in_subgraph(double4 *graph, int width, int current_pos, int check_pos) {
-    
+__device__ bool check_cyclic_reference(double4 *graph, int width, int current_pos, int check_pos)
+{
+
     int parent_pos = current_pos;
 
-    while (parent_pos != check_pos) {
+    while (parent_pos != check_pos)
+    {
 
-        int parent_pos_x = graph[current_pos].x;
-        int parent_pos_z = graph[current_pos].y;
-        
-        if (parent_pos_x < 0 || parent_pos_z < 0) 
+        int parent_pos_x = __double2int_rn(graph[parent_pos].x);
+        int parent_pos_z = __double2int_rn(graph[parent_pos].y);
+
+        if (parent_pos_x < 0 || parent_pos_z < 0)
             return false;
-        
+
         parent_pos = width * parent_pos_z + parent_pos_x;
     }
 
     return true;
 }
 
-__global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double * graph_cost, float3 *og, int *classCost, double *checkParams, int parent_candidate_x, int parent_candidate_z, float radius)
+__global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, double goal_heading, int parent_candidate_x, int parent_candidate_z, float radius)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     int width = __double2int_rn(checkParams[0]);
@@ -648,6 +649,8 @@ __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double * gra
     int dz = parent_candidate_z - z;
 
     double dist = sqrtf(dx * dx + dz * dz);
+
+    // printf("[%d, %d] check dist: %f > radius %f?\n", x, z, dist, radius);
     if (dist > radius)
         return;
 
@@ -662,25 +665,39 @@ __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double * gra
     end.x = x;
     end.y = z;
 
-    double current_cost = graph_cost[pos];
-    double parent_cost = graph_cost[parent_candidate_pos];
-    
-    if (current_cost < parent_cost + dist)
-        return;
-
-    if (check_node_in_subgraph(graph, width, pos, parent_candidate_pos))
+    // printf("[%d, %d] check_cyclic_reference\n", x, z);
+    if (check_cyclic_reference(graph, width, pos, parent_candidate_pos))
         return;
 
     double final_heading;
 
+    //  printf("[%d, %d] check_kinematic_path\n", x, z);
+
     if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
         return;
 
+       
+
+    double heading_error = abs(final_heading - goal_heading);
+    // printf("\t[%d, %d] dist: %f\n", x, z, dist);
+    // printf("\t[%d, %d] heading error: %f\n", x, z, heading_error);
+    // printf("\t[%d, %d] heading error * remaining Z dist: %f\n", x, z, (height - z) * heading_error);
+    double diff_cost = dist + (height - z) * heading_error;
+
+    double current_cost = graph_cost[pos];
+    double new_cost = graph_cost[parent_candidate_pos] + diff_cost;
+
+    // printf("%d, %d current_cost: %f, new cost: %f\n", x, z, current_cost, new_cost);
+
+    if (current_cost <= new_cost)
+        return;
+
+    //  printf("[%d, %d] will be optimized to new parent %d, %d\n", x, z, parent_candidate_x, parent_candidate_z);
+
     // we should optimize
-    graph_cost[pos] = parent_cost + dist;
+    graph_cost[pos] = new_cost;
     graph[pos].x = parent_candidate_x;
     graph[pos].y = parent_candidate_z;
     graph[pos].z = final_heading;
     graph[pos].w = 1.0;
-
 }
