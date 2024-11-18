@@ -33,6 +33,7 @@ CudaGraph::CudaGraph(
     this->width = width;
     this->height = height;
     this->_goal_heading_deg = 0.0;
+    this->_count = 0;
 
     if (!cudaAllocMapped(&this->graph, sizeof(double4) * (width * height)))
     {
@@ -138,6 +139,7 @@ CudaGraph::~CudaGraph()
 void CudaGraph::clear()
 {
     CUDA_clear(this->graph, this->graph_cost, this->width, this->height);
+    _count = 0;
 }
 
 void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, double cost)
@@ -157,6 +159,7 @@ void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, do
     this->graph[pos].z = heading;
     this->graph[pos].w = 1.0;
     this->graph_cost[pos] = cost;
+    _count++;
 }
 
 double CudaGraph::getHeading(int x, int z)
@@ -194,7 +197,8 @@ void CudaGraph::remove(int x, int z)
 
 unsigned int CudaGraph::count()
 {
-    return CUDA_parallel_count(graph, pcount, width, height);
+    //return CUDA_parallel_count(graph, pcount, width, height);
+    return _count;
 }
 
 bool CudaGraph::checkInGraph(int x, int z)
@@ -469,6 +473,12 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
 
     res.x = static_cast<int>(end.x);
     res.y = static_cast<int>(end.y);
+
+    if (checkInGraph(res.x, res.y)) {
+        res.x = -1;
+        res.y = -1;
+        return;
+    }
 
     add(res.x,
         res.y,

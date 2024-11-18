@@ -40,7 +40,12 @@ double CurveGenerator::compute_euclidean_dist(double3 &start, double3 &end)
     double dy = end.y - start.y;
     return sqrt(dx * dx + dy * dy);
 }
-
+double CurveGenerator::compute_euclidean_dist(double3 &start, int2 &end)
+{
+    double dx = end.x - start.x;
+    double dy = end.y - start.y;
+    return sqrt(dx * dx + dy * dy);
+}
 static double compute_path_heading(double3 p1, double3 p2)
 {
     double dy = p2.y - p1.y;

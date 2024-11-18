@@ -16,6 +16,7 @@ class CudaGraph
     int height;
     double3 _center;
     double _goal_heading_deg;
+    unsigned int _count;
 
 public:
     CudaGraph(
