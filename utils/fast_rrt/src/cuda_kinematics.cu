@@ -678,11 +678,9 @@ __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double *grap
 
        
 
+    // MUST BE THE SAME CODE AS IN CurveGenerator::compute_node_diff_cost
     double heading_error = abs(final_heading - goal_heading);
-    // printf("\t[%d, %d] dist: %f\n", x, z, dist);
-    // printf("\t[%d, %d] heading error: %f\n", x, z, heading_error);
-    // printf("\t[%d, %d] heading error * remaining Z dist: %f\n", x, z, (height - z) * heading_error);
-    double diff_cost = dist + (height - z) * heading_error;
+    double diff_cost = dist + heading_error;
 
     double current_cost = graph_cost[pos];
     double new_cost = graph_cost[parent_candidate_pos] + diff_cost;

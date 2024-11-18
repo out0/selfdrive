@@ -398,13 +398,8 @@ bool CudaGraph::connectToGraph(float3 *og, int parent_x, int parent_z, int x, in
             return false;
     }
 
-    last_heading = CurveGenerator::to_degrees(last_heading);
-    double heading_error = abs(last_heading - _goal_heading_deg);
-    double diff_cost = CurveGenerator::compute_euclidean_dist(start, end) + (height - z) * heading_error;
-
-    // we should optimize
-
-    double cost = getCost(parent_x, parent_z) + diff_cost;
+    last_heading = CurveGenerator::to_degrees(end.z);
+    double cost = getCost(parent_x, parent_z) + CurveGenerator::compute_node_diff_cost(start, end, _goal_heading_deg, last_heading);
 
     add(static_cast<int>(last_x),
         static_cast<int>(last_z),
@@ -470,9 +465,7 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
     }
 
     double last_heading = CurveGenerator::to_degrees(end.z);
-    double heading_error = abs(last_heading - _goal_heading_deg);
-    double diff_cost = CurveGenerator::compute_euclidean_dist(start, end) + (height - end.z) * heading_error;
-    double cost = getCost(parent_x, parent_z) + diff_cost;
+    double cost = getCost(parent_x, parent_z) + CurveGenerator::compute_node_diff_cost(start, end, _goal_heading_deg, last_heading);
 
     res.x = static_cast<int>(end.x);
     res.y = static_cast<int>(end.y);

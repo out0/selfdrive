@@ -250,3 +250,9 @@ bool ConstraintsCheckCPU::computeFeasibleForAngle(
 
     return true;
 }
+
+double CurveGenerator::compute_node_diff_cost(double3 &start, double3 &end, double goal_heading_deg, double node_heading_def)
+{
+    double heading_error = abs(node_heading_def - goal_heading_deg);
+    return compute_euclidean_dist(start, end) + heading_error;
+}

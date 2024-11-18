@@ -35,8 +35,8 @@ public:
 
     static double to_degrees(double angle);
     static double to_radians(double angle);
-
     static double compute_euclidean_dist(double3 &start, double3 &end);
+    static double compute_node_diff_cost(double3 &start, double3 &end, double goal_heading_deg, double node_heading_def);
 };
 
 class ConstraintsCheckCPU
