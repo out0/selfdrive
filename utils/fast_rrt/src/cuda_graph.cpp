@@ -192,7 +192,11 @@ void CudaGraph::remove(int x, int z)
     if (pos > width * height || pos < 0)
         return;
 
+    if (this->graph[pos].w == 1.0)
+        this->_count--;
+
     this->graph[pos].w = 0.0;
+
 }
 
 unsigned int CudaGraph::count()
@@ -477,7 +481,7 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
     if (checkInGraph(res.x, res.y)) {
         res.x = -1;
         res.y = -1;
-        return;
+        return res;
     }
 
     add(res.x,

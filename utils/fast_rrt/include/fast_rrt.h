@@ -6,6 +6,7 @@
 #include "../src/cuda_graph.h"
 #include "../src/cuda_frame.h"
 #include <unordered_set>
+#include <chrono>
 
 #define RRT_SEARCH_ITERATION_EXEC_TIME_ms 100
 #define RRT_MAX_STEP 100
@@ -28,8 +29,9 @@ private:
     bool _search;
     bool _goal_found;
     long _timeout_ms;
+    double _velocity_m_s;
 
-    std::vector<float3> _path;
+    std::vector<double3> _path;
     std::vector<int> _node_list;
     std::chrono::time_point<std::chrono::high_resolution_clock> _exec_start;
 

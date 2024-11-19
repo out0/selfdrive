@@ -1,9 +1,9 @@
 #include "../include/fast_rrt.h"
 #include "../src/kinematic_model.h"
-#include <chrono>
 #include <cstdlib> // for rand()
 #include <ctime>   // for time()
 #include <stack>
+#include "../src/cuda_basic.h"
 
 FastRRT::FastRRT(
     int og_width,
@@ -29,6 +29,7 @@ FastRRT::FastRRT(
 
     _lr = 0.5 * (lower_bound_z - upper_bound_z) / (og_height / og_real_height_m);
     _max_steering_angle = max_steering_angle;
+    _velocity_m_s = velocity_m_s;
 
     _graph = new CudaGraph(
         og_width,
@@ -175,15 +176,33 @@ bool FastRRT::__rrt_search(int iteraction_time_ms)
 
 bool FastRRT::__build_path()
 {
-    int2 n = _graph->find_best_feasible_neighbor(_og,
+    int2 node = _graph->find_best_feasible_neighbor(_og,
                                         static_cast<int>(_goal.x),
                                         static_cast<int>(_goal.y),
                                         REACH_DISTANCE);
-    if (n.x <= 0 || n.y <= 0) return false;
 
-    std::stack<int2> s;
+    if (node.x <= 0 || node.y <= 0) return false;
 
-    // copy from void TestFrame::drawGraph()
+    double3 start, end;
+    end.x = node.x;
+    end.y = node.y;
+    end.z = 0.0;
+
+    _path.clear();
+
+    while (end.x >= 0 && end.y >= 0) {
+        double3 start = _graph->getParent(end.x, end.y);
+       
+        if (start.x >= 0 && start.y >= 0) {
+            std::vector<double3> waypoints = CurveGenerator::buildCurveWaypoints(_center, _rw, _rh, _lr, _max_steering_angle, start, end, _velocity_m_s, true);
+            _path.insert(_path.end(), waypoints.begin(), waypoints.end());
+        }
+
+        end.x = start.x;
+        end.y = start.y;
+        end.z = start.z;
+    }
+    return true;
 }
 
 void FastRRT::__search_executor()
