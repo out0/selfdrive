@@ -17,11 +17,12 @@ FastRRT::FastRRT(
     int upper_bound_x,
     int upper_bound_z,
     double max_steering_angle,
-    double velocity_m_s)
+    int timeout_ms)
 {
     _og_width = og_width;
     _rw = og_width / og_real_width_m;
     _rh = og_height / og_real_height_m;
+    _timeout_ms = static_cast<long>(timeout_ms);
 
     _center.x = static_cast<int>(round(og_width / 2));
     _center.y = static_cast<int>(round(og_height / 2));
@@ -29,7 +30,6 @@ FastRRT::FastRRT(
 
     _lr = 0.5 * (lower_bound_z - upper_bound_z) / (og_height / og_real_height_m);
     _max_steering_angle = max_steering_angle;
-    _velocity_m_s = velocity_m_s;
 
     _graph = new CudaGraph(
         og_width,
@@ -43,12 +43,12 @@ FastRRT::FastRRT(
         _rw,
         _rh,
         max_steering_angle,
-        _lr,
-        velocity_m_s);
+        _lr);
 }
 
 FastRRT::~FastRRT()
 {
+    delete _graph;
 }
 
 std::vector<double3> FastRRT::buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size)
@@ -177,11 +177,12 @@ bool FastRRT::__rrt_search(int iteraction_time_ms)
 bool FastRRT::__build_path()
 {
     int2 node = _graph->find_best_feasible_neighbor(_og,
-                                        static_cast<int>(_goal.x),
-                                        static_cast<int>(_goal.y),
-                                        REACH_DISTANCE);
+                                                    static_cast<int>(_goal.x),
+                                                    static_cast<int>(_goal.y),
+                                                    REACH_DISTANCE);
 
-    if (node.x <= 0 || node.y <= 0) return false;
+    if (node.x <= 0 || node.y <= 0)
+        return false;
 
     double3 start, end;
     end.x = node.x;
@@ -190,10 +191,12 @@ bool FastRRT::__build_path()
 
     _path.clear();
 
-    while (end.x >= 0 && end.y >= 0) {
+    while (end.x >= 0 && end.y >= 0)
+    {
         double3 start = _graph->getParent(end.x, end.y);
-       
-        if (start.x >= 0 && start.y >= 0) {
+
+        if (start.x >= 0 && start.y >= 0)
+        {
             std::vector<double3> waypoints = CurveGenerator::buildCurveWaypoints(_center, _rw, _rh, _lr, _max_steering_angle, start, end, _velocity_m_s, true);
             _path.insert(_path.end(), waypoints.begin(), waypoints.end());
         }
@@ -204,8 +207,10 @@ bool FastRRT::__build_path()
     }
     return true;
 }
-
-void FastRRT::__search_executor()
+void FastRRT::cancel() {
+    _search = false;
+}
+void FastRRT::search()
 {
     bool loop_search = _search;
     _goal_found = false;
@@ -231,4 +236,14 @@ void FastRRT::__search_executor()
             return;
         }
     }
+}
+void FastRRT::setPlanData(float3 *og, double3 start, double3 goal, int velocity_m_s)
+{
+    _graph->clear();
+    _og = og;
+    _start = start;
+    _goal = goal;
+    _velocity_m_s = velocity_m_s;
+    _search = true;
+    _goal_found = false;
 }

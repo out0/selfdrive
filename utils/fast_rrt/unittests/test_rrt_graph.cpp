@@ -24,12 +24,12 @@ int convert_to_key(int x, int z)
 
 TEST(RRTGraph, TestCreateDelete)
 {
-    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3);
 }
 
 TEST(RRTGraph, TestBasicFeatures)
 {
-    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3);
 
     ASSERT_EQ(0, g.count());
 
@@ -104,7 +104,7 @@ TEST(RRTGraph, TestBasicFeatures)
 
 TEST(RRTGraph, TestList)
 {
-    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3);
 
     ASSERT_EQ(0, g.count());
     std::unordered_map<int, double> map;
@@ -164,7 +164,7 @@ TEST(RRTGraph, TestDrawPath)
     float rw = 256 / PHYS_SIZE;
     float rh = 256 / PHYS_SIZE;
 
-    CudaGraph g(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3, 1);
+    CudaGraph g(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3);
 
     double3 start, end;
     start.x = 128.0;
@@ -192,7 +192,7 @@ TEST(RRTGraph, TestDrawPathCPU)
     float rw = 256 / PHYS_SIZE;
     float rh = 256 / PHYS_SIZE;
 
-    CudaGraph g(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3, 1);
+    CudaGraph g(256, 256, PHYS_SIZE, PHYS_SIZE, 0, 0, 0, 0, rw, rh, 40, 3);
 
     double3 start, end;
     start.x = 128.0;

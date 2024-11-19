@@ -12,7 +12,6 @@
 #define RRT_MAX_STEP 100
 #define REACH_DISTANCE 20.0
 
-
 class FastRRT
 {
 private:
@@ -38,14 +37,13 @@ private:
     bool __check_timeout();
     void __set_exec_started();
     long __get_exec_time_ms();
-    void __search_executor();
+
     int2 __expand_graph();
     int2 __get_random_node();
     void __random_seed();
     double __compute_distance_to_goal(int2 &, double3 &);
     int __random_gen(int min, int max);
     bool __build_path();
-    
     bool __rrt_search(int iteraction_time_ms);
     /* data */
 public:
@@ -64,10 +62,13 @@ public:
         int upper_bound_x,
         int upper_bound_z,
         double max_steering_angle,
-        double velocity_m_s);
+        int timeout_ms);
     ~FastRRT();
 
     void testDrawPath(float3 *og, double3 &start, double3 &end);
+    void setPlanData(float3 *og, double3 start, double3 goal, int velocity_m_s);
+    void search();
+    void cancel();
 };
 
 #endif

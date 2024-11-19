@@ -27,8 +27,7 @@ CudaGraph::CudaGraph(
     double _rate_w,
     double _rate_h,
     double _max_steering_angle_deg,
-    double _lr,
-    double velocity_meters_per_s)
+    double _lr)
 {
     this->width = width;
     this->height = height;
@@ -114,7 +113,7 @@ CudaGraph::CudaGraph(
     checkParams[9] = _rate_h;
     checkParams[10] = _max_steering_angle_deg;
     checkParams[11] = _lr;
-    checkParams[12] = velocity_meters_per_s;
+    checkParams[12] = 1.0;
     checkParams[13] = width / 2;  // OG center
     checkParams[14] = height / 2; // OG center
 
@@ -122,7 +121,7 @@ CudaGraph::CudaGraph(
     _center.y = checkParams[14];
     _center.z = 0.0;
 
-    clear();
+    //clear();
 }
 
 CudaGraph::~CudaGraph()
@@ -140,6 +139,10 @@ void CudaGraph::clear()
 {
     CUDA_clear(this->graph, this->graph_cost, this->width, this->height);
     _count = 0;
+}
+
+void CudaGraph::setVelocity(double velocity_meters_per_s) {
+    checkParams[12] = velocity_meters_per_s;
 }
 
 void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, double cost)

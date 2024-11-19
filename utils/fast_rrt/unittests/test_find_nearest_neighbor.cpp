@@ -13,7 +13,7 @@
 
 TEST(RRTGraph, TestNearestNeighboor)
 {
-    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3, 1);
+    CudaGraph g(100, 100, 0, 0, 0, 0, 0, 0, 10, 10, 40, 3);
 
     ASSERT_EQ(0, g.count());
 

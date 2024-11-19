@@ -184,7 +184,7 @@ TestFrame::TestFrame(int default_fill_value)
         UPPER_BOUND_Z,
         _rw, _rh,
         MAX_STEERING_ANGLE,
-        _lr, 1.0);
+        _lr);
 }
 
 TestFrame::~TestFrame()

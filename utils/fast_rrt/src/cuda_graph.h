@@ -31,8 +31,7 @@ public:
         double _rate_w,
         double _rate_h,
         double _max_steering_angle_deg,
-        double _lr,
-        double velocity_meters_per_s);
+        double _lr);
 
     ~CudaGraph();
 
@@ -48,7 +47,7 @@ public:
     double getCost(int x, int z);
     unsigned int count();
     void list(double *result, int count);
-
+    void setVelocity(double velocity_meters_per_s);
     void setGoalHeading(double heading);
 
     // Test stuff
@@ -63,7 +62,6 @@ public:
 
     // connects (parent_x, parent_z) to (x', z') which is the kinematic-closest point from x,z, if feasible
     int2 deriveNode(float3 *og, int parent_x, int parent_z, double angle_deg, double size);
-
 
     // checks that the connection between start and end is feasible
     bool checkConnectionFeasible(float3 *og, double3 &start, double3 end);
@@ -82,5 +80,4 @@ public:
 
     // orders nodes within a radius to verify if they should use x,z as their parent node.
     void optimizeGraphWithNode(float3 *og, int x, int z, float radius);
-
 };
