@@ -675,8 +675,7 @@ __global__ void __CUDA_KERNEL_optimizeGraphWithNode(double4 *graph, double *grap
 
     if (!check_kinematic_path(og, classCost, checkParams, start, end, final_heading))
         return;
-
-       
+      
 
     // MUST BE THE SAME CODE AS IN CurveGenerator::compute_node_diff_cost
     double heading_error = abs(final_heading - goal_heading);

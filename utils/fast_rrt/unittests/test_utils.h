@@ -6,8 +6,8 @@
 #include <iostream>
 #include "../src/cuda_frame.h"
 #include "../include/physical_parameters.h"
-
-
+#include "../src/class_def.h"
+#include "../src/kinematic_model.h"
 
 void dump_cuda_frame_to_file(CudaFrame *frame, const char *filename)
 {
@@ -29,7 +29,6 @@ void dump_cuda_frame_to_file(CudaFrame *frame, const char *filename)
     cv::imwrite(filename, cimg);
 }
 
-
 float *create_matrix(int rows, int cols, int channels, float fill_val)
 {
     int count = rows * cols * channels;
@@ -39,10 +38,9 @@ float *create_matrix(int rows, int cols, int channels, float fill_val)
     return mat;
 }
 
-
-CudaFrame * create_default_cuda_frame(float fill_val) {
+CudaFrame *create_default_cuda_frame(float fill_val)
+{
     float *mat = create_matrix(OG_WIDTH, OG_HEIGHT, 3, fill_val);
-    
+
     return new CudaFrame(mat, OG_WIDTH, OG_HEIGHT, MIN_DIST_X, MIN_DIST_Z, LOWER_BOUND_X, LOWER_BOUND_Z, UPPER_BOUND_X, UPPER_BOUND_Z);
 }
-

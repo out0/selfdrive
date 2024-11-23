@@ -74,7 +74,8 @@ public:
     void cancel();
     bool isPlanning();
     int getPathSize();
-    void getPath(float *result);
+    std::vector<double3> & getPath();
+    void copyPathTo(float *result);
 };
 
 #endif

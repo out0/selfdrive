@@ -81,7 +81,7 @@ extern "C"
 
     void get_path(void *self, float *result) {
         FastRRT *f = (FastRRT *)self;
-        f->getPath(result);
+        f->copyPathTo(result);
     }
 
     //

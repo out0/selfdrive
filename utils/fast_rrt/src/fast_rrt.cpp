@@ -6,7 +6,7 @@
 #include "../src/cuda_basic.h"
 #include "../src/class_def.h"
 
-//#define DEBUG_DUMP_GRAPH
+// #define DEBUG_DUMP_GRAPH
 
 #ifdef DEBUG_DUMP_GRAPH
 #include <opencv2/opencv.hpp>
@@ -48,7 +48,8 @@ void FastRRT::debug_dump_graph(const char *output_file)
     for (int2 p : points)
     {
         double3 start = _graph->getParent(p.x, p.y);
-        if (start.x < 0 || start.y < 0) continue; // initial point should be ignored because it has no parent
+        if (start.x < 0 || start.y < 0)
+            continue; // initial point should be ignored because it has no parent
 
         end.x = p.x;
         end.y = p.y;
@@ -64,7 +65,6 @@ void FastRRT::debug_dump_graph(const char *output_file)
         show_point(image, start.x, start.y, 0, 0, 255);
         show_point(image, end.x, end.y, 0, 0, 255);
     }
-
 
     // Save the image to verify the change
     cv::imwrite(output_file, image);
@@ -221,7 +221,7 @@ bool FastRRT::__rrt_search(int iteraction_time_ms)
         if (node.x < 0 || node.y < 0)
             continue;
 
-            //       _graph->optimizeGraphWithNode(_og, node.x, node.y, RRT_MAX_STEP);
+        _graph->optimizeGraphWithNode(_og, node.x, node.y, RRT_MAX_STEP);
 
 #ifdef DEBUG_DUMP_GRAPH
         debug_dump_graph("curve_debug.png");
@@ -286,7 +286,7 @@ void FastRRT::search()
 {
     bool loop_search = _search;
     _goal_found = false;
-    
+
     _graph->clear();
     _path.clear();
 
@@ -334,7 +334,11 @@ int FastRRT::getPathSize()
         return 0;
     return _path.size();
 }
-void FastRRT::getPath(float *result)
+std::vector<double3> & FastRRT::getPath()
+{
+    return _path;
+}
+void FastRRT::copyPathTo(float *result)
 {
     int size = getPathSize();
     for (int i = 0; i < size; i++)
