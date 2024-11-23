@@ -103,7 +103,7 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
     int max_size = static_cast<int>(round(path_size)) + 1;
 
     std::vector<double3> res;
-    res.reserve(max_size % 100);
+    //res.reserve(max_size % 100);
 
     while (res.size() < path_size)
     {
@@ -160,7 +160,7 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
     int total_steps = static_cast<int>(round(distance / ds));
 
     std::vector<double3> res;
-    res.reserve(total_steps % 100);
+    //res.reserve(total_steps % 100);
 
     int best_end_pos = -1;
     double best_end_dist = distance;

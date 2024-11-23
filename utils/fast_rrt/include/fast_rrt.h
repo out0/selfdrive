@@ -38,12 +38,10 @@ private:
     bool __check_timeout();
     void __set_exec_started();
     long __get_exec_time_ms();
-
-    int2 __expand_graph();
-    int2 __get_random_node();
-    void __random_seed();
-    double __compute_distance_to_goal(int2 &, double3 &);
     int __random_gen(int min, int max);
+    
+    int2 __expand_graph();
+    double __compute_distance_to_goal(int2 &, double3 &);
     bool __build_path();
     bool __rrt_search(int iteraction_time_ms);
     void __add_key(double x, double z);

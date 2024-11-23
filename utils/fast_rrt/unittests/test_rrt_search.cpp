@@ -57,9 +57,14 @@ TEST(FastRRTTst, TestRRTSearch)
                 MAX_STEERING_ANGLE,
                 -1);
 
-    double3 start = {128, 128, 0}, end = {115, 0, 0.6931};
-    rrt.setPlanData(cuda_frame.getFramePtr(), start, end, 1.0);
-    rrt.search();
-
-    int p = 2;
+    int i = 1;
+    while (i <= 200)
+    {
+        printf("Search #%d\n", i);
+        double3 start = {128, 128, 0}, end = {115, 0, 0.6931};
+        rrt.setPlanData(cuda_frame.getFramePtr(), start, end, 1.0);
+        rrt.search();
+        i++;
+    }
+    
 }

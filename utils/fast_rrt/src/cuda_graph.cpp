@@ -1,6 +1,8 @@
 #include "cuda_graph.h"
 #include "class_def.h"
 #include "kinematic_model.h"
+#include <cstdlib> // for rand()
+#include <ctime>   // for time()
 
 extern void CUDA_clear(double4 *graph, double *graph_cost, int width, int height);
 extern unsigned int CUDA_parallel_count(double4 *graph, unsigned int *pcount, int width, int height);
@@ -14,11 +16,23 @@ extern int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *po
 extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
 extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, double goal_heading, int x, int z, float radius);
 
-#define DEBUG_DUMP
+//#define DEBUG_DUMP
 
 #ifdef DEBUG_DUMP
 
 #include <opencv2/opencv.hpp>
+
+void show_point_dump_graph(cv::Mat &mat, double x, double z, int r, int g, int b)
+{
+    if (x < 0 || x >= mat.cols)
+        return;
+    if (z < 0 || z >= mat.rows)
+        return;
+    cv::Vec3b &pixel = mat.at<cv::Vec3b>(static_cast<int>(z), static_cast<int>(x));
+    pixel[0] = r;
+    pixel[1] = g;
+    pixel[2] = b;
+}
 
 void debug_dump(float3 *og, int width, int height, std::vector<double3> curve, const char *output_file)
 {
@@ -36,12 +50,7 @@ void debug_dump(float3 *og, int width, int height, std::vector<double3> curve, c
 
     for (double3 point : curve)
     {
-        int x = static_cast<int>(point.x);
-        int z = static_cast<int>(point.y);
-        cv::Vec3b &pixel = image.at<cv::Vec3b>(z, x);
-        pixel[0] = 255;
-        pixel[1] = 255;
-        pixel[2] = 255;
+        show_point_dump_graph(image, point.x, point.y, 255, 255, 255);
     }
 
     // Save the image to verify the change
@@ -65,10 +74,11 @@ CudaGraph::CudaGraph(
     double _max_steering_angle_deg,
     double _lr)
 {
+    std::srand(std::time(nullptr));
+
     this->width = width;
     this->height = height;
     this->_goal_heading_deg = 0.0;
-    this->_count = 0;
 
     if (!cudaAllocMapped(&this->graph, sizeof(double4) * (width * height)))
     {
@@ -174,7 +184,7 @@ CudaGraph::~CudaGraph()
 void CudaGraph::clear()
 {
     CUDA_clear(this->graph, this->graph_cost, this->width, this->height);
-    _count = 0;
+    _unordered_nodes.clear();
 }
 
 void CudaGraph::setVelocity(double velocity_meters_per_s)
@@ -199,7 +209,7 @@ void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, do
     this->graph[pos].z = heading;
     this->graph[pos].w = 1.0;
     this->graph_cost[pos] = cost;
-    _count++;
+    _unordered_nodes.push_back(int2{x, z});
 }
 
 double CudaGraph::getHeading(int x, int z)
@@ -233,7 +243,18 @@ void CudaGraph::remove(int x, int z)
         return;
 
     if (this->graph[pos].w == 1.0)
-        this->_count--;
+    {
+        for (int i = 0; i < _unordered_nodes.size(); i++)
+        {
+            if (_unordered_nodes[i].x != x || _unordered_nodes[i].y != z)
+                continue;
+            if (i != _unordered_nodes.size() - 1)
+            {
+                _unordered_nodes[i] = _unordered_nodes[_unordered_nodes.size() - 1];
+                _unordered_nodes.pop_back();
+            }
+        }
+    }
 
     this->graph[pos].w = 0.0;
 }
@@ -241,7 +262,7 @@ void CudaGraph::remove(int x, int z)
 unsigned int CudaGraph::count()
 {
     // return CUDA_parallel_count(graph, pcount, width, height);
-    return _count;
+    return _unordered_nodes.size();
 }
 
 bool CudaGraph::checkInGraph(int x, int z)
@@ -340,10 +361,10 @@ double CudaGraph::getCost(int x, int z)
     return this->graph_cost[pos];
 }
 
-void CudaGraph::list(double *result, int count)
-{
-    CUDA_list_elements(graph, graph_cost, result, width, height, count);
-}
+// void CudaGraph::list(double *result, int count)
+// {
+//     CUDA_list_elements(graph, graph_cost, result, width, height, count);
+// }
 
 bool CudaGraph::checkConnectionFeasible(float3 *og, double3 &start, double3 end)
 {
@@ -484,9 +505,7 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
                                                                      size,
                                                                      false);
     double3 last = curve[curve.size() - 1];
-    printf("deriving %f, %f to %f, %f \n", start.x, start.y, last.x, last.y);
-
-
+    //printf("deriving %f, %f to %f, %f \n", start.x, start.y, last.x, last.y);
 
     double3 end;
     end.x = parent_x;
@@ -540,4 +559,19 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
         cost);
 
     return res;
+}
+int CudaGraph::__random_gen(int min, int max)
+{
+    return min + std::rand() % (max - min);
+}
+
+int2 CudaGraph::get_random_node()
+{
+    int i = __random_gen(0, _unordered_nodes.size());
+    return _unordered_nodes[i];
+}
+
+std::vector<int2>& CudaGraph::list()
+{
+    return _unordered_nodes;
 }

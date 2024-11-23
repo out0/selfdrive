@@ -7,6 +7,7 @@ class CudaGraph
 {
     double4 *graph;
     double *graph_cost;
+    std::vector<int2> _unordered_nodes;
     int3 *point;
     int *classCosts;
     double *checkParams;
@@ -16,7 +17,8 @@ class CudaGraph
     int height;
     double3 _center;
     double _goal_heading_deg;
-    unsigned int _count;
+
+    int __random_gen(int min, int max);
 
 public:
     CudaGraph(
@@ -46,7 +48,12 @@ public:
     void setCost(int x, int z, double cost);
     double getCost(int x, int z);
     unsigned int count();
-    void list(double *result, int count);
+    
+    // CUDA listing removed [deprecated because does not support being called many times. Cuda doesnt handle well alloc/free]
+    //void list(double *result, int count);
+    int2 get_random_node();
+    std::vector<int2>& list();
+
     void setVelocity(double velocity_meters_per_s);
     void setGoalHeading(double heading);
 

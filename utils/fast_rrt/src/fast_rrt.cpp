@@ -5,9 +5,11 @@
 #include <stack>
 #include "../src/cuda_basic.h"
 #include "../src/class_def.h"
-#include <opencv2/opencv.hpp>
 
-#define DEBUG_DUMP_GRAPH
+//#define DEBUG_DUMP_GRAPH
+
+#ifdef DEBUG_DUMP_GRAPH
+#include <opencv2/opencv.hpp>
 
 void show_point(cv::Mat &mat, double x, double z, int r, int g, int b)
 {
@@ -38,36 +40,36 @@ void FastRRT::debug_dump_graph(const char *output_file)
     unsigned int count = _graph->count();
 
     printf("dumping %d points\n", count);
-    double *points = new double[sizeof(double) * (count+1) * 6];
-    _graph->list(points, count);
 
-    double3 start, end;
+    std::vector<int2> points = _graph->list();
 
-    for (int i = 0; i < (6 * count); i += 6)
+    double3 end;
+
+    for (int2 p : points)
     {
-        end.x = points[i];
-        end.y = points[i + 1];
-        end.z = points[i + 2];
-        start.x = points[i + 3];
-        start.y = points[i + 4];
-        start.z = end.z;
+        double3 start = _graph->getParent(p.x, p.y);
+        if (start.x < 0 || start.y < 0) continue; // initial point should be ignored because it has no parent
+
+        end.x = p.x;
+        end.y = p.y;
+        end.z = start.z;
 
         std::vector<double3> curve = CurveGenerator::buildCurveWaypoints(_center, _rw, _rh, _lr, _max_steering_angle, start, end, _velocity_m_s);
 
         for (double3 point : curve)
         {
-           show_point(image, point.x, point.y, 255, 255, 255);
+            show_point(image, point.x, point.y, 255, 255, 255);
         }
 
         show_point(image, start.x, start.y, 0, 0, 255);
         show_point(image, end.x, end.y, 0, 0, 255);
-
     }
+
 
     // Save the image to verify the change
     cv::imwrite(output_file, image);
-    delete[] points;
 }
+#endif
 
 FastRRT::FastRRT(
     int og_width,
@@ -109,8 +111,6 @@ FastRRT::FastRRT(
         _rh,
         max_steering_angle,
         _lr);
-
-    __random_seed();
 }
 
 FastRRT::~FastRRT()
@@ -165,32 +165,20 @@ bool FastRRT::__check_timeout()
     return (_timeout_ms > 0 && __get_exec_time_ms() > _timeout_ms);
 }
 
-void FastRRT::__random_seed()
-{
-    std::srand(std::time(nullptr)); // Seed with current time
-}
-int FastRRT::__random_gen(int min, int max)
-{
-    return min + std::rand() % (max - min + 1);
-}
-
-int2 FastRRT::__get_random_node()
-{
-    int expand_node = __random_gen(0, _node_list.size() - 1);
-
-    int z = _node_list[expand_node] / 1000;
-    return {(_node_list[expand_node] - 1000 * z), z};
-}
-
 void FastRRT::__add_key(double x, double z)
 {
     int key = 1000 * static_cast<int>(z) + static_cast<int>(x);
     _node_list.push_back(key);
 }
 
+int FastRRT::__random_gen(int min, int max)
+{
+    return min + std::rand() % (max - min + 1);
+}
+
 int2 FastRRT::__expand_graph()
 {
-    int2 n = __get_random_node();
+    int2 n = _graph->get_random_node();
     int angle = (double)__random_gen(-_max_steering_angle, _max_steering_angle);
     int size = (double)__random_gen(10, RRT_MAX_STEP);
 
@@ -298,6 +286,8 @@ void FastRRT::search()
 {
     bool loop_search = _search;
     _goal_found = false;
+    
+    _graph->clear();
     _path.clear();
 
     __set_exec_started();

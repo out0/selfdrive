@@ -9,6 +9,7 @@
 #include "../src/kinematic_model.h"
 #include <unordered_set>
 #include <math.h>
+#include <vector>
 
 #define OG_REAL_WIDTH 34.641016151377535
 #define OG_REAL_HEIGHT 34.641016151377535
@@ -19,24 +20,6 @@
 int TestFrame::toSetKey(int x, int z)
 {
     return 1000 * x + z;
-}
-
-void TestFrame::drawNode(CudaGraph *graph, float3 *imgPtr, int x, int z, double heading)
-{
-    double3 parent = graph->getParent(x, z);
-
-    if (parent.x < 0 or parent.y < 0)
-        return;
-
-    double3 start, end;
-    start.x = parent.x;
-    start.y = parent.y;
-    start.z = parent.z;
-    end.x = x;
-    end.y = z;
-    end.z = heading;
-
-    graph->drawKinematicPath(imgPtr, start, end);
 }
 
 void change_color(int3 *imgPtr, int width, int x, int z, int r, int g, int b)
@@ -98,10 +81,6 @@ void TestFrame::drawNodeDebug(CudaGraph *graph, float3 *imgPtr, int3 *imgPtrOutp
     int height = OG_HEIGHT;
     int min_dist_x = MIN_DIST_X / 2;
     int min_dist_z = MIN_DIST_Z / 2;
-    // int lower_bound_ego_x = LOWER_BOUND_X;
-    // int lower_bound_ego_z = LOWER_BOUND_Z;
-    // int upper_bound_ego_x = UPPER_BOUND_X;
-    // int upper_bound_ego_z = UPPER_BOUND_Z;
     int lower_bound_ego_x = -1;
     int lower_bound_ego_z = -1;
     int upper_bound_ego_x = -1;
@@ -227,24 +206,22 @@ void TestFrame::drawGraph()
     if (num_nodes == 0)
         return;
 
-    double *nodes = new double[6 * sizeof(double) * num_nodes];
-    graph->list(nodes, num_nodes);
+    std::vector<int2> &points = graph->list();
 
-    std::unordered_set<int> drawn;
+    // std::unordered_set<int> drawn;
 
-    for (int i = 0; i < num_nodes; i++)
+    double3 end;
+    for (int2 p : points)
     {
-        int pos = 6 * i;
-        int x = static_cast<int>(nodes[pos]);
-        int z = static_cast<int>(nodes[pos + 1]);
-        int key = toSetKey(x, z);
+        double3 start = graph->getParent(p.x, p.y);
+        if (start.x < 0 || start.y < 0)
+            continue; // initial point should be ignored because it has no parent
 
-        if (drawn.find(key) != drawn.end())
-            continue;
+        end.x = p.x;
+        end.y = p.y;
+        end.z = start.z;
 
-        double heading = static_cast<int>(nodes[pos + 2]);
-        drawNode(graph, imgPtr, x, z, heading);
-        drawn.insert(key);
+        graph->drawKinematicPath(imgPtr, start, end);
     }
 
     graph->drawNodes(imgPtr);
@@ -257,29 +234,24 @@ void TestFrame::drawGraphDebugTo(const char *filename)
 
     int3 *output = new int3[og->getWidth() * og->getHeight()];
 
-    int num_nodes = graph->count();
-    if (num_nodes == 0)
-        return;
+    std::vector<int2> &points = graph->list();
 
-    double *nodes = new double[6 * sizeof(double) * num_nodes];
-    graph->list(nodes, num_nodes);
+    // std::unordered_set<int> drawn;
 
-    std::unordered_set<int> drawn;
-
-    for (int i = 0; i < num_nodes; i++)
+    double3 end;
+    for (int2 p : points)
     {
-        int pos = 6 * i;
-        int x = static_cast<int>(nodes[pos]);
-        int z = static_cast<int>(nodes[pos + 1]);
-        int key = toSetKey(x, z);
+        double3 start = graph->getParent(p.x, p.y);
+        if (start.x < 0 || start.y < 0)
+            continue; // initial point should be ignored because it has no parent
 
-        if (drawn.find(key) != drawn.end())
-            continue;
-
-        double heading = static_cast<int>(nodes[pos + 2]);
-        drawNodeDebug(graph, imgPtr, output, x, z, heading);
-        drawn.insert(key);
+        end.x = p.x;
+        end.y = p.y;
+        end.z = start.z;
+        drawNodeDebug(graph, imgPtr, output, p.x, p.y, start.z);
+        graph->drawKinematicPath(imgPtr, start, end);
     }
+    
 
     draw_obstacles(output, og);
 
