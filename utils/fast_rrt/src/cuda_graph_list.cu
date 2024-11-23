@@ -51,6 +51,7 @@ __global__ static void __CUDA_KERNEL_list_elements_in_graph(double4 *graph, doub
     if (graph[pos].w == 1.0)
     {
         int store_pos = 6 * atomicInc(list_pos, width * height);
+        printf ("storing list element starting on pos %d\n", store_pos);
         res[store_pos] = x;
         res[store_pos+1] = z;
         res[store_pos+2] = graph[pos].z; // heading
@@ -73,7 +74,7 @@ void CUDA_list_elements(double4 *graph,
     int numBlocks = floor(size / 256) + 1;
 
     double *cudaResult;
-    if (!cudaAllocMapped(&cudaResult, sizeof(double) * count * 6))
+    if (!cudaAllocMapped(&cudaResult, sizeof(double) * (count+1) * 6))
     {
         fprintf(stderr, "[CUDA Graph] unable to allocate %ld bytes for list elements in CUDA_list_elements()\n", sizeof(float) * count * 5);
         return;
@@ -98,7 +99,7 @@ void CUDA_list_elements(double4 *graph,
 
     CUDA(cudaDeviceSynchronize());
 
-    for (int i = 0; i < *listPos * 6; i++) {
+    for (int i = 0; i < count * 6; i++) {
         result[i] = cudaResult[i];
     }
 

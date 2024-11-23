@@ -30,8 +30,8 @@ static void convert_to_waypoint_coord(double3 &center, double rate_w, double rat
     double x = p.x;
     double y = p.y;
 
-    p.x = static_cast<int>(round((center.y + rate_h * y)));
-    p.y = static_cast<int>(round((center.x - rate_w * x)));
+    p.x = static_cast<int>(round(center.y + rate_h * y));
+    p.y = static_cast<int>(round(center.x - rate_w * x));
 }
 
 double CurveGenerator::compute_euclidean_dist(double3 &start, double3 &end)
@@ -142,12 +142,13 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
     double velocity_meters_per_s,
     bool output_heading_in_degrees)
 {
+
     double distance = compute_euclidean_dist(start, end);
     convert_to_map_coord(_center, _rate_w, _rate_h, start);
     convert_to_map_coord(_center, _rate_w, _rate_h, end);
     double dt = 0.1;
 
-    int last_x = -1, last_y = -1;
+    double last_x = -1, last_y = -1;
 
     double max_turning_angle = to_radians(_max_steering_angle_deg);
     double heading = to_radians(start.z);
@@ -192,7 +193,10 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
         convert_to_waypoint_coord(_center, _rate_w, _rate_h, p);
 
         if (p.x == last_x && p.y == last_y)
+        {
+            //printf("equal: %f, %f\n", p.x, p.y);
             continue;
+        }
 
         if (best_end_dist > dist)
         {
@@ -200,8 +204,8 @@ std::vector<double3> CurveGenerator::buildCurveWaypoints(
             best_end_pos = res.size();
         }
 
-        last_x = static_cast<int>(p.x);
-        last_y = static_cast<int>(p.y);
+        last_x = p.x;
+        last_y = p.y;
 
         res.push_back(p);
     }

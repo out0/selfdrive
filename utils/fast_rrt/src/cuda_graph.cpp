@@ -14,6 +14,42 @@ extern int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *po
 extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
 extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, double goal_heading, int x, int z, float radius);
 
+#define DEBUG_DUMP
+
+#ifdef DEBUG_DUMP
+
+#include <opencv2/opencv.hpp>
+
+void debug_dump(float3 *og, int width, int height, std::vector<double3> curve, const char *output_file)
+{
+    cv::Mat image(width, height, CV_8UC3);
+
+    for (int z = 0; z < height; z++)
+        for (int x = 0; x < width; x++)
+        {
+            int c = og[z * width + x].x;
+            cv::Vec3b &pixel = image.at<cv::Vec3b>(z, x);
+            pixel[0] = segmentationClassColors[c][0];
+            pixel[1] = segmentationClassColors[c][1];
+            pixel[2] = segmentationClassColors[c][2];
+        }
+
+    for (double3 point : curve)
+    {
+        int x = static_cast<int>(point.x);
+        int z = static_cast<int>(point.y);
+        cv::Vec3b &pixel = image.at<cv::Vec3b>(z, x);
+        pixel[0] = 255;
+        pixel[1] = 255;
+        pixel[2] = 255;
+    }
+
+    // Save the image to verify the change
+    cv::imwrite(output_file, image);
+}
+
+#endif
+
 // TODO: receive center instead of assuming OG_WIDTH/2, OG_HEIGHT/2
 CudaGraph::CudaGraph(
     int width,
@@ -121,7 +157,7 @@ CudaGraph::CudaGraph(
     _center.y = checkParams[14];
     _center.z = 0.0;
 
-    //clear();
+    // clear();
 }
 
 CudaGraph::~CudaGraph()
@@ -141,7 +177,8 @@ void CudaGraph::clear()
     _count = 0;
 }
 
-void CudaGraph::setVelocity(double velocity_meters_per_s) {
+void CudaGraph::setVelocity(double velocity_meters_per_s)
+{
     checkParams[12] = velocity_meters_per_s;
 }
 
@@ -199,12 +236,11 @@ void CudaGraph::remove(int x, int z)
         this->_count--;
 
     this->graph[pos].w = 0.0;
-
 }
 
 unsigned int CudaGraph::count()
 {
-    //return CUDA_parallel_count(graph, pcount, width, height);
+    // return CUDA_parallel_count(graph, pcount, width, height);
     return _count;
 }
 
@@ -447,11 +483,19 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
                                                                      angle_deg,
                                                                      size,
                                                                      false);
+    double3 last = curve[curve.size() - 1];
+    printf("deriving %f, %f to %f, %f \n", start.x, start.y, last.x, last.y);
+
+
 
     double3 end;
     end.x = parent_x;
     end.y = parent_z;
     end.z = start.z;
+
+#ifdef DEBUG_DUMP
+    debug_dump(og, width, height, curve, "curve_debug_try.png");
+#endif
 
     for (double3 p : curve)
     {
@@ -481,7 +525,8 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
     res.x = static_cast<int>(end.x);
     res.y = static_cast<int>(end.y);
 
-    if (checkInGraph(res.x, res.y)) {
+    if (checkInGraph(res.x, res.y))
+    {
         res.x = -1;
         res.y = -1;
         return res;

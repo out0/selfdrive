@@ -21,6 +21,7 @@ private:
     double3 _start;
     double3 _goal;
     int _og_width;
+    int _og_height;
     double _rw;
     double _rh;
     double _lr;
@@ -45,6 +46,10 @@ private:
     int __random_gen(int min, int max);
     bool __build_path();
     bool __rrt_search(int iteraction_time_ms);
+    void __add_key(double x, double z);
+
+    void debug_dump_graph(const char *output_file);
+
     /* data */
 public:
     std::vector<double3> buildCurveWaypoints(double3 start, double velocity_meters_per_s, double steering_angle_deg, double path_size);
@@ -66,9 +71,12 @@ public:
     ~FastRRT();
 
     void testDrawPath(float3 *og, double3 &start, double3 &end);
-    void setPlanData(float3 *og, double3 start, double3 goal, int velocity_m_s);
+    void setPlanData(float3 *og, double3 start, double3 goal, float velocity_m_s);
     void search();
     void cancel();
+    bool isPlanning();
+    int getPathSize();
+    void getPath(float *result);
 };
 
 #endif

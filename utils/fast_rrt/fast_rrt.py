@@ -58,8 +58,44 @@ lib.connect_nodes_with_path.argtypes = [
 
 lib.connect_nodes_with_path_free.restype = ctypes.c_void_p
 lib.connect_nodes_with_path_free.argtypes = [
-     ctypes.c_void_p, # float
+    ctypes.c_void_p, # float
 ]
+
+lib.set_plan_data.restype = None
+lib.set_plan_data.argtypes = [
+    ctypes.c_void_p, # self
+    ctypes.c_void_p, # cuda_frame
+    ctypes.c_int, # start_x
+    ctypes.c_int, # start_z
+    ctypes.c_float, # start_heading
+    ctypes.c_int, # goal_x
+    ctypes.c_int, # goal_z
+    ctypes.c_float, # goal_heading
+    ctypes.c_float, # velocity_m_s
+]
+lib.search.restype = None
+lib.search.argtypes = [
+    ctypes.c_void_p, # self
+]
+lib.cancel.restype = None
+lib.cancel.argtypes = [
+    ctypes.c_void_p, # self
+]
+lib.is_planning.restype = ctypes.c_bool
+lib.is_planning.argtypes = [
+    ctypes.c_void_p, # self
+]
+
+lib.get_path_size.restype = ctypes.c_int
+lib.get_path_size.argtypes = [
+    ctypes.c_void_p, # self
+]
+lib.get_path.restype = None
+lib.get_path.argtypes = [
+    ctypes.c_void_p, # self
+    np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1),
+]
+
 
 class FastRRT:
     __fast_rrt_cuda: ctypes.c_void_p
@@ -116,11 +152,7 @@ class FastRRT:
             ))
             
         return list
-    
-    def read_float_from_pointer(pointer, pos: int) -> float:
-        return ctypes.c_float.from_buffer_copy(
-                pointer[pos * FLOAT_SIZE_BYTES:pos * FLOAT_SIZE_BYTES + FLOAT_SIZE_BYTES]).value
-    
+       
     def connect_nodes_with_path(self,
                             start: Waypoint,
                             end: Waypoint,
@@ -153,3 +185,47 @@ class FastRRT:
         lib.connect_nodes_with_path_free(points)
 
         return path
+    
+    def set_plan_data(self, og: CudaFrame, start: Waypoint, end: Waypoint, velocity_m_s: float) -> None:
+        lib.set_plan_data(
+            self.__fast_rrt_cuda,
+            og.get_cuda_frame(),
+            start.x,
+            start.z,
+            start.heading,
+            end.x,
+            end.z,
+            end.heading,
+            velocity_m_s
+        )
+    
+    def search(self) -> None:
+        lib.search(self.__fast_rrt_cuda)
+    
+    def cancel(self) -> None:
+        lib.cancel(self.__fast_rrt_cuda)
+    
+    def is_planning(self) -> None:
+        return lib.is_planning(self.__fast_rrt_cuda)
+
+    def get_path(self) -> list[Waypoint]:
+        if self.is_planning():
+            return []
+        
+        path_size = lib.get_path_size(self.__fast_rrt_cuda)
+        raw_path = np.ascontiguousarray(np.zeros((path_size * 3, 1), dtype=np.float32))
+        lib.get_path(self.__fast_rrt_cuda, raw_path)
+        
+        raw_path = raw_path.reshape(path_size, 3)
+        
+        list = []
+        
+        for i in range(0, path_size):
+            list.append(Waypoint(
+                math.floor(raw_path[i, 0]),
+                math.floor(raw_path[i, 1]),
+                raw_path[i, 2],
+            ))
+        
+        return list
+        

@@ -4,6 +4,70 @@
 #include <ctime>   // for time()
 #include <stack>
 #include "../src/cuda_basic.h"
+#include "../src/class_def.h"
+#include <opencv2/opencv.hpp>
+
+#define DEBUG_DUMP_GRAPH
+
+void show_point(cv::Mat &mat, double x, double z, int r, int g, int b)
+{
+    if (x < 0 || x >= mat.cols)
+        return;
+    if (z < 0 || z >= mat.rows)
+        return;
+    cv::Vec3b &pixel = mat.at<cv::Vec3b>(static_cast<int>(z), static_cast<int>(x));
+    pixel[0] = r;
+    pixel[1] = g;
+    pixel[2] = b;
+}
+
+void FastRRT::debug_dump_graph(const char *output_file)
+{
+    cv::Mat image(_og_height, _og_width, CV_8UC3);
+
+    for (int z = 0; z < _og_height; z++)
+        for (int x = 0; x < _og_width; x++)
+        {
+            int c = _og[z * _og_width + x].x;
+            cv::Vec3b &pixel = image.at<cv::Vec3b>(z, x);
+            pixel[0] = segmentationClassColors[c][0];
+            pixel[1] = segmentationClassColors[c][1];
+            pixel[2] = segmentationClassColors[c][2];
+        }
+
+    unsigned int count = _graph->count();
+
+    printf("dumping %d points\n", count);
+    double *points = new double[sizeof(double) * (count+1) * 6];
+    _graph->list(points, count);
+
+    double3 start, end;
+
+    for (int i = 0; i < (6 * count); i += 6)
+    {
+        end.x = points[i];
+        end.y = points[i + 1];
+        end.z = points[i + 2];
+        start.x = points[i + 3];
+        start.y = points[i + 4];
+        start.z = end.z;
+
+        std::vector<double3> curve = CurveGenerator::buildCurveWaypoints(_center, _rw, _rh, _lr, _max_steering_angle, start, end, _velocity_m_s);
+
+        for (double3 point : curve)
+        {
+           show_point(image, point.x, point.y, 255, 255, 255);
+        }
+
+        show_point(image, start.x, start.y, 0, 0, 255);
+        show_point(image, end.x, end.y, 0, 0, 255);
+
+    }
+
+    // Save the image to verify the change
+    cv::imwrite(output_file, image);
+    delete[] points;
+}
 
 FastRRT::FastRRT(
     int og_width,
@@ -20,6 +84,7 @@ FastRRT::FastRRT(
     int timeout_ms)
 {
     _og_width = og_width;
+    _og_height = og_height;
     _rw = og_width / og_real_width_m;
     _rh = og_height / og_real_height_m;
     _timeout_ms = static_cast<long>(timeout_ms);
@@ -44,6 +109,8 @@ FastRRT::FastRRT(
         _rh,
         max_steering_angle,
         _lr);
+
+    __random_seed();
 }
 
 FastRRT::~FastRRT()
@@ -109,22 +176,34 @@ int FastRRT::__random_gen(int min, int max)
 
 int2 FastRRT::__get_random_node()
 {
-    int expand_node = __random_gen(0, _node_list.size());
-    int x = _node_list[expand_node] / 1000;
-    return {x, _node_list[expand_node] - x};
+    int expand_node = __random_gen(0, _node_list.size() - 1);
+
+    int z = _node_list[expand_node] / 1000;
+    return {(_node_list[expand_node] - 1000 * z), z};
+}
+
+void FastRRT::__add_key(double x, double z)
+{
+    int key = 1000 * static_cast<int>(z) + static_cast<int>(x);
+    _node_list.push_back(key);
 }
 
 int2 FastRRT::__expand_graph()
 {
-    __random_seed();
     int2 n = __get_random_node();
     int angle = (double)__random_gen(-_max_steering_angle, _max_steering_angle);
     int size = (double)__random_gen(10, RRT_MAX_STEP);
 
-    return _graph->deriveNode(_og, n.x, n.y, angle, size);
+    int2 n_final = _graph->deriveNode(_og, n.x, n.y, angle, size);
+
+    if (n_final.x < 0 || n_final.y < 0)
+        return n_final;
+
+    __add_key(n_final.x, n_final.y);
+    return n_final;
 }
 
-#define USE_DRIVELESS_CUDAC_OPTIMIZATION
+// #define USE_DRIVELESS_CUDAC_OPTIMIZATION
 
 double FastRRT::__compute_distance_to_goal(int2 &node, double3 &goal)
 {
@@ -154,7 +233,11 @@ bool FastRRT::__rrt_search(int iteraction_time_ms)
         if (node.x < 0 || node.y < 0)
             continue;
 
-        _graph->optimizeGraphWithNode(_og, node.x, node.y, RRT_MAX_STEP);
+            //       _graph->optimizeGraphWithNode(_og, node.x, node.y, RRT_MAX_STEP);
+
+#ifdef DEBUG_DUMP_GRAPH
+        debug_dump_graph("curve_debug.png");
+#endif
 
         if (_goal_found)
         {
@@ -207,7 +290,8 @@ bool FastRRT::__build_path()
     }
     return true;
 }
-void FastRRT::cancel() {
+void FastRRT::cancel()
+{
     _search = false;
 }
 void FastRRT::search()
@@ -218,6 +302,7 @@ void FastRRT::search()
 
     __set_exec_started();
     _graph->add(_start.x, _start.y, _start.z, -1, -1, 0);
+    __add_key(_start.x, _start.y);
 
     while (loop_search && _search)
     {
@@ -237,13 +322,36 @@ void FastRRT::search()
         }
     }
 }
-void FastRRT::setPlanData(float3 *og, double3 start, double3 goal, int velocity_m_s)
+void FastRRT::setPlanData(float3 *og, double3 start, double3 goal, float velocity_m_s)
 {
     _graph->clear();
     _og = og;
     _start = start;
     _goal = goal;
-    _velocity_m_s = velocity_m_s;
+    _velocity_m_s = static_cast<double>(velocity_m_s);
     _search = true;
     _goal_found = false;
+}
+
+bool FastRRT::isPlanning()
+{
+    return _search;
+}
+
+int FastRRT::getPathSize()
+{
+    if (_search)
+        return 0;
+    return _path.size();
+}
+void FastRRT::getPath(float *result)
+{
+    int size = getPathSize();
+    for (int i = 0; i < size; i++)
+    {
+        int pos = 3 * i;
+        result[pos] = static_cast<float>(_path[i].x);
+        result[pos + 1] = static_cast<float>(_path[i].y);
+        result[pos + 2] = static_cast<float>(_path[i].z);
+    }
 }

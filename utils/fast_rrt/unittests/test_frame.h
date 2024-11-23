@@ -10,10 +10,6 @@
 #include <unordered_set>
 #include <math.h>
 
-#define OG_REAL_WIDTH 34.641016151377535
-#define OG_REAL_HEIGHT 34.641016151377535
-#define MAX_STEERING_ANGLE 40
-
 class TestFrame
 {
 private:

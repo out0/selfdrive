@@ -10,30 +10,30 @@ extern "C"
     void *init(
         int width,
         int height,
-        double og_real_width_m,
-        double og_real_height_m,
+        float og_real_width_m,
+        float og_real_height_m,
         int min_dist_x,
         int min_dist_z,
         int lower_bound_x,
         int lower_bound_z,
         int upper_bound_x,
         int upper_bound_z,
-        double max_steering_angle_deg,
+        float max_steering_angle_deg,
         int timeout_ms)
     {
 
         return new FastRRT(
             width,
             height,
-            og_real_width_m,
-            og_real_height_m,
+            static_cast<double>(og_real_width_m),
+            static_cast<double>(og_real_height_m),
             min_dist_x,
             min_dist_z,
             lower_bound_x,
             lower_bound_z,
             upper_bound_x,
             upper_bound_z,
-            max_steering_angle_deg,
+            static_cast<double>(max_steering_angle_deg),
             timeout_ms);
     }
 
@@ -45,7 +45,7 @@ extern "C"
 
     // RRT
 
-    void set_plan_data(void *self, void *cuda_frame, int start_x, int start_z, float start_heading, int goal_x, int goal_z, float goal_heading, int velocity_m_s)
+    void set_plan_data(void *self, void *cuda_frame, int start_x, int start_z, float start_heading, int goal_x, int goal_z, float goal_heading, float velocity_m_s)
     {
         FastRRT *f = (FastRRT *)self;
         CudaFrame *cudaf = (CudaFrame *)cuda_frame;
@@ -67,6 +67,23 @@ extern "C"
         FastRRT *f = (FastRRT *)self;
         f->cancel();
     }
+
+    bool is_planning(void *self) {
+        FastRRT *f = (FastRRT *)self;
+        return f->isPlanning();
+    }
+
+    
+    int get_path_size(void *self) {
+        FastRRT *f = (FastRRT *)self;
+        return f->getPathSize();
+    }
+
+    void get_path(void *self, float *result) {
+        FastRRT *f = (FastRRT *)self;
+        f->getPath(result);
+    }
+
     //
     // TESTING STUFF
     //
@@ -84,11 +101,15 @@ extern "C"
         FastRRT *f = (FastRRT *)self;
 
         double3 start;
-        start.x = start_x;
-        start.y = start_z;
-        start.z = start_heading;
+        start.x = static_cast<double>(start_x);
+        start.y = static_cast<double>(start_z);
+        start.z = static_cast<double>(start_heading);
 
-        std::vector<double3> curve = f->buildCurveWaypoints(start, velocity_m_s, sterr_angle, path_size);
+        std::vector<double3> curve = f->buildCurveWaypoints(
+            start, 
+            static_cast<double>(velocity_m_s), 
+            static_cast<double>(sterr_angle), 
+            static_cast<double>(path_size));
 
         int pos = 0;
         for (double3 p : curve)
@@ -118,16 +139,19 @@ extern "C"
         FastRRT *f = (FastRRT *)self;
 
         double3 start;
-        start.x = start_x;
-        start.y = start_z;
-        start.z = (double)start_heading;
+        start.x = static_cast<double>(start_x);
+        start.y = static_cast<double>(start_z);
+        start.z = static_cast<double>(start_heading);
 
         double3 end;
-        end.x = end_x;
-        end.y = end_z;
+        end.x = static_cast<double>(end_x);
+        end.y = static_cast<double>(end_z);
         end.z = 0.0;
 
-        std::vector<double3> curve = f->buildCurveWaypoints(start, end, velocity_m_s);
+        std::vector<double3> curve = f->buildCurveWaypoints(
+            start,
+            end, 
+            static_cast<double>(velocity_m_s));
 
         float *res = new float[3 * curve.size() + 1];
 
@@ -157,4 +181,5 @@ extern "C"
         end.z = h2;
         f->testDrawPath(cudaf->getFramePtr(), start, end);
     }
+
 }
