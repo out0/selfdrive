@@ -17,8 +17,11 @@ class CudaGraph
     int height;
     double3 _center;
     double _goal_heading_deg;
+    int _max_steering_angle_deg;
 
     int __random_gen(int min, int max);
+    void __expandNodesCPU(float3 *og, int max_step_size);
+    void __expandNodesGPU(float3 *og, int max_step_size);
 
 public:
     CudaGraph(
@@ -40,7 +43,7 @@ public:
     // Basic stuff
     void clear();
     double getHeading(int x, int z);
-    void add(int x, int z, double heading, int parent_x, int parent_z, double cost);
+    void add(int x, int z, double heading, int parent_x, int parent_z, double cost, bool temporary_node = false);
     void remove(int x, int z);
     double3 getParent(int x, int z);
     void setParent(int x, int z, int parent_x, int parent_z);
@@ -87,4 +90,9 @@ public:
 
     // orders nodes within a radius to verify if they should use x,z as their parent node.
     void optimizeGraphWithNode(float3 *og, int x, int z, float radius);
+
+
+    // Full parallel RRT (experimental)
+    // connects (parent_x, parent_z) to (x', z') which is the kinematic-closest point from x,z, if feasible
+    void expandNodes(float3 *og, int max_step_size);
 };

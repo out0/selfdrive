@@ -133,13 +133,12 @@ TEST(RRTGraph, TestList)
     int count = g.count();
 
     ASSERT_EQ(7, count);
-    double *res = new double[6 * count];
-    g.list(res, count);
+    std::vector<int2> res = g.list();
 
     for (int i = 0; i < count; i++)
     {
-        int x = static_cast<int>(round(res[0]));
-        int z = static_cast<int>(round(res[1]));
+        int x = static_cast<int>(round(res[i].x));
+        int z = static_cast<int>(round(res[i].y));
         int key = convert_to_key(x, z);
         ASSERT_TRUE(map.find(key) != map.end());
         double heading = res[2];

@@ -16,7 +16,7 @@ extern int2 CUDA_find_best_neighbor(double4 *graph, double *graph_cost, int3 *po
 extern int2 CUDA_find_best_feasible_neighbor(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, int3 *point, long long *bestValue, int x, int z, float radius);
 extern void CUDA_optimizeGraphWithNode(double4 *graph, double *graph_cost, float3 *og, int *classCost, double *checkParams, double goal_heading, int x, int z, float radius);
 
-//#define DEBUG_DUMP
+// #define DEBUG_DUMP
 
 #ifdef DEBUG_DUMP
 
@@ -167,6 +167,8 @@ CudaGraph::CudaGraph(
     _center.y = checkParams[14];
     _center.z = 0.0;
 
+    this->_max_steering_angle_deg = _max_steering_angle_deg;
+
     // clear();
 }
 
@@ -192,7 +194,7 @@ void CudaGraph::setVelocity(double velocity_meters_per_s)
     checkParams[12] = velocity_meters_per_s;
 }
 
-void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, double cost)
+void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, double cost, bool temporary_node)
 {
     if (x > width || x < 0)
         return;
@@ -209,6 +211,10 @@ void CudaGraph::add(int x, int z, double heading, int parent_x, int parent_z, do
     this->graph[pos].z = heading;
     this->graph[pos].w = 1.0;
     this->graph_cost[pos] = cost;
+
+    if (temporary_node)
+        this->graph[pos].w = 2.0;
+
     _unordered_nodes.push_back(int2{x, z});
 }
 
@@ -479,6 +485,42 @@ bool CudaGraph::connectToGraph(float3 *og, int parent_x, int parent_z, int x, in
     return true;
 }
 
+#define NODE_COUNT_FOR_CPU_ONLY_EXPANSION 4
+#define MAX_TRY_EXPAND 10
+
+void CudaGraph::__expandNodesCPU(float3 *og, int max_step_size)
+{
+    for (auto p : _unordered_nodes)
+    {
+        int num_try = 0;
+        while (num_try < MAX_TRY_EXPAND)
+        {
+            int angle = (double)__random_gen(-_max_steering_angle_deg, _max_steering_angle_deg);
+            int size = (double)__random_gen(10, max_step_size);
+            int2 new_node = deriveNode(og, p.x, p.y, angle, size);
+            if (new_node.x >= 0 && new_node.y >= 0) {
+                int pos = width * new_node.y + new_node.x;
+                graph[pos].w = 2.0;
+                break;
+            }
+            num_try++;
+        }
+    }
+}
+
+void CudaGraph::__expandNodesGPU(float3 *og, int max_step_size)
+{
+    //https://stackoverflow.com/questions/18501081/generating-random-number-within-cuda-kernel-in-a-varying-range
+}
+
+void CudaGraph::expandNodes(float3 *og, int max_step_size)
+{
+    if (count() < NODE_COUNT_FOR_CPU_ONLY_EXPANSION)
+        __expandNodesCPU(og, max_step_size);
+    else
+        __expandNodesGPU(og, max_step_size);
+}
+
 int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_deg, double size)
 {
     int2 res;
@@ -505,7 +547,7 @@ int2 CudaGraph::deriveNode(float3 *og, int parent_x, int parent_z, double angle_
                                                                      size,
                                                                      false);
     double3 last = curve[curve.size() - 1];
-    //printf("deriving %f, %f to %f, %f \n", start.x, start.y, last.x, last.y);
+    // printf("deriving %f, %f to %f, %f \n", start.x, start.y, last.x, last.y);
 
     double3 end;
     end.x = parent_x;
@@ -571,7 +613,7 @@ int2 CudaGraph::get_random_node()
     return _unordered_nodes[i];
 }
 
-std::vector<int2>& CudaGraph::list()
+std::vector<int2> &CudaGraph::list()
 {
     return _unordered_nodes;
 }

@@ -101,7 +101,8 @@ class AutoCameraSet (DiscreteComponent):
         addr = self.__get_pos(best)
         self.set_camera_addr(addr)
 
-client = CarlaClient(town='Town07_Opt')
+#client = CarlaClient(town='Town07_Opt')
+client = CarlaClient(town='Town07')
 auto_camera = AutoCameraSet(100, client)
 
 
@@ -227,7 +228,7 @@ def drive_scenario (client: CarlaClient, file: str):
 
 os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario5.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario6.sce")
 
 
 print ("press enter to destroy")

@@ -20,3 +20,4 @@ class PhysicalParameters:
 
     MAX_STEERING_ANGLE: int = 40
     
+    VEHICLE_LENGTH_M: float = 5.412658774  # num px * (OG_REAL_HEIGHT / OG_HEIGHT)
