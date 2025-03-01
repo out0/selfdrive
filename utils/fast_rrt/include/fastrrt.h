@@ -1,0 +1,69 @@
+#pragma once
+
+#ifndef __FASTRRT_DRIVELESS_H
+#define __FASTRRT_DRIVELESS_H
+
+#include <cmath>
+#include <chrono>
+#include "graph.h"
+#include "waypoint.h"
+#include "../../cudac/include/cuda_frame.h"
+#include "../../cudac/include/class_def.h"
+#include <vector>
+
+typedef float3* cudaPtr;
+
+class FastRRT
+{
+private:
+    CudaGraph _graph;
+    std::chrono::time_point<std::chrono::high_resolution_clock> _exec_start;
+    bool _goal_found;
+    bool _search;
+    long _timeout_ms;
+    float _maxPathSize;
+    float _distToGoalTolerance;
+    Waypoint *_goal;
+    cudaPtr _ptr;
+    float _planningVelocity_m_s;
+    int2 _bestNode;
+    int *_params;
+    double *_physicalParams;
+
+    void __set_exec_started();
+    long __get_exec_time_ms();
+    bool __check_timeout();
+
+public:
+    FastRRT(int width, int height,
+            float perceptionWidthSize_m,
+            float perceptionHeightSize_m,
+            angle maxSteeringAngle,
+            float vehicleLength,
+            int timeout_ms,
+            std::pair<int, int> minDistance, 
+            std::pair<int, int> lowerBound, 
+            std::pair<int, int> upperBound,        
+            float maxPathSize = 30.0,
+            float distToGoalTolerance = 5.0);
+
+    inline bool isPlanning() { return _search; }
+
+    void setPlanData(cudaPtr frame, Waypoint *goal, float velocity_m_s);
+
+    void run();
+
+    void optimize();
+    
+    void cancel();
+
+    bool goalReached();
+
+    std::vector<Waypoint> getPlannedPath();
+
+
+
+    
+};
+
+#endif

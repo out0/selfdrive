@@ -22,6 +22,14 @@ find_package(PkgConfig REQUIRED)
 include_directories("${CUDA_INCLUDE_DIRS}")
 
 
+
+# LIB cuda utils
+find_library(LIB_CUDA_UTILS REQUIRED
+    NAMES cuda_utils
+    HINTS /usr/local/lib/driveless
+)
+
+
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 
@@ -69,4 +77,5 @@ target_link_libraries(unittest PkgConfig::deps
   ${GTEST_LIBRARIES} 
   ${OpenCV_LIBS}
   ${CUDA_LIBRARIES}
+  ${LIB_CUDA_UTILS}
 )

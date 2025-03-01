@@ -29,6 +29,13 @@ endif(CUDA_LIB_JETSON)
 
 include(FindPackageHandleStandardArgs)
 
+# LIB cuda utils
+find_library(LIB_CUDA_UTILS REQUIRED
+    NAMES cuda_utils
+    HINTS /usr/local/lib/driveless
+)
+
+
 
 SET(TARGET_H
     # cuda_frame.h
@@ -50,11 +57,13 @@ if(CUDA_LIB_JETSON)
     target_link_libraries( ${PROJECT_NAME}
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
+            ${LIB_CUDA_UTILS}
             jetson-utils)
 else()
     target_link_libraries( ${PROJECT_NAME} 
             ${CMAKE_THREAD_LIBS_INIT}
             ${CUDA_LIBRARIES}
+            ${LIB_CUDA_UTILS}
             cuda
     )
 endif(CUDA_LIB_JETSON)

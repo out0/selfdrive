@@ -141,6 +141,20 @@ CudaFrame::CudaFrame(float *ptr, int width, int height, int min_dist_x, int min_
         }
 }
 
+CudaFrame::CudaFrame(float3 *ptr, int width, int height, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z)
+{
+    this->width = width;
+    this->height = height;
+    this->min_dist_x = min_dist_x;
+    this->min_dist_z = min_dist_z;
+    this->lower_bound_x = lower_bound_x;
+    this->lower_bound_z = lower_bound_z;
+    this->upper_bound_x = upper_bound_x;
+    this->upper_bound_z = upper_bound_z;
+    this->frame = ptr;
+}
+
+
 CudaFrame::~CudaFrame()
 {
     cudaFreeHost(this->frame);

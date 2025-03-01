@@ -15,6 +15,31 @@ __global__ static void __CUDA_KERNEL_Clear(float4 *frame, int width, int height)
     frame[pos].w = 0.0;
 }
 
+__global__ static void __CUDA_KERNEL_Clear(int3 *frame, int width, int height)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pos > width * height)
+        return;
+
+    frame[pos].x = 0.0;
+    frame[pos].y = 0.0;
+    frame[pos].z = 0.0;
+}
+
+__global__ static void __CUDA_KERNEL_Clear(double3 *frame, int width, int height)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pos > width * height)
+        return;
+
+    frame[pos].x = 0.0;
+    frame[pos].y = 0.0;
+    frame[pos].z = 0.0;
+}
+
+
 __global__ static void __CUDA_KERNEL_count_elements_in_graph(float4 *frame, int width, int height, unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -51,17 +76,37 @@ __global__ static void __CUDA_KERNEL_check_in_graph(float4 *frame, int width, in
     }
 }
 
-void CUDA_clear(float4 *frame, int width, int height)
-{
-    int size = width * height;
+// void CUDA_clear(float4 *frame, int width, int height)
+// {
+//     int size = width * height;
 
-    int numBlocks = floor(size / 256) + 1;
+//     int numBlocks = floor(size / 256) + 1;
 
-    __CUDA_KERNEL_Clear<<<numBlocks, 256>>>(frame, width, height);
+//     __CUDA_KERNEL_Clear<<<numBlocks, 256>>>(frame, width, height);
 
-    CUDA(cudaDeviceSynchronize());
-}
+//     CUDA(cudaDeviceSynchronize());
+// }
+// void CUDA_clear(int3 *frame, int width, int height)
+// {
+//     int size = width * height;
 
+//     int numBlocks = floor(size / 256) + 1;
+
+//     __CUDA_KERNEL_Clear<<<numBlocks, 256>>>(frame, width, height);
+
+//     CUDA(cudaDeviceSynchronize());
+// }
+
+// void CUDA_clear(double3 *frame, int width, int height)
+// {
+//     int size = width * height;
+
+//     int numBlocks = floor(size / 256) + 1;
+
+//     __CUDA_KERNEL_Clear<<<numBlocks, 256>>>(frame, width, height);
+
+//     CUDA(cudaDeviceSynchronize());
+// }
 /*
     BEST NEIGHBOR
 */

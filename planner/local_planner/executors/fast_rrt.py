@@ -120,6 +120,8 @@ class FastRRT(LocalPathPlannerExecutor):
         
         goal: Waypoint = goal_result.goal()
         
+        planner_data.og
+        
         FastRRT.lib.set_plan_data(
             self.__ptr, 
             goal.x, 

@@ -1,0 +1,16 @@
+========= COMPUTE-SANITIZER
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from TestGraph
+[ RUN      ] TestGraph.TestDrawCurveOnEdge
+[       OK ] TestGraph.TestDrawCurveOnEdge (0 ms)
+[ RUN      ] TestGraph.TestDrawCurve
+[       OK ] TestGraph.TestDrawCurve (1075 ms)
+[ RUN      ] TestGraph.TestDrawManyPathsGPU
+[       OK ] TestGraph.TestDrawManyPathsGPU (0 ms)
+[----------] 3 tests from TestGraph (1075 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (1075 ms total)
+[  PASSED  ] 3 tests.
+========= ERROR SUMMARY: 0 errors

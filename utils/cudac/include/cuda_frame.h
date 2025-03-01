@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cuda_basic.h"
-
+#include <driveless/cuda_utils.h>
 
 
 class CudaFrame
@@ -22,6 +22,7 @@ class CudaFrame
 
 public:
     CudaFrame(float *ptr, int width, int height, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z);
+    CudaFrame(float3 *ptr, int width, int height, int min_dist_x, int min_dist_z, int lower_bound_x, int lower_bound_z, int upper_bound_x, int upper_bound_z);
     ~CudaFrame();
 
     int getWidth();
