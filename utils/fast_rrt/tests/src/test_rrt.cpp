@@ -9,7 +9,7 @@
 #include "../../include/fastrrt.h"
 #include "../../../cudac/include/cuda_frame.h"
 #include "tst_class_def.h"
-//#include <driveless/cubic_interpolator.h>
+// #include <driveless/cubic_interpolator.h>
 #include "../../include/waypoint.h"
 
 #define PHYS_SIZE 34.641016151377535
@@ -45,7 +45,6 @@ std::pair<cv::Mat, float *> readImg(const char *file)
 #define MAX_STEERING_ANGLE 40
 #define VEHICLE_LENGTH_M 5.412658774
 
-
 void exportPathTo(cudaPtr f, int width, int height, std::vector<Waypoint> &path, const char *file)
 {
     uchar *dest = new uchar[3 * width * height];
@@ -74,10 +73,64 @@ void exportPathTo(cudaPtr f, int width, int height, std::vector<Waypoint> &path,
         }
 
     cv::imwrite(file, cimg);
-    delete []dest;
+    delete[] dest;
 }
 
-#define TIMEOUT 20000
+void logGraph(FastRRT *rrt, CudaFrame *frame, const char *file)
+{
+    int width = frame->getWidth();
+    int height = frame->getHeight();
+    uchar *dest = new uchar[3 * width * height];
+    frame->convertToColorFrame(dest);
+
+    cv::Mat cimg = cv::Mat(height, width, CV_8UC3, cv::Scalar(0));
+
+    for (int h = 0; h < height; h++)
+        for (int w = 0; w < width; w++)
+        {
+            long pos = 3 * (h * width + w);
+            cv::Vec3b &pixel = cimg.at<cv::Vec3b>(h, w);
+            pixel[0] = dest[pos];
+            pixel[1] = dest[pos + 1];
+            pixel[2] = dest[pos + 2];
+        }
+
+    delete[] dest;
+
+    std::vector<int3> nodes = rrt->exportGraphNodes();
+
+    for (auto n : nodes)
+    {
+        if (n.y < 0 || n.y >= height) continue;
+        if (n.x < 0 || n.x >= width) continue;
+        cv::Vec3b &pixel = cimg.at<cv::Vec3b>(n.y, n.x);
+
+        switch (n.z)
+        {
+        case GRAPH_TYPE_NODE:
+            pixel[0] = 255;
+            pixel[1] = 255;
+            pixel[2] = 255;
+            break;
+        case GRAPH_TYPE_PROCESSING:
+            pixel[0] = 0;
+            pixel[1] = 255;
+            pixel[2] = 0;
+            break;
+        case GRAPH_TYPE_TEMP:
+            pixel[0] = 0;
+            pixel[1] = 0;
+            pixel[2] = 255;
+            break;
+        default:
+            break;
+        }
+    }
+
+    cv::imwrite(file, cimg);
+}
+
+#define TIMEOUT -1
 
 TEST(TestRRT, TestSearch)
 {
@@ -86,11 +139,11 @@ TEST(TestRRT, TestSearch)
     float *ptr = res.second;
 
     CudaFrame frame(ptr, img.cols, img.rows, 22, 40, 119, 148, 137, 108);
-    //SearchFrame frame(img.cols, img.rows, {22, 40}, {119, 148}, {137, 108});
-    //frame.copyFrom(ptr);
+    // SearchFrame frame(img.cols, img.rows, {22, 40}, {119, 148}, {137, 108});
+    // frame.copyFrom(ptr);
 
-    //frame.setClassCosts(classCosts);
-    //frame.setClassColors(classColors);
+    // frame.setClassCosts(classCosts);
+    // frame.setClassColors(classColors);
 
     float maxPathSize = 20.0;
     float distToGoal = 20.0;
@@ -107,8 +160,6 @@ TEST(TestRRT, TestSearch)
         maxPathSize,
         distToGoal);
 
-    ASSERT_FALSE(rrt.isPlanning());
-
     std::vector<Waypoint> path = rrt.getPlannedPath();
 
     ASSERT_EQ(path.size(), 0);
@@ -116,12 +167,17 @@ TEST(TestRRT, TestSearch)
     Waypoint goal(128, 0, angle::rad(0));
     rrt.setPlanData(frame.getFramePtr(), &goal, 1);
 
-    rrt.run();
+    ASSERT_TRUE(rrt.search_init());
+
+    while (!rrt.goalReached() && rrt.loop())
+    {
+        logGraph(&rrt, &frame, "output1.png");
+    }
 
     ASSERT_TRUE(rrt.goalReached());
 
     path = rrt.getPlannedPath();
-    //auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
+    // auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
     exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output1.png");
 
     // rrt.optimize();

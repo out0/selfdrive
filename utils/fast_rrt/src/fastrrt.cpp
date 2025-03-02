@@ -9,17 +9,16 @@ FastRRT::FastRRT(
     angle maxSteeringAngle,
     float vehicleLength,
     int timeout_ms,
-    std::pair<int, int> minDistance, 
-    std::pair<int, int> lowerBound, 
-    std::pair<int, int> upperBound,    
+    std::pair<int, int> minDistance,
+    std::pair<int, int> lowerBound,
+    std::pair<int, int> upperBound,
     float maxPathSize,
     float distToGoalTolerance) : _graph(CudaGraph(width, height)), _distToGoalTolerance(distToGoalTolerance), _timeout_ms(timeout_ms), _maxPathSize(maxPathSize)
 {
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength);
     _graph.setSearchParams(minDistance, lowerBound, upperBound);
-    _graph.setClassCosts((int*)segmentationClassColors, 29);
+    _graph.setClassCosts((int *)segmentationClassCost, 29);
     _goal_found = false;
-    _search = false;
     _goal = nullptr;
     _ptr = nullptr;
 }
@@ -50,70 +49,59 @@ void FastRRT::setPlanData(cudaPtr ptr, Waypoint *goal, float velocity_m_s)
 
 // extern void exportGraph2(CudaGraph *graph, const char *filename);
 
-void FastRRT::run()
+bool FastRRT::search_init()
 {
     if (_goal == nullptr)
-        return;
-
-    _search = true;
+        return false;
 
     __set_exec_started();
     _graph.clear();
     _graph.addStart();
-    // exportGraph2(&_graph, "debug.png");
 
-    while (!__check_timeout() && _search)
-    {
-        _graph.derivateNode(_ptr, _goal->heading(), _maxPathSize, _planningVelocity_m_s);
-        // exportGraph2(&_graph, "debug.png");
-        //_graph.optimizeGraph(_frame, MAX_PATH_SIZE, _planningVelocity_m_s);
-        // exportGraph2(&_graph, "debug.png");
-        _graph.acceptDerivatedNodes();
-        // exportGraph2(&_graph, "debug.png");
-
-        if (goalReached())
-        {
-            std::vector<Waypoint> path = getPlannedPath();
-            //printf("path found with %ld nodes\n", path.size());
-
-            _graph.clear();
-
-            for (Waypoint &p : path)
-                _graph.setType(p.x(), p.z(), GRAPH_TYPE_NODE);
-
-            // exportGraph2(&_graph, "debug.png");
-            _search = false;
-        }
-    }
+    return true;
 }
 
-void FastRRT::optimize()
+void FastRRT::__clean_search_graph()
 {
-    if (!goalReached())
-        return;
-
-    _search = true;
-    //__set_exec_started();
-
-    while (!__check_timeout() && _search)
-    {
-        _graph.derivateNode(_ptr, _goal->heading(), _maxPathSize, _planningVelocity_m_s);
-        _graph.optimizeGraph(_ptr, _goal->heading(), _maxPathSize, _planningVelocity_m_s);
-        _graph.acceptDerivatedNodes();
-    }
-
-    _search = false;
+    std::vector<Waypoint> path = getPlannedPath();
+    _graph.clear();
+    for (Waypoint &p : path)
+        _graph.setType(p.x(), p.z(), GRAPH_TYPE_NODE);
 }
 
-void FastRRT::cancel()
+bool FastRRT::loop()
 {
-    _search = false;
+    if (__check_timeout())
+        return false;
+
+    _graph.derivateNode(_ptr, _goal->heading(), _maxPathSize, _planningVelocity_m_s);
+    _graph.acceptDerivatedNodes();
+
+    if (goalReached())
+    {
+        __clean_search_graph();
+        return false;
+    }
+    return true;
 }
+
+bool FastRRT::loop_optimize()
+{
+    if (__check_timeout())
+        return false;
+
+    _graph.derivateNode(_ptr, _goal->heading(), _maxPathSize, _planningVelocity_m_s);
+    _graph.optimizeGraph(_ptr, _goal->heading(), _maxPathSize, _planningVelocity_m_s);
+    _graph.acceptDerivatedNodes();
+    return true;
+}
+
 
 bool FastRRT::goalReached()
 {
     if (_goal == nullptr)
         return false;
+
     int2 goal = {_goal->x(), _goal->z()};
     return _graph.checkGoalReached(_ptr, goal, _goal->heading(), _distToGoalTolerance);
 }
@@ -136,4 +124,8 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
 
     std::reverse(res.begin(), res.end());
     return res;
+}
+
+std::vector<int3> FastRRT::exportGraphNodes() {
+   return _graph.listAll();
 }

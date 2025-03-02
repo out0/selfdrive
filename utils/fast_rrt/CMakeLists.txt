@@ -69,7 +69,7 @@ add_library(
   src/fastrrt.cpp
   src/angle.cpp
   src/waypoint.cpp
-#  src/python_bind.cpp
+  src/python_bind.cpp
   #src/debug.cpp
 )
 

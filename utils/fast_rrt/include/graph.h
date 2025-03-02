@@ -34,6 +34,8 @@ private:
     void __initializeRandomGenerator();
     curandState *_randState;
     std::pair<int2 *, int> __listNodes(int type);
+    std::pair<int3 *, int> __listAllNodes();
+    
     void __optimizeGraph(float3 *og, int x, int z, float radius, float velocity_m_s, angle goalHeading);
     bool *_goalReached;
 
@@ -66,7 +68,9 @@ public:
     void remove(int x, int z);
     void clear();
     std::vector<int2> list();
+    std::vector<int3> listAll();
     unsigned int count();
+    unsigned int countAll();
 
     inline int height()
     {

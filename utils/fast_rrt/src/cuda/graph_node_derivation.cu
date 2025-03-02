@@ -121,6 +121,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
     if (!checkInGraphCuda(graph, pos))
         return;
 
+
     int z = pos / width;
     int x = pos - z * width;
 
@@ -138,7 +139,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
     // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
-    int2 start = {x, z};
+    int2 start = {x, z}; 
     int2 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
@@ -210,6 +211,14 @@ void CudaGraph::derivateNode(float3 *og, angle goalHeading, float maxPathSize, f
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+    // printf ("_randState: %p\n", (void *)_randState);
+    // printf ("_frame_ptr: %p\n", (void *)_frame->getCudaPtr());
+    // printf ("_frameData_ptr: %p\n", (void *)_frameData->getCudaPtr());
+    // printf ("og (_ptr): %p\n", (void *)og);
+    // printf ("_classCosts: %p\n", (void *)_classCosts);
+    // printf ("_physicalParams: %p\n", (void *)_physicalParams);
+    // printf ("w: %d, h:%d\n", _frame->width(), _frame->height());
 
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState,

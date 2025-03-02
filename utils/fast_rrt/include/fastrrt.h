@@ -19,7 +19,6 @@ private:
     CudaGraph _graph;
     std::chrono::time_point<std::chrono::high_resolution_clock> _exec_start;
     bool _goal_found;
-    bool _search;
     long _timeout_ms;
     float _maxPathSize;
     float _distToGoalTolerance;
@@ -27,12 +26,11 @@ private:
     cudaPtr _ptr;
     float _planningVelocity_m_s;
     int2 _bestNode;
-    int *_params;
-    double *_physicalParams;
 
     void __set_exec_started();
     long __get_exec_time_ms();
     bool __check_timeout();
+    void __clean_search_graph();
 
 public:
     FastRRT(int width, int height,
@@ -47,23 +45,19 @@ public:
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 
-    inline bool isPlanning() { return _search; }
-
     void setPlanData(cudaPtr frame, Waypoint *goal, float velocity_m_s);
 
-    void run();
-
-    void optimize();
-    
-    void cancel();
-
+    bool search_init();
+    bool loop();
+    bool loop_optimize();
     bool goalReached();
+    
+    /// @brief Exports the current state of the graph as a vector
+    /// @return vector, where each node = [x, z, node_type]
+    std::vector<int3> exportGraphNodes();
 
     std::vector<Waypoint> getPlannedPath();
 
-
-
-    
 };
 
 #endif

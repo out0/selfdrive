@@ -9,6 +9,7 @@ import math
 from enum import Enum
 
 LIBNAME = "/usr/local/lib/libdriveless-cudac.so"
+ctypes.CDLL("/usr/local/lib/driveless/libcuda_utils.so", mode = ctypes.RTLD_GLOBAL)
 lib = ctypes.CDLL(LIBNAME)
 
 lib.load_frame.restype = ctypes.c_void_p
