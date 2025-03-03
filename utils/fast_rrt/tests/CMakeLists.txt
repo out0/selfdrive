@@ -47,7 +47,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 # find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -lineinfo -Wno-deprecated-gpu-targets")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -lineinfo -W no-deprecated-gpu-targets")
 
 SET(TARGET_H
   

@@ -42,8 +42,10 @@ extern "C"
         FastRRT *rrt = (FastRRT *)ptr;
         Waypoint p(goal_x, goal_z, angle::rad(heading_rad));
 
+        //printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
+
         CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        rrt->setPlanData(frame->getFramePtr(), &p, velocity_m_s);
+        rrt->setPlanData(frame->getFramePtr(), p, velocity_m_s);
     }
 
     bool goal_reached(void *ptr)
@@ -52,18 +54,59 @@ extern "C"
         return rrt->goalReached();
     }
 
+    void search_init(void *ptr)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        rrt->search_init();
+    }
+    bool loop(void *ptr)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        return rrt->loop();
+    }
+
+    bool loop_optimize(void *ptr)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        return rrt->loop_optimize();
+    }
+
+    int *export_graph_nodes(void *ptr)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        auto nodes = rrt->exportGraphNodes();
+
+        int * res = new int[3 * nodes.size() + 1];
+
+        res[0] = nodes.size();
+
+        int i = 1;
+        for (auto n : nodes) {
+            res[i] = n.x;
+            res[i+1] = n.y;
+            res[i+2] = n.z;
+            i += 3;
+        }
+       
+        return res;
+    }
+    void release_export_graph_nodes(float *ptr)
+    {
+        delete []ptr;
+    }
+
     float *get_planned_path(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
         std::vector<Waypoint> path = rrt->getPlannedPath();
         int size = path.size();
 
-        printf("size = %d\n", size);
+        //printf("size = %d\n", size);
 
         float *res = new float[3 * size + 1];
         res[0] = (float)size;
 
-        printf("res[0] = %f\n", res[0]);
+        //printf("res[0] = %f\n", res[0]);
 
         int i = 0;
         for (auto p : path)

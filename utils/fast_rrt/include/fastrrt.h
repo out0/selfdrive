@@ -22,7 +22,7 @@ private:
     long _timeout_ms;
     float _maxPathSize;
     float _distToGoalTolerance;
-    Waypoint *_goal;
+    Waypoint _goal;
     cudaPtr _ptr;
     float _planningVelocity_m_s;
     int2 _bestNode;
@@ -30,7 +30,7 @@ private:
     void __set_exec_started();
     long __get_exec_time_ms();
     bool __check_timeout();
-    void __clean_search_graph();
+    void __shrink_search_graph();
 
 public:
     FastRRT(int width, int height,
@@ -45,9 +45,9 @@ public:
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 
-    void setPlanData(cudaPtr frame, Waypoint *goal, float velocity_m_s);
+    void setPlanData(cudaPtr frame, Waypoint goal, float velocity_m_s);
 
-    bool search_init();
+    void search_init();
     bool loop();
     bool loop_optimize();
     bool goalReached();

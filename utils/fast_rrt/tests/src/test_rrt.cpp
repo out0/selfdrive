@@ -138,6 +138,10 @@ TEST(TestRRT, TestSearch)
     cv::Mat img = res.first;
     float *ptr = res.second;
 
+    // for (int i = 0; i < 10; i++)
+    //     printf ("  %f, %f, %f", ptr[3*i], ptr[3*i+1], ptr[3*i+2]);
+    // printf("\n");
+
     CudaFrame frame(ptr, img.cols, img.rows, 22, 40, 119, 148, 137, 108);
     // SearchFrame frame(img.cols, img.rows, {22, 40}, {119, 148}, {137, 108});
     // frame.copyFrom(ptr);
@@ -165,20 +169,29 @@ TEST(TestRRT, TestSearch)
     ASSERT_EQ(path.size(), 0);
 
     Waypoint goal(128, 0, angle::rad(0));
-    rrt.setPlanData(frame.getFramePtr(), &goal, 1);
+    rrt.setPlanData(frame.getFramePtr(), goal, 1);
 
-    ASSERT_TRUE(rrt.search_init());
+    rrt.search_init();
 
     while (!rrt.goalReached() && rrt.loop())
     {
-        logGraph(&rrt, &frame, "output1.png");
+        //logGraph(&rrt, &frame, "output1.png");
     }
 
     ASSERT_TRUE(rrt.goalReached());
 
     path = rrt.getPlannedPath();
+
+
+    logGraph(&rrt, &frame, "output1.png");
+    while (rrt.loop_optimize())
+    {
+        logGraph(&rrt, &frame, "output1.png");
+    }
+
+    exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output2.png");
     // auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
-    exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output1.png");
+    
 
     // rrt.optimize();
     // path = rrt.getPlannedPath();

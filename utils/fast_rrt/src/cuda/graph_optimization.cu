@@ -10,6 +10,7 @@ extern __device__ __host__ double getCostCuda(double3 *graphData, long pos);
 extern __device__ __host__ bool set(int3 *graph, double3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
 extern __device__ __host__ bool checkKinematicPath(int3 *graph, double3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading);
 extern __device__ __host__ double computeCost(float3 *frame, int3 *graph, double3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
+extern __device__ __host__ int getTypeCuda(int3 *graph, long pos);
 
 __device__ bool checkCyclicReference(int3 *graph, int width, long currentPos, long checkPos)
 {
@@ -23,6 +24,11 @@ __device__ bool checkCyclicReference(int3 *graph, int width, long currentPos, lo
             return false;
 
         pos = computePos(width, parent.x, parent.y);
+
+        // I've reached a solid path, I dont need to keep checking
+        if (getTypeCuda(graph, pos) == GRAPH_TYPE_NODE) 
+            return false;
+
     }
 
     return true;

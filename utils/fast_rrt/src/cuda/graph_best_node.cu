@@ -174,6 +174,8 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     if (*_goalReached) return true;
+
+    //printf("check goal: %d, %d\n", goal.x, goal.y);
    
     __CUDA_KERNEL_checkGoalReached<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
