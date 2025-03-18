@@ -2,7 +2,8 @@
 #include "../../../cudac/include/cuda_basic.h"
 #include "../../include/cuda_params.h"
 #include "../../include/graph.h"
-
+#include <cstdlib>
+#include <ctime>
 
 __device__ __host__ long computePos(int width, int x, int z)
 {
@@ -81,11 +82,30 @@ __device__ __host__ double getIntrinsicCostCuda(double3 *graphData, long pos)
     return graphData[pos].z;
 }
 
+__device__ __host__ double getIntrinsicCost(double3 *graphData, int width, int x, int z)
+{
+    long pos = computePos(width, x, z);
+    return graphData[pos].z;
+}
+
 __device__ __host__ inline void setIntrinsicCostCuda(double3 *graphData, long pos, double cost)
 {
     graphData[pos].z = cost;
 }
+__device__ __host__ void setIntrinsicCost(double3 *graphData, int width, int x, int z, double cost)
+{
+    long pos = computePos(width, x, z);
+    graphData[pos].z = cost;
+}
+__device__  void incIntrinsicCost(double3 *graphData, int width, int x, int z, double cost)
+{
+    long pos = computePos(width, x, z);
+    // double *addr = &graphData[pos].z;
+    // atomicAdd(addr, cost);
 
+    float *p = nullptr;
+    atomicAdd(p, (float)1.2);
+}
 
 __device__ __host__ bool checkInGraphCuda(int3 *graph, long pos)
 {
@@ -125,6 +145,8 @@ CudaGraph::CudaGraph(int width, int height)
     _searchSpaceParams[FRAME_PARAM_CENTER_X] = _gridCenter.x;
     _searchSpaceParams[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
 
+
+    // TODO: make this method refresh randomness for each clear() in graph
     __initializeRandomGenerator();
 
     if (!cudaAllocMapped(&this->_goalReached, sizeof(bool)))
@@ -132,6 +154,8 @@ CudaGraph::CudaGraph(int width, int height)
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for goal reached check\n");
         throw msg;
     }
+
+
 }
 CudaGraph::~CudaGraph()
 {
@@ -141,7 +165,7 @@ CudaGraph::~CudaGraph()
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)
 {
 
-    if (!cudaAllocMapped(&this->_physicalParams, sizeof(double) * 7))
+    if (!cudaAllocMapped(&this->_physicalParams, sizeof(double) * 8))
     {
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(double) * 5) + std::string(" bytes for physical params\n");
         throw msg;
@@ -152,6 +176,7 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     this->_physicalParams[PHYSICAL_PARAMS_RATE_H] = _frame->height() / perceptionHeightSize_m;
     this->_physicalParams[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _frame->height();
     this->_physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
+    this->_physicalParams[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
     this->_physicalParams[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
 }
 

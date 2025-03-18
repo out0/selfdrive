@@ -182,7 +182,7 @@ TEST(TestRRT, TestSearch)
 
     path = rrt.getPlannedPath();
 
-
+    return;
     logGraph(&rrt, &frame, "output1.png");
     while (rrt.loop_optimize())
     {

@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 
+
 #define GRAPH_TYPE_NULL 0
 #define GRAPH_TYPE_NODE 1
 #define GRAPH_TYPE_TEMP 2
@@ -58,6 +59,9 @@ protected:
 public:
     CudaGraph(int width, int height);
     ~CudaGraph();
+
+    void computeAPF(float3 *og, int radius);
+
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
@@ -129,10 +133,6 @@ public:
     /// @return
     int2 findBestNode(float3 *og, angle heading, float radius, int x, int z);
 
-    /// @brief Optimizes the graph with the added new nodes, changing node parents for total cost reduction (RRT*)
-    /// @param searchFrame
-    /// @param radius
-    void optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s);
 
     /// @brief Checks if there is a feasible connection between start and end, at the given velocity and max steering angle
     /// @param searchFrame 
@@ -150,6 +150,14 @@ public:
     /// @param distanceToGoalTolerance 
     /// @return 
     bool checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance);
+
+
+    // /// @brief Optimizes the graph with the added new nodes, changing node parents for total cost reduction (RRT*)
+    // /// @param searchFrame
+    // /// @param radius
+    void optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s);
+
+    void optimizeNode(float3 *og, int width, int x, int z, float radius, float velocity_m_s);
 };
 
 #endif

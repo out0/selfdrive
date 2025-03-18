@@ -44,4 +44,6 @@ void CudaGraph::__initializeRandomGenerator()
         _randState, size, getCurrentTimeMillis());
 
     CUDA(cudaDeviceSynchronize());
+
+    srand(time(0));
 }

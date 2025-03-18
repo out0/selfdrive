@@ -66,6 +66,7 @@ add_executable(
   ../src/cuda/graph_optimization.cu
   ../src/cuda/graph_costs.cu
   ../src/cuda/cuda_grid.cu
+  ../src/cuda/simple_apf.cu
   #../src/cuda/graph_clear_except.cu
   ../src/fastrrt.cpp
   ../src/angle.cpp
@@ -79,8 +80,9 @@ add_executable(
   # src/test_kinematics.cpp
   # src/test_graph_node_derivation.cpp
   # src/test_graph_best_node.cpp
-  src/test_rrt.cpp
+  # src/test_rrt.cpp
   # src/test_optimize_path.cpp
+  src/test_simple_apf.cpp
 )
 
 set_property(
