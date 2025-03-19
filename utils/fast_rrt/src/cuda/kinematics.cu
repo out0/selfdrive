@@ -7,13 +7,13 @@
 #include "../../include/graph.h"
 #include "../../include/waypoint.h"
 
-extern __device__ __host__ bool set(int3 *graph, double3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
+extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
 extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
-extern __device__ __host__ double getHeadingCuda(double3 *graphData, long pos);
+extern __device__ __host__ double getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ double getCostCuda(double3 *graphData, long pos);
+extern __device__ __host__ double getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ double getFrameCostCuda(float3 *frame, float *classCost, long pos);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
@@ -119,7 +119,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
     return val;
 }
 
-__device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, double3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+__device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -192,7 +192,7 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, double3 *gra
     return {last_x, last_z};
 }
 
-std::pair<double3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s)
+std::pair<float3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s)
 {
     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
@@ -214,10 +214,10 @@ std::pair<double3 *, int> drawKinematicIdealPath(double *physicalParams, int wid
     double ds = velocity_m_s * dt;
     int total_steps = TO_INT(compute_euclidean_2d_dist(sp, ep) / ds);
 
-    double3 *path;
-    if (!cudaAllocMapped(&path, sizeof(double3) * total_steps))
+    float3 *path;
+    if (!cudaAllocMapped(&path, sizeof(float3) * total_steps))
     {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(double3) * total_steps) + std::string(" bytes for drawKinematicIdealPath\n");
+        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float3) * total_steps) + std::string(" bytes for drawKinematicIdealPath\n");
         throw msg;
     }
 
@@ -249,7 +249,7 @@ std::pair<double3 *, int> drawKinematicIdealPath(double *physicalParams, int wid
     return {path, total_steps};
 }
 
-__device__ __host__ bool checkKinematicPath(int3 *graph, double3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading)
+__device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading)
 {
     double distance = compute_euclidean_2d_dist(start, end);
 

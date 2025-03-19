@@ -3,13 +3,13 @@
 #include "../../include/cuda_params.h"
 
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ double getHeadingCuda(double3 *graphData, long pos);
+extern __device__ __host__ double getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
-extern __device__ __host__ double getCostCuda(double3 *graphData, long pos);
-extern __device__ __host__ bool set(int3 *graph, double3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
-extern __device__ __host__ bool checkKinematicPath(int3 *graph, double3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading);
-extern __device__ __host__ double computeCost(float3 *frame, int3 *graph, double3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
+extern __device__ __host__ double getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
+extern __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading);
+extern __device__ __host__ double computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
 extern __device__ __host__ int getTypeCuda(int3 *graph, long pos);
 
 void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s)

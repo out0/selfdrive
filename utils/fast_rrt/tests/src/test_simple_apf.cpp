@@ -18,7 +18,7 @@ TEST(TestSimpleAPF, TestAPF)
     angle maxSteering = angle::deg(40);
     int costs[] = {{0},
                    {1},
-                   {2},
+                   {-1},
                    {3},
                    {4},
                    {5}};
@@ -29,6 +29,7 @@ TEST(TestSimpleAPF, TestAPF)
 
 
     float3 *og = createEmptySearchFrame(256, 256);
+    og[128 * 256 + 128].x = 2; // single obstacle in 128,128
     g.computeAPF(og, 5);
     
 }

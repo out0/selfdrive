@@ -19,13 +19,13 @@
 
 #define THREADS_IN_BLOCK 256
 
-typedef double3 pose;
+typedef float3 pose;
 
 class CudaGraph
 {
 private:
     std::shared_ptr<CudaGrid<int3>> _frame;
-    std::shared_ptr<CudaGrid<double3>> _frameData;
+    std::shared_ptr<CudaGrid<float3>> _frameData;
     bool __checkLimits(int x, int z);
     unsigned int *_parallelCount = 0;
     int2 _gridCenter;
@@ -87,6 +87,10 @@ public:
     std::shared_ptr<CudaGrid<int3>> getFramePtr()
     {
         return _frame;
+    }
+    std::shared_ptr<CudaGrid<float3>> getFrameDataPtr()
+    {
+        return _frameData;
     }
 
     bool checkInGraph(int x, int z);

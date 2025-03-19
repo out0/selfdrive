@@ -3,9 +3,9 @@
 #include "../../include/graph.h"
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
-extern __device__ __host__ double getCostCuda(double3 *graphData, long pos);
+extern __device__ __host__ double getCostCuda(float3 *graphData, long pos);
 
-__global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int3 *graph, double3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long *bestCost)
+__global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int3 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long *bestCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -38,7 +38,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int3 *graph, doub
     atomicMin(bestCost, cost);
 }
 
-__global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int3 *graph, double3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long bestCost, int2 *node)
+__global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int3 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long bestCost, int2 *node)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 

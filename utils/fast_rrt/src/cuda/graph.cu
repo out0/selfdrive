@@ -10,7 +10,7 @@ __device__ __host__ long computePos(int width, int x, int z)
     return z * width + x;
 }
 
-__device__ __host__ bool set(int3 *graph, double3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override)
+__device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override)
 {
 #ifdef __CUDA_ARCH__
     if (override)
@@ -56,55 +56,51 @@ __device__ __host__ int2 getParentCuda(int3 *graph, long pos)
     return {graph[pos].x, graph[pos].y};
 }
 
-__device__ __host__ double getHeadingCuda(double3 *graphData, long pos)
+__device__ __host__ double getHeadingCuda(float3 *graphData, long pos)
 {
     return graphData[pos].x;
 }
 
-__device__ __host__ inline void setHeadingCuda(double3 *graphData, long pos, double heading)
+__device__ __host__ inline void setHeadingCuda(float3 *graphData, long pos, double heading)
 {
     graphData[pos].x = heading;
 }
 
-__device__ __host__ double getCostCuda(double3 *graphData, long pos)
+__device__ __host__ double getCostCuda(float3 *graphData, long pos)
 {
     return graphData[pos].y;
 }
 
-__device__ __host__ inline void setCostCuda(double3 *graphData, long pos, double cost)
+__device__ __host__ inline void setCostCuda(float3 *graphData, long pos, double cost)
 {
     graphData[pos].y = cost;
 }
 
 
-__device__ __host__ double getIntrinsicCostCuda(double3 *graphData, long pos)
+__device__ __host__ double getIntrinsicCostCuda(float3 *graphData, long pos)
 {
     return graphData[pos].z;
 }
 
-__device__ __host__ double getIntrinsicCost(double3 *graphData, int width, int x, int z)
+__device__ __host__ double getIntrinsicCost(float3 *graphData, int width, int x, int z)
 {
     long pos = computePos(width, x, z);
     return graphData[pos].z;
 }
 
-__device__ __host__ inline void setIntrinsicCostCuda(double3 *graphData, long pos, double cost)
+__device__ __host__ inline void setIntrinsicCostCuda(float3 *graphData, long pos, double cost)
 {
     graphData[pos].z = cost;
 }
-__device__ __host__ void setIntrinsicCost(double3 *graphData, int width, int x, int z, double cost)
+__device__ __host__ void setIntrinsicCost(float3 *graphData, int width, int x, int z, double cost)
 {
     long pos = computePos(width, x, z);
     graphData[pos].z = cost;
 }
-__device__  void incIntrinsicCost(double3 *graphData, int width, int x, int z, double cost)
+__device__  void incIntrinsicCost(float3 *graphData, int width, int x, int z, double cost)
 {
     long pos = computePos(width, x, z);
-    // double *addr = &graphData[pos].z;
-    // atomicAdd(addr, cost);
-
-    float *p = nullptr;
-    atomicAdd(p, (float)1.2);
+    atomicAdd(&graphData[pos].z, cost);
 }
 
 __device__ __host__ bool checkInGraphCuda(int3 *graph, long pos)
@@ -122,7 +118,7 @@ void CudaGraph::setType(int x, int z, int type)
 CudaGraph::CudaGraph(int width, int height)
 {
     _frame = std::make_shared<CudaGrid<int3>>(width, height);
-    _frameData = std::make_unique<CudaGrid<double3>>(width, height);
+    _frameData = std::make_unique<CudaGrid<float3>>(width, height);
     if (!cudaAllocMapped(&this->_parallelCount, sizeof(unsigned int)))
     {
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(unsigned int)) + std::string(" bytes for counting\n");

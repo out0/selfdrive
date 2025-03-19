@@ -77,11 +77,11 @@ class TestFastRRT(unittest.TestCase):
         # print("")
 
         frame = CudaFrame(
-        frame=raw,
-        lower_bound=Waypoint(119, 148),
-        upper_bound=Waypoint(137, 108),
-        min_dist_x=22,
-        min_dist_z=40
+            frame=raw,
+            lower_bound=Waypoint(119, 148),
+            upper_bound=Waypoint(137, 108),
+            min_dist_x=22,
+            min_dist_z=40
         )
 
         path = rrt.get_planned_path()

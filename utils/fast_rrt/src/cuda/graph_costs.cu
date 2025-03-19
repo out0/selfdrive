@@ -3,22 +3,22 @@
 #include "../../include/graph.h"
 
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
-extern __device__ __host__ double getCostCuda(double3 *graphData, long pos);
+extern __device__ __host__ double getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ double getHeadingCuda(double3 *graphData, long pos);
+extern __device__ __host__ double getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ double getFrameCostCuda(float3 *frame, float *classCost, long pos) ;
 
 
-__device__ __host__ double computeCost(float3 *frame, int3 *graph, double3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent) {
+__device__ __host__ double computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent) {
     int2 parent = getParentCuda(graph, nodePos);
     double parentCost = getCostCuda(graphData, computePos(width, parent.x, parent.y));
     double heading_error_perc = abs(goalHeading_rad - getHeadingCuda(graphData, nodePos)) / physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
     return (getFrameCostCuda(frame, classCosts, nodePos) + distToParent) * (1 + heading_error_perc) + parentCost;
 }
 
-// extern std::pair<double3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s);
+// extern std::pair<float3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s);
 
-// __global__ void __CUDA_KERNEL_computeIntrinsicCosts(double3 *graphData, int width, int height)
+// __global__ void __CUDA_KERNEL_computeIntrinsicCosts(float3 *graphData, int width, int height)
 // {
 //     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -36,7 +36,7 @@ __device__ __host__ double computeCost(float3 *frame, int3 *graph, double3 *grap
 // void CudaGraph::computeCostForIdealPath(Waypoint &goal, float velocity_m_s) {
 //     auto res = drawKinematicIdealPath(_physicalParams, width(), _gridCenter, goal, velocity_m_s);
 
-//     double3 *path = res.first;
+//     float3 *path = res.first;
 //     int size = res.second;
 
 //     int size = _frame->width() * _frame->height();

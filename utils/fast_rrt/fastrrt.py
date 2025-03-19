@@ -195,4 +195,4 @@ class FastRRT:
           FastRRT.lib.release_export_graph_nodes(ptr)
           return nodes
           
-          
+     
