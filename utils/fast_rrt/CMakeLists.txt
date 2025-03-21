@@ -65,7 +65,7 @@ add_library(
   src/cuda/graph_node_derivation.cu
   src/cuda/graph_costs.cu
   src/cuda/cuda_grid.cu
-  src/cuda/simple_apf.cu
+  src/cuda/apf.cu
 #  src/cuda/graph_clear_except.cu
   src/fastrrt.cpp
   src/angle.cpp

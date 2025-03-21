@@ -60,7 +60,7 @@ public:
     CudaGraph(int width, int height);
     ~CudaGraph();
 
-    void computeAPF(float3 *og, int radius);
+    void computeAPF(float3 *og, float Kr, int radius);
 
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);

@@ -66,7 +66,7 @@ add_executable(
   ../src/cuda/graph_optimization.cu
   ../src/cuda/graph_costs.cu
   ../src/cuda/cuda_grid.cu
-  ../src/cuda/simple_apf.cu
+  ../src/cuda/apf.cu
   #../src/cuda/graph_clear_except.cu
   ../src/fastrrt.cpp
   ../src/angle.cpp

@@ -44,10 +44,10 @@ class TestCudaGraph(unittest.TestCase):
             vehicle_length_m=VEHICLE_LENGTH_M,
             min_dist_x=22,
             min_dist_z=40,
-            lower_bound_x=119,
-            lower_bound_z=148,
-            upper_bound_x=137,
-            upper_bound_z=108,
+            lower_bound_x=-1,
+            lower_bound_z=-1,
+            upper_bound_x=-1,
+            upper_bound_z=-1,
             libdir=None
         )
         
@@ -63,9 +63,14 @@ class TestCudaGraph(unittest.TestCase):
             min_dist_z=0
         )
         
-        graph.compute_apf(frame, 5)
+        graph.compute_apf(frame, 50)
         
         costs = graph.get_intrinsic_costs()
+        
+        # for h in range(256):
+            # for w in range(256):
+            #     if costs[h, w] > 0:
+            #         print(f"({w}, {h}) = {costs[h, w]}")
         
         plot_costs(costs, "test.png")
 
@@ -97,7 +102,7 @@ class TestCudaGraph(unittest.TestCase):
             min_dist_z=0
         )
         
-        graph.compute_apf(frame, 5)
+        graph.compute_apf(frame, 50)
         
         costs = graph.get_intrinsic_costs()
         

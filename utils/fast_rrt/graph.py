@@ -83,6 +83,7 @@ class CudaGraph:
           CudaGraph.lib.compute_apf.argtypes = [
               ctypes.c_void_p,  # graph ptr
               ctypes.c_void_p,  # cuda search frame ptr
+              ctypes.c_float,     # Kr
               ctypes.c_int      # radius
           ]
           
@@ -96,8 +97,8 @@ class CudaGraph:
               ctypes.c_void_p,  # costs ptr
           ]
 
-    def compute_apf(self, cuda_ptr: CudaFrame, radius: int):
-        CudaGraph.lib.compute_apf(self.__ptr, cuda_ptr.get_cuda_frame(), radius)
+    def compute_apf(self, cuda_ptr: CudaFrame, kr: float, radius: int):
+        CudaGraph.lib.compute_apf(self.__ptr, cuda_ptr.get_cuda_frame(), kr, radius)
     
 
     def get_intrinsic_costs (self) -> np.ndarray:

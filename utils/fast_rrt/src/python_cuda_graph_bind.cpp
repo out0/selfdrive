@@ -29,11 +29,11 @@ extern "C"
     }
 
 
-    void compute_apf(void *ptr, void *cudaFramePtr, int radius) {
+    void compute_apf(void *ptr, void *cudaFramePtr, float kr, int radius) {
         CudaGraph *graph = (CudaGraph *)ptr;
         CudaFrame *frame = (CudaFrame *)cudaFramePtr;
 
-        graph->computeAPF(frame->getFramePtr(), radius);
+        graph->computeAPF(frame->getFramePtr(), kr, radius);
     }
 
     float * get_intrinsic_costs (void *ptr) {
