@@ -60,14 +60,15 @@ public:
     CudaGraph(int width, int height);
     ~CudaGraph();
 
-    void computeAPF(float3 *og, float Kr, int radius);
+    void computeRepulsiveFieldAPF(float3 *og, float Kr, int radius);
+    void computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal);
 
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
     void setClassCosts(const int *costs, int size);
-    void add(int x, int z, angle heading, int parent_x, int parent_z, double cost);
-    void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, double cost);
+    void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
+    void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost);
     void addStart();
     void remove(int x, int z);
     void clear();
@@ -98,8 +99,8 @@ public:
     int2 getParent(int x, int z);
     angle getHeading(int x, int z);
     void setHeading(int x, int z, angle heading);
-    double getCost(int x, int z);
-    void setCost(int x, int z, double cost);
+    float getCost(int x, int z);
+    void setCost(int x, int z, float cost);
 
     void setType(int x, int z, int type);
 

@@ -149,6 +149,7 @@ class FastRRT:
           return FastRRT.lib.loop(self.__ptr)
         
      def loop_optimize(self) -> bool:
+          return False
           return FastRRT.lib.loop_optimize(self.__ptr)
      
      def goal_reached(self) -> bool:

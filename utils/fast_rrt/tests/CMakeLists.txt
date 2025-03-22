@@ -77,12 +77,12 @@ add_executable(
   #../src/debug.cpp
   src/test_utils.cpp
   src/unittests.cpp
-  # src/test_graph.cpp
-  # src/test_kinematics.cpp
-  # src/test_graph_node_derivation.cpp
-  # src/test_graph_best_node.cpp
-  # src/test_rrt.cpp
-  # src/test_optimize_path.cpp
+  src/test_graph.cpp
+  src/test_kinematics.cpp
+  src/test_graph_node_derivation.cpp
+  src/test_graph_best_node.cpp
+  src/test_rrt.cpp
+  #src/test_optimize_path.cpp
   src/test_simple_apf.cpp
 )
 

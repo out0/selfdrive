@@ -79,12 +79,21 @@ class CudaGraph:
              ctypes.c_void_p
           ]
           
-          CudaGraph.lib.compute_apf.restype = None
-          CudaGraph.lib.compute_apf.argtypes = [
+          CudaGraph.lib.compute_apf_repulsion.restype = None
+          CudaGraph.lib.compute_apf_repulsion.argtypes = [
               ctypes.c_void_p,  # graph ptr
               ctypes.c_void_p,  # cuda search frame ptr
-              ctypes.c_float,     # Kr
+              ctypes.c_float,   # Kr
               ctypes.c_int      # radius
+          ]
+          
+          CudaGraph.lib.compute_apf_attraction.restype = None
+          CudaGraph.lib.compute_apf_attraction.argtypes = [
+              ctypes.c_void_p,  # graph ptr
+              ctypes.c_void_p,  # cuda search frame ptr
+              ctypes.c_float,   # Ka
+              ctypes.c_int,     # goal_x
+              ctypes.c_int     # goal_z
           ]
           
           CudaGraph.lib.get_intrinsic_costs.restype = ctypes.POINTER(ctypes.c_float)
@@ -97,9 +106,12 @@ class CudaGraph:
               ctypes.c_void_p,  # costs ptr
           ]
 
-    def compute_apf(self, cuda_ptr: CudaFrame, kr: float, radius: int):
-        CudaGraph.lib.compute_apf(self.__ptr, cuda_ptr.get_cuda_frame(), kr, radius)
+    def compute_apf_repulsion(self, cuda_ptr: CudaFrame, kr: float, radius: int):
+        CudaGraph.lib.compute_apf_repulsion(self.__ptr, cuda_ptr.get_cuda_frame(), kr, radius)
     
+    def compute_apf_attraction(self, cuda_ptr: CudaFrame, ka: float, goal_x: int, goal_z: int):
+        CudaGraph.lib.compute_apf_attraction(self.__ptr, cuda_ptr.get_cuda_frame(), ka, goal_x, goal_z)
+
 
     def get_intrinsic_costs (self) -> np.ndarray:
         

@@ -29,11 +29,16 @@ extern "C"
     }
 
 
-    void compute_apf(void *ptr, void *cudaFramePtr, float kr, int radius) {
+    void compute_apf_repulsion(void *ptr, void *cudaFramePtr, float kr, int radius) {
         CudaGraph *graph = (CudaGraph *)ptr;
         CudaFrame *frame = (CudaFrame *)cudaFramePtr;
+        graph->computeRepulsiveFieldAPF(frame->getFramePtr(), kr, radius);
+    }
 
-        graph->computeAPF(frame->getFramePtr(), kr, radius);
+    void compute_apf_attraction(void *ptr, void *cudaFramePtr, float ka, int goal_x, int goal_z) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        CudaFrame *frame = (CudaFrame *)cudaFramePtr;
+        graph->computeAttractiveFieldAPF(frame->getFramePtr(), ka, {goal_x, goal_z});
     }
 
     float * get_intrinsic_costs (void *ptr) {

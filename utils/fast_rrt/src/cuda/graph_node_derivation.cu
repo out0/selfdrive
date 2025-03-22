@@ -5,19 +5,19 @@
 extern __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ double getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
 extern __device__ __host__ int getTypeCuda(int3 *graph, long pos);
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
-extern __device__ __host__ void setCostCuda(float3 *graphData, long pos, double cost);
-extern __device__ __host__ double getCostCuda(float3 *graphData, long pos);
-extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
+extern __device__ __host__ void setCostCuda(float3 *graphData, long pos, float cost);
+extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ bool checkInGraphCuda(int3 *graph, long pos);
 extern __device__ float generateRandom(curandState *state, int pos, float max);
 extern __device__ float generateRandomNeg(curandState *state, int pos, float max);
 extern __device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_x, int parent_z);
 
-extern __device__ __host__ double computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
+extern __device__ __host__ float computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
 
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
 {
@@ -30,7 +30,7 @@ __device__ void parallel_check_path_node(int3 *graph, float3 *graphData, float3 
     int width = params[FRAME_PARAM_WIDTH];
     long pos = computePos(width, x, z);
 
-    double heading = getHeadingCuda(graphData, pos);
+    float heading = getHeadingCuda(graphData, pos);
     int2 parent = getParentCuda(graph, pos);
 
     bool finalNode = type == GRAPH_TYPE_TEMP;
@@ -94,9 +94,9 @@ __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int3 *g
         return;
     long pos = computePos(width, end.x, end.y);
     int2 parent = getParentCuda(graph, pos);
-    double heading = getHeadingCuda(graphData, pos);
+    float heading = getHeadingCuda(graphData, pos);
 
-    double nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
+    float nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
     set(graph, graphData, pos, heading, start.x, start.y, pos, GRAPH_TYPE_TEMP, true);
 
     while (parent.x != start.x || parent.y != start.y)
@@ -125,7 +125,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
     int z = pos / width;
     int x = pos - z * width;
 
-    double heading = getHeadingCuda(graphData, pos);
+    float heading = getHeadingCuda(graphData, pos);
     double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
@@ -192,7 +192,7 @@ bool CudaGraph::__checkDerivatedPath(float3 *og, int2 start, int2 lastNode)
     while ((node.x != start.x || node.y != start.y) && node.x != -1 && node.y != -1)
     {
         long pos = computePos(width, node.x, node.y);
-        double heading = getHeadingCuda(_frameData->getCudaPtr(), pos);
+        float heading = getHeadingCuda(_frameData->getCudaPtr(), pos);
         feasible = feasible && __computeFeasibleForAngle(og, _searchSpaceParams, _classCosts, node.x, node.y, heading);
         setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NULL);
         node = getParentCuda(_frame->getCudaPtr(), pos);

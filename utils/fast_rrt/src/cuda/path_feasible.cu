@@ -1,7 +1,7 @@
 #include "../../include/cuda_params.h"
 #include "../../include/math_utils.h"
 
-__device__ __host__ double getFrameCostCuda(float3 *frame, float *classCost, long pos) {
+__device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos) {
     int segmentation_class = TO_INT(frame[pos].x);
     return classCost[segmentation_class];
 }

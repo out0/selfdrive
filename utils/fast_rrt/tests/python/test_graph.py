@@ -9,6 +9,7 @@ from fast_rrt.graph import CudaGraph
 import numpy as np
 from cudac.cuda_frame import CudaFrame, Waypoint
 import cv2
+import time
 
 OG_REAL_WIDTH = 34.641016151377535
 OG_REAL_HEIGHT = 34.641016151377535
@@ -31,10 +32,18 @@ def plot_costs (costs: np.ndarray, file: str) -> None:
     cv2.imwrite(file, img)
     pass
 
+def measure_execution_time(func):
+    start_time = time.time()  # Start the timer
+    func()  # Call the function
+    end_time = time.time()  # End the timer
+    execution_time = end_time - start_time  # Calculate the time taken
+    print(f"Execution Time: {execution_time:.6f} seconds")
+
 
 class TestCudaGraph(unittest.TestCase):
     
     def test_apf(self):
+        return
         graph = CudaGraph(
             width=256,
             height=256,
@@ -63,7 +72,7 @@ class TestCudaGraph(unittest.TestCase):
             min_dist_z=0
         )
         
-        graph.compute_apf(frame, 50)
+        graph.compute_apf_repulsion(frame, 2.0, 50)
         
         costs = graph.get_intrinsic_costs()
         
@@ -93,6 +102,7 @@ class TestCudaGraph(unittest.TestCase):
         
         raw = np.array(cv2.imread("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/utils/fast_rrt/tests/bev_1.png", cv2.IMREAD_COLOR), dtype=np.float32)
         
+        print (f"{raw[46,46,0]}")
        
         frame = CudaFrame(
             frame=raw,
@@ -102,11 +112,14 @@ class TestCudaGraph(unittest.TestCase):
             min_dist_z=0
         )
         
-        graph.compute_apf(frame, 50)
+        measure_execution_time(lambda  : graph.compute_apf_repulsion(frame, 2.0, 50))
         
         costs = graph.get_intrinsic_costs()
         
         plot_costs(costs, "test2.png")
+        
+        measure_execution_time(lambda  : graph.compute_apf_attraction(frame, 2.0, 128, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

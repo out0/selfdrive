@@ -10,7 +10,7 @@ __device__ __host__ long computePos(int width, int x, int z)
     return z * width + x;
 }
 
-__device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override)
+__device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override)
 {
 #ifdef __CUDA_ARCH__
     if (override)
@@ -56,48 +56,48 @@ __device__ __host__ int2 getParentCuda(int3 *graph, long pos)
     return {graph[pos].x, graph[pos].y};
 }
 
-__device__ __host__ double getHeadingCuda(float3 *graphData, long pos)
+__device__ __host__ float getHeadingCuda(float3 *graphData, long pos)
 {
     return graphData[pos].x;
 }
 
-__device__ __host__ inline void setHeadingCuda(float3 *graphData, long pos, double heading)
+__device__ __host__ inline void setHeadingCuda(float3 *graphData, long pos, float heading)
 {
     graphData[pos].x = heading;
 }
 
-__device__ __host__ double getCostCuda(float3 *graphData, long pos)
+__device__ __host__ float getCostCuda(float3 *graphData, long pos)
 {
     return graphData[pos].y;
 }
 
-__device__ __host__ inline void setCostCuda(float3 *graphData, long pos, double cost)
+__device__ __host__ inline void setCostCuda(float3 *graphData, long pos, float cost)
 {
     graphData[pos].y = cost;
 }
 
 
-__device__ __host__ double getIntrinsicCostCuda(float3 *graphData, long pos)
+__device__ __host__ float getIntrinsicCostCuda(float3 *graphData, long pos)
 {
     return graphData[pos].z;
 }
 
-__device__ __host__ double getIntrinsicCost(float3 *graphData, int width, int x, int z)
+__device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z)
 {
     long pos = computePos(width, x, z);
     return graphData[pos].z;
 }
 
-__device__ __host__ inline void setIntrinsicCostCuda(float3 *graphData, long pos, double cost)
+__device__ __host__ void setIntrinsicCostCuda(float3 *graphData, long pos, float cost)
 {
     graphData[pos].z = cost;
 }
-__device__ __host__ void setIntrinsicCost(float3 *graphData, int width, int x, int z, double cost)
+__device__ __host__ void setIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
 {
     long pos = computePos(width, x, z);
     graphData[pos].z = cost;
 }
-__device__  void incIntrinsicCost(float3 *graphData, int width, int x, int z, double cost)
+__device__  void incIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
 {
     long pos = computePos(width, x, z);
     atomicAdd(&graphData[pos].z, cost);
@@ -203,14 +203,14 @@ void CudaGraph::addStart()
     add(_gridCenter.x, _gridCenter.y, angle::rad(0), -1, -1, 0);
 }
 
-void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, double cost)
+void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, float cost)
 {
     if (!__checkLimits(x, z))
         return;
     long pos = computePos(_frame->width(), x, z);
     set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_NODE, true);
 }
-void CudaGraph::addTemporary(int x, int z, angle heading, int parent_x, int parent_z, double cost)
+void CudaGraph::addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost)
 {
     if (!__checkLimits(x, z))
         return;
@@ -296,7 +296,7 @@ void CudaGraph::setHeading(int x, int z, angle heading)
     setHeadingCuda(_frameData->getCudaPtr(), pos, heading.rad());
 }
 
-double CudaGraph::getCost(int x, int z)
+float CudaGraph::getCost(int x, int z)
 {
     if (!__checkLimits(x, z))
         return -1;
@@ -304,7 +304,7 @@ double CudaGraph::getCost(int x, int z)
     long pos = computePos(_frameData->width(), x, z);
     return getCostCuda(_frameData->getCudaPtr(), pos);
 }
-void CudaGraph::setCost(int x, int z, double cost)
+void CudaGraph::setCost(int x, int z, float cost)
 {
     if (!__checkLimits(x, z))
         return;

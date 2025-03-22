@@ -7,14 +7,14 @@
 #include "../../include/graph.h"
 #include "../../include/waypoint.h"
 
-extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, double heading, int parent_x, int parent_z, double cost, int type, bool override);
+extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
 extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
-extern __device__ __host__ double getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ double getCostCuda(float3 *graphData, long pos);
-extern __device__ __host__ double getFrameCostCuda(float3 *frame, float *classCost, long pos);
+extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
 /// @param center
