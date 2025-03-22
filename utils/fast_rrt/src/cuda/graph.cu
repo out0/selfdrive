@@ -253,6 +253,7 @@ void CudaGraph::clear()
     __CUDA_KERNEL_clear<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), width(), height());
 
     CUDA(cudaDeviceSynchronize());
+    *_goalReached = false;
 }
 
 bool CudaGraph::checkInGraph(int x, int z)

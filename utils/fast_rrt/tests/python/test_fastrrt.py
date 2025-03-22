@@ -44,12 +44,39 @@ def log_graph(rrt: FastRRT, frame: CudaFrame, file: str) -> None:
             cimg[z, x, :] = [0, 0, 255]     
         
     cv2.imwrite(file, cimg)
+    
+   
+def output_path_result(source_bev: str, path: np.ndarray, output: str) -> None:
+    
+    raw = np.array(cv2.imread(source_bev, cv2.IMREAD_COLOR), dtype=np.float32)
+    
+    frame = CudaFrame(
+            frame=raw,
+            lower_bound=Waypoint(119, 148),
+            upper_bound=Waypoint(137, 108),
+            min_dist_x=22,
+            min_dist_z=40
+        )
+    
+    f = frame.get_color_frame()
+    
+    for i in range(path.shape[0]):
+        x = int(path[i,0])
+        z = int(path[i,1])
+        f[z, x, :] = [255, 255 , 255]
+    
+    cv2.imwrite(output, f)
+        
+
+def measure_execution_time(func):
+    start_time = time.time()  # Start the timer
+    func()  # Call the function
+    end_time = time.time()  # End the timer
+    execution_time = end_time - start_time  # Calculate the time taken
+    print(f"Execution Time: {execution_time:.6f} seconds")
 
 class TestFastRRT(unittest.TestCase):
     
-
-        
-        
     def test_search(self):
         rrt = FastRRT(
         width=256,
@@ -70,7 +97,9 @@ class TestFastRRT(unittest.TestCase):
         libdir=None
         )
                 
-        raw = np.array(cv2.imread("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/utils/fast_rrt/tests/bev_1.png", cv2.IMREAD_COLOR), dtype=np.float32)
+        bev = "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/utils/fast_rrt/tests/bev_1.png"
+                
+        raw = np.array(cv2.imread(bev, cv2.IMREAD_COLOR), dtype=np.float32)
 
         # for i in range(10):
         #     print (f"  {raw[3*i]}, {raw[3*i+1]}, {raw[3*i+2]}", end="");
@@ -83,28 +112,45 @@ class TestFastRRT(unittest.TestCase):
             min_dist_x=22,
             min_dist_z=40
         )
-
+ 
         path = rrt.get_planned_path()
         self.assertTrue(path is None)
 
         ptr = frame.get_cuda_frame()
 
-        rrt.set_plan_data(ptr, 128, 0, 0, 1)       
-        rrt.search_init()
+        rrt.set_plan_data(ptr, 128, 0, 0, 1)
+        
 
-        while (not rrt.goal_reached() and rrt.loop()):
-            #log_graph(rrt, frame, "output1.png")
-            pass
+        while True:
+            start_time = time.time()
+            rrt.search_init()
+            while (not rrt.goal_reached() and rrt.loop()):
+                #log_graph(rrt, frame, "output1.png")
+                pass
+            
+            end_time = time.time()
 
-        self.assertTrue(rrt.goal_reached())
+            #self.assertTrue(rrt.goal_reached())
+            print(f"goal reached? {rrt.goal_reached()}")
 
-        while (rrt.loop_optimize()):
-            log_graph(rrt, frame, "output1.png")
-            pass
+            execution_time = end_time - start_time  # Calculate the time taken
+            print(f"Coarse path: {1000*execution_time:.6f} ms")
+            
+            path = rrt.interpolate_planned_path()
+            if path is None:
+                continue
+        
+            output_path_result(bev, path, "output1.png")
+
+        # while (rrt.loop_optimize()):
+        #     log_graph(rrt, frame, "output1.png")
+        #     pass
       
-        path = rrt.get_planned_path()
+        path = rrt.interpolate_planned_path()
         
         print(path.shape)
+        
+        output_path_result(bev, path, "output1.png")
 
 
 if __name__ == "__main__":

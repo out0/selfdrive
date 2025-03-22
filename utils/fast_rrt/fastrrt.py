@@ -116,6 +116,11 @@ class FastRRT:
           FastRRT.lib.get_planned_path.argtypes = [
                ctypes.c_void_p,
           ]
+          
+          FastRRT.lib.interpolate_planned_path.restype = ctypes.POINTER(ctypes.c_float)
+          FastRRT.lib.interpolate_planned_path.argtypes = [
+               ctypes.c_void_p,
+          ]
 
           FastRRT.lib.release_planned_path_data.restype = None
           FastRRT.lib.release_planned_path_data.argtypes = [
@@ -149,19 +154,14 @@ class FastRRT:
           return FastRRT.lib.loop(self.__ptr)
         
      def loop_optimize(self) -> bool:
-          return False
           return FastRRT.lib.loop_optimize(self.__ptr)
      
      def goal_reached(self) -> bool:
           return FastRRT.lib.goal_reached(self.__ptr)     
-         
-     def get_planned_path(self) -> np.ndarray:
-          ptr = FastRRT.lib.get_planned_path(self.__ptr)
-
-          #data = ptr.contents
+     
+     def __convert_planned_path(self, ptr: ctypes.c_void_p) -> np.ndarray:
           size = int(ptr[0])
           if size == 0:
-               FastRRT.lib.release_planned_path_data(ptr)
                return None
           
           res = np.zeros((size, 3), dtype=np.float32)
@@ -170,13 +170,20 @@ class FastRRT:
                res[i, 0] = float(ptr[pos])
                res[i, 1] = float(ptr[pos + 1])
                res[i, 2] = float(ptr[pos + 2])
-               # res[i, 0] = float(data[pos])
-               # res[i, 1] = float(data[pos + 1])
-               # res[i, 2] = float(data[pos + 2])
-          
+          return res
+     
+     def get_planned_path(self) -> np.ndarray:
+          ptr = FastRRT.lib.get_planned_path(self.__ptr)
+          res = self.__convert_planned_path(ptr)
           FastRRT.lib.release_planned_path_data(ptr)
           return res
-
+     
+     def interpolate_planned_path(self) -> np.ndarray:
+          ptr = FastRRT.lib.interpolate_planned_path(self.__ptr)
+          res = self.__convert_planned_path(ptr)
+          FastRRT.lib.release_planned_path_data(ptr)
+          return res
+     
      def export_graph_nodes(self) -> np.ndarray:
           ptr = FastRRT.lib.export_graph_nodes(self.__ptr)
           

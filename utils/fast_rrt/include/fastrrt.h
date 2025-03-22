@@ -18,7 +18,6 @@ class FastRRT
 private:
     CudaGraph _graph;
     std::chrono::time_point<std::chrono::high_resolution_clock> _exec_start;
-    bool _goal_found;
     long _timeout_ms;
     float _maxPathSize;
     float _distToGoalTolerance;
@@ -57,6 +56,7 @@ public:
     std::vector<int3> exportGraphNodes();
 
     std::vector<Waypoint> getPlannedPath();
+    std::vector<Waypoint> interpolatePlannedPath();
 
 };
 

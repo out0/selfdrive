@@ -95,10 +95,7 @@ extern "C"
         delete []ptr;
     }
 
-    float *get_planned_path(void *ptr)
-    {
-        FastRRT *rrt = (FastRRT *)ptr;
-        std::vector<Waypoint> path = rrt->getPlannedPath();
+    float *convertPath(std::vector<Waypoint> &path) {
         int size = path.size();
 
         //printf("size = %d\n", size);
@@ -119,6 +116,19 @@ extern "C"
         }
 
         return res;
+    }
+
+    float *get_planned_path(void *ptr)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        std::vector<Waypoint> path = rrt->getPlannedPath();
+        return convertPath(path);
+    }
+
+    float *interpolate_planned_path(void *ptr) {
+        FastRRT *rrt = (FastRRT *)ptr;
+        std::vector<Waypoint> path = rrt->interpolatePlannedPath();
+        return convertPath(path);
     }
 
     void release_planned_path_data(float *ptr)

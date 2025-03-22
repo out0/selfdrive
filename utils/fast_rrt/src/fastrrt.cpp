@@ -30,7 +30,6 @@ FastRRT::FastRRT(
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength);
     _graph.setSearchParams(minDistance, lowerBound, upperBound);
     _graph.setClassCosts((int *)segmentationClassCost, 29);
-    _goal_found = false;
     _ptr = nullptr;
 }
 
@@ -79,8 +78,10 @@ void FastRRT::__shrink_search_graph()
 
 bool FastRRT::loop()
 {
-    if (__check_timeout())
+    if (__check_timeout()) {
+        printf ("timeout\n");
         return false;
+    }
 
     _graph.derivateNode(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
     _graph.acceptDerivatedNodes();
@@ -98,10 +99,16 @@ bool FastRRT::loop_optimize()
     if (__check_timeout())
         return false;
 
-    _graph.derivateNode(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
-    _graph.optimizeGraph(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
-    _graph.acceptDerivatedNodes();
-    __shrink_search_graph();
+    // _graph.derivateNode(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
+    // _graph.optimizeGraph(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
+    // _graph.acceptDerivatedNodes();
+    // __shrink_search_graph();
+
+    std::vector<Waypoint> path = getPlannedPath();
+
+
+
+
     return true;
 }
 
@@ -131,6 +138,43 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
 
     std::reverse(res.begin(), res.end());
     return res;
+}
+
+static Waypoint evaluateBezier(Waypoint& P0, Waypoint& P1, Waypoint& P2, Waypoint& P3, double t) {
+    double x = std::pow(1 - t, 3) * P0.x() + 3 * std::pow(1 - t, 2) * t * P1.x() + 
+               3 * (1 - t) * std::pow(t, 2) * P2.x() + std::pow(t, 3) * P3.x();
+
+    double z = std::pow(1 - t, 3) * P0.z() + 3 * std::pow(1 - t, 2) * t * P1.z() + 
+               3 * (1 - t) * std::pow(t, 2) * P2.z() + std::pow(t, 3) * P3.z();
+
+    return Waypoint(x, z, angle::rad(0));
+}
+
+static std::vector<Waypoint> interpolate(std::vector<Waypoint>& controlPoints) {
+    int resolution = 20;
+    std::vector<Waypoint> interpolatedPoints;
+    
+    if (controlPoints.size() < 4) {
+        printf("At least 4 control points are required for cubic Bezier interpolation.\n");
+        return {};
+    }
+
+    for (size_t i = 0; i + 3 < controlPoints.size(); i += 3) {
+        for (int j = 0; j <= resolution; ++j) {
+            double t = static_cast<double>(j) / resolution;
+            interpolatedPoints.push_back(evaluateBezier(controlPoints[i], controlPoints[i + 1], 
+                                                        controlPoints[i + 2], controlPoints[i + 3], t));
+        }
+    }
+
+    return interpolatedPoints;
+}
+
+
+std::vector<Waypoint> FastRRT::interpolatePlannedPath()
+{
+    auto v = getPlannedPath();
+    return interpolate(v);
 }
 
 std::vector<int3> FastRRT::exportGraphNodes() {

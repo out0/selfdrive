@@ -37,7 +37,7 @@ def measure_execution_time(func):
     func()  # Call the function
     end_time = time.time()  # End the timer
     execution_time = end_time - start_time  # Calculate the time taken
-    print(f"Execution Time: {execution_time:.6f} seconds")
+    print(f"Execution Time: {1000*execution_time:.6f} ms")
 
 
 class TestCudaGraph(unittest.TestCase):
