@@ -139,6 +139,11 @@ class TestFastRRT(unittest.TestCase):
             path = rrt.interpolate_planned_path()
             if path is None:
                 continue
+            
+            if (path[path.shape[0] - 1, 1] > 10):
+                output_path_result(bev, path, "output1.png")
+                orig_path = rrt.get_planned_path()
+                j = 1
         
             output_path_result(bev, path, "output1.png")
 

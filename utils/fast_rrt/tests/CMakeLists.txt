@@ -73,6 +73,7 @@ add_executable(
   ../src/waypoint.cpp
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp
+  ../src/interpolation.cpp
 
   #../src/debug.cpp
   src/test_utils.cpp

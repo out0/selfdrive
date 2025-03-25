@@ -192,62 +192,117 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
     return {last_x, last_z};
 }
 
-std::pair<float3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s)
-{
-    const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-    const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-    const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-    const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
-    const double lr = physicalParams[PHYSICAL_PARAMS_LR];
-    const double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
-    int2 sp = {center.x, center.y};
-    int2 ep = {goal.x(), goal.z()};
+// std::vector<Waypoint> drawKinematicPath(double *physicalParams, int width, int height, int2 center, int2 start, float start_heading, Waypoint end, float velocity_m_s)
+// {
+//     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
+//     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
+//     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
+//     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
+//     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
+//     const double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
-    double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, sp);
-    double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, ep);
+//     int2 ep = {end.x(), end.z()};
+//     double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
+//     double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, ep);
 
-    double goal_heading = goal.heading().rad();
-    double heading = 0.0;
+//     double goal_heading = end.heading().rad();
+//     double heading = start_heading;
 
-    double dt = 0.1;
-    double ds = velocity_m_s * dt;
-    int total_steps = TO_INT(compute_euclidean_2d_dist(sp, ep) / ds);
+//     double dt = 0.1;
+//     double ds = velocity_m_s * dt;
+//     int total_steps = TO_INT(compute_euclidean_2d_dist(start, ep) / ds);
 
-    float3 *path;
-    if (!cudaAllocMapped(&path, sizeof(float3) * total_steps))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float3) * total_steps) + std::string(" bytes for drawKinematicIdealPath\n");
-        throw msg;
-    }
+//     std::vector<Waypoint> res;
 
-    double x;
-    double y;
+//     double x;
+//     double y;
 
-    int2 lastWP = {center.x, center.y};
+//     int2 lastWP = {start.x, start.y};
 
-    for (int i = 0; i < total_steps; i++)
-    {
-        double steering_error = clip(goal_heading - heading, -maxSteeringAngle, maxSteeringAngle);
-        double steer = tan(steering_error);
-        double beta = atan(steer / lr);
+//     for (int i = 0; i < total_steps; i++)
+//     {
+//         double steering_error = clip(goal_heading - heading, -maxSteeringAngle, maxSteeringAngle);
+//         double steer = tan(steering_error);
+//         double beta = atan(steer / lr);
 
-        x += ds * cos(heading + beta);
-        y += ds * sin(heading + beta);
-        heading += ds * cos(beta) * steer / (2 * lr);
+//         x += ds * cos(heading + beta);
+//         y += ds * sin(heading + beta);
+//         heading += ds * cos(beta) * steer / (2 * lr);
 
-        int2 wp = convert_map_pose_to_waypoint(center, rateW, rateH, {x, y});
-        if (wp.x == lastWP.x && wp.y == lastWP.y)
-            continue;
-        lastWP = wp;
+//         int2 wp = convert_map_pose_to_waypoint(center, rateW, rateH, {x, y});
+//         if (wp.x == lastWP.x && wp.y == lastWP.y)
+//             continue;
+//         lastWP = wp;
 
-        path[i].x = wp.x;
-        path[i].y = wp.y;
-        path[i].z = heading;
-    }
+//         if (wp.x < 0 || wp.x >= width) continue;
+//         if (wp.y < 0 || wp.y >= height) continue;
 
-    return {path, total_steps};
-}
+
+//         res.push_back(Waypoint(wp.x, wp.y, angle::rad(heading)));
+//     }
+
+//     return res;
+// }
+
+
+
+// std::pair<float3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s)
+// {
+//     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
+//     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
+//     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
+//     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
+//     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
+//     const double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+
+//     int2 sp = {center.x, center.y};
+//     int2 ep = {goal.x(), goal.z()};
+
+//     double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, sp);
+//     double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, ep);
+
+//     double goal_heading = goal.heading().rad();
+//     double heading = 0.0;
+
+//     double dt = 0.1;
+//     double ds = velocity_m_s * dt;
+//     int total_steps = TO_INT(compute_euclidean_2d_dist(sp, ep) / ds);
+
+//     float3 *path;
+//     if (!cudaAllocMapped(&path, sizeof(float3) * total_steps))
+//     {
+//         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float3) * total_steps) + std::string(" bytes for drawKinematicIdealPath\n");
+//         throw msg;
+//     }
+
+//     double x;
+//     double y;
+
+//     int2 lastWP = {center.x, center.y};
+
+//     for (int i = 0; i < total_steps; i++)
+//     {
+//         double steering_error = clip(goal_heading - heading, -maxSteeringAngle, maxSteeringAngle);
+//         double steer = tan(steering_error);
+//         double beta = atan(steer / lr);
+
+//         x += ds * cos(heading + beta);
+//         y += ds * sin(heading + beta);
+//         heading += ds * cos(beta) * steer / (2 * lr);
+
+//         int2 wp = convert_map_pose_to_waypoint(center, rateW, rateH, {x, y});
+//         if (wp.x == lastWP.x && wp.y == lastWP.y)
+//             continue;
+//         lastWP = wp;
+
+//         path[i].x = wp.x;
+//         path[i].y = wp.y;
+//         path[i].z = heading;
+//     }
+
+//     return {path, total_steps};
+// }
 
 __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading)
 {
@@ -324,22 +379,22 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
     return false;
 }
 
-bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
-{
+// bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
+// {
 
-    double finalHeading = 0;
+//     double finalHeading = 0;
 
-    return checkKinematicPath(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
-        og,
-        _physicalParams,
-        _searchSpaceParams,
-        _classCosts,
-        _gridCenter,
-        start,
-        end,
-        velocity_m_s,
-        maxSteeringAngle.rad(),
-        finalHeading);
-}
+//     return checkKinematicPath(
+//         _frame->getCudaPtr(),
+//         _frameData->getCudaPtr(),
+//         og,
+//         _physicalParams,
+//         _searchSpaceParams,
+//         _classCosts,
+//         _gridCenter,
+//         start,
+//         end,
+//         velocity_m_s,
+//         maxSteeringAngle.rad(),
+//         finalHeading);
+// }

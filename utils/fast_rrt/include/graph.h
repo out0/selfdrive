@@ -37,6 +37,7 @@ private:
     std::pair<int2 *, int> __listNodes(int type);
     std::pair<int3 *, int> __listAllNodes();
     
+    
     void __optimizeGraph(float3 *og, int x, int z, float radius, float velocity_m_s, angle goalHeading);
     bool *_goalReached;
 
@@ -92,6 +93,14 @@ public:
     std::shared_ptr<CudaGrid<float3>> getFrameDataPtr()
     {
         return _frameData;
+    }
+
+    double * getPhysicalParams() {
+        return _physicalParams;
+    }
+
+    int2 getCenter() {
+        return _gridCenter;
     }
 
     bool checkInGraph(int x, int z);
@@ -163,6 +172,7 @@ public:
     void optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s);
 
     void optimizeNode(float3 *og, int width, int x, int z, float radius, float velocity_m_s);
+
 };
 
 #endif
