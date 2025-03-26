@@ -43,7 +43,7 @@ extern "C"
 
     float * get_intrinsic_costs (void *ptr) {
         CudaGraph *graph = (CudaGraph *)ptr;
-        float3 * frameData = graph->getFrameDataPtr()->getCudaPtr();
+        float4 * frameData = graph->getFrameDataPtr()->getCudaPtr();
 
         int width = graph->width();
         int height = graph->height();
@@ -53,7 +53,7 @@ extern "C"
         for (int h = 0; h < height; h++)
             for (int w = 0; w < width; w++) {
                 int i = h * width + w;
-                data[i] = frameData[i].z;
+                data[i] = frameData[i].y;
             }
 
         return data;

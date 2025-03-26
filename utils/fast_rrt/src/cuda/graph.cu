@@ -10,7 +10,7 @@ __device__ __host__ long computePos(int width, int x, int z)
     return z * width + x;
 }
 
-__device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override)
+__device__ __host__ bool set(int3 *graph, float4 *graphData, long pos, int parentX, int parentZ, float initialSteering, float pathSize, float finalHeading, float cost, int type, bool override)
 {
 #ifdef __CUDA_ARCH__
     if (override)
@@ -28,21 +28,14 @@ __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float hea
 #endif
 
     // will return if z is originally not 0.
-    graph[pos].x = parent_x;
-    graph[pos].y = parent_z;
-    graphData[pos].x = heading;
+    graph[pos].x = parentX;
+    graph[pos].y = parentZ;
+
+    graphData[pos].x = finalHeading;
     graphData[pos].y = cost;
+    graphData[pos].z = initialSteering;
+    graphData[pos].w = pathSize;
     return true;
-}
-
-__device__ __host__ void setTypeCuda(int3 *graph, long pos, int type)
-{
-    graph[pos].z = type;
-}
-
-__device__ __host__ int getTypeCuda(int3 *graph, long pos)
-{
-    return graph[pos].z;
 }
 
 __device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_x, int parent_z)
@@ -56,56 +49,95 @@ __device__ __host__ int2 getParentCuda(int3 *graph, long pos)
     return {graph[pos].x, graph[pos].y};
 }
 
-__device__ __host__ float getHeadingCuda(float3 *graphData, long pos)
+__device__ __host__ void setTypeCuda(int3 *graph, long pos, int type)
+{
+    graph[pos].z = type;
+}
+
+__device__ __host__ int getTypeCuda(int3 *graph, long pos)
+{
+    return graph[pos].z;
+}
+
+__device__ __host__ float getHeadingCuda(float4 *graphData, long pos)
 {
     return graphData[pos].x;
 }
 
-__device__ __host__ inline void setHeadingCuda(float3 *graphData, long pos, float heading)
+__device__ __host__ inline void setHeadingCuda(float4 *graphData, long pos, float heading)
 {
     graphData[pos].x = heading;
 }
 
-__device__ __host__ float getCostCuda(float3 *graphData, long pos)
+__device__ __host__ float getCostCuda(float4 *graphData, long pos)
 {
     return graphData[pos].y;
 }
 
-__device__ __host__ inline void setCostCuda(float3 *graphData, long pos, float cost)
+__device__ __host__ void setCostCuda(float4 *graphData, long pos, float cost)
 {
     graphData[pos].y = cost;
 }
 
+__device__ void incCostCuda(float4 *graphData, long pos, float cost)
+{
+    atomicAdd(&graphData[pos].y, cost);
+}
 
-__device__ __host__ float getIntrinsicCostCuda(float3 *graphData, long pos)
+__device__ void incCostCuda(float4 *graphData, int width, int x, int z, float cost)
+{
+    long pos = computePos(width, x, z);
+    incCostCuda(graphData, pos, cost);
+}
+
+
+__device__ __host__ float getSteeringCuda(float4 *graphData, long pos)
 {
     return graphData[pos].z;
 }
 
-__device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z)
+__device__ __host__ float getSteeringCuda(float4 *graphData, int width, int x, int z)
 {
     long pos = computePos(width, x, z);
     return graphData[pos].z;
 }
 
-__device__ __host__ void setIntrinsicCostCuda(float3 *graphData, long pos, float cost)
+__device__ __host__ void setSteeringCuda(float4 *graphData, long pos, float value)
 {
-    graphData[pos].z = cost;
+    graphData[pos].z = value;
 }
-__device__ __host__ void setIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
+
+__device__ __host__ void setSteeringCuda(float4 *graphData, int width, int x, int z, float value)
 {
     long pos = computePos(width, x, z);
-    graphData[pos].z = cost;
+    graphData[pos].z = value;
 }
-__device__  void incIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
+
+__device__ __host__ float getPathSizeCuda(float4 *graphData, long pos)
+{
+    return graphData[pos].w;
+}
+
+__device__ __host__ float getPathSizeCuda(float4 *graphData, int width, int x, int z)
 {
     long pos = computePos(width, x, z);
-    atomicAdd(&graphData[pos].z, cost);
+    return graphData[pos].w;
+}
+
+__device__ __host__ void setPathSizeCuda(float4 *graphData, long pos, float value)
+{
+    graphData[pos].w = value;
+}
+
+__device__ __host__ void setPathSizeCuda(float4 *graphData, int width, int x, int z, float value)
+{
+    long pos = computePos(width, x, z);
+    graphData[pos].w = value;
 }
 
 __device__ __host__ bool checkInGraphCuda(int3 *graph, long pos)
 {
-    return graph[pos].z == GRAPH_TYPE_NODE;
+    return getTypeCuda(graph, pos) == GRAPH_TYPE_NODE;
 }
 
 void CudaGraph::setType(int x, int z, int type)
@@ -114,11 +146,10 @@ void CudaGraph::setType(int x, int z, int type)
     setTypeCuda(_frame->getCudaPtr(), pos, type);
 }
 
-
 CudaGraph::CudaGraph(int width, int height)
 {
     _frame = std::make_shared<CudaGrid<int3>>(width, height);
-    _frameData = std::make_unique<CudaGrid<float3>>(width, height);
+    _frameData = std::make_unique<CudaGrid<float4>>(width, height);
     if (!cudaAllocMapped(&this->_parallelCount, sizeof(unsigned int)))
     {
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(unsigned int)) + std::string(" bytes for counting\n");
@@ -130,9 +161,9 @@ CudaGraph::CudaGraph(int width, int height)
     _physicalParams = nullptr;
     //_searchSpaceParams = nullptr;
 
-    if (!cudaAllocMapped(&this->_searchSpaceParams, 10*sizeof(int)))
+    if (!cudaAllocMapped(&this->_searchSpaceParams, 10 * sizeof(int)))
     {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(11*sizeof(int)) + std::string(" bytes for search-space parameters\n");
+        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(11 * sizeof(int)) + std::string(" bytes for search-space parameters\n");
         throw msg;
     }
 
@@ -140,7 +171,6 @@ CudaGraph::CudaGraph(int width, int height)
     _searchSpaceParams[FRAME_PARAM_HEIGHT] = height;
     _searchSpaceParams[FRAME_PARAM_CENTER_X] = _gridCenter.x;
     _searchSpaceParams[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
-
 
     // TODO: make this method refresh randomness for each clear() in graph
     __initializeRandomGenerator();
@@ -150,8 +180,6 @@ CudaGraph::CudaGraph(int width, int height)
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for goal reached check\n");
         throw msg;
     }
-
-
 }
 CudaGraph::~CudaGraph()
 {
@@ -176,7 +204,8 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     this->_physicalParams[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
 }
 
-void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound) {
+void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound)
+{
     _searchSpaceParams[FRAME_PARAM_MIN_DIST_X] = TO_INT((float)minDistance.first / 2);
     _searchSpaceParams[FRAME_PARAM_MIN_DIST_Z] = TO_INT((float)minDistance.second / 2);
     _searchSpaceParams[FRAME_PARAM_LOWER_BOUND_X] = lowerBound.first;
@@ -185,37 +214,39 @@ void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, 
     _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
 }
 
-void CudaGraph::setClassCosts(const int *costs, int size) {
-    
+void CudaGraph::setClassCosts(const int *costs, int size)
+{
+
     if (!cudaAllocMapped(&this->_classCosts, sizeof(float) * size))
     {
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float) * size) + std::string(" bytes for class cost list\n");
         throw msg;
     }
 
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         this->_classCosts[i] = static_cast<float>(costs[i]);
     }
 }
 
 void CudaGraph::addStart()
 {
-    add(_gridCenter.x, _gridCenter.y, angle::rad(0), -1, -1, 0);
+    add(_gridCenter.x, _gridCenter.y, -1, -1, angle::rad(0), 0, angle::rad(0), 0);
 }
 
-void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, float cost)
+void CudaGraph::add(int x, int z, int parent_x, int parent_z, angle initialSteering, float pathSize, angle finalHeading, float cost)
 {
     if (!__checkLimits(x, z))
         return;
     long pos = computePos(_frame->width(), x, z);
-    set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_NODE, true);
+    set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, parent_x, parent_z, initialSteering.rad(), pathSize, finalHeading.rad(), cost, GRAPH_TYPE_NODE, true);
 }
-void CudaGraph::addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost)
+void CudaGraph::addTemporary(int x, int z, int parent_x, int parent_z, angle initialSteering, float pathSize, angle finalHeading, float cost)
 {
     if (!__checkLimits(x, z))
         return;
     long pos = computePos(_frame->width(), x, z);
-    set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_TEMP, true);
+    set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, parent_x, parent_z, initialSteering.rad(), pathSize, finalHeading.rad(), cost, GRAPH_TYPE_TEMP, true);
 }
 
 bool CudaGraph::__checkLimits(int x, int z)
@@ -282,6 +313,15 @@ int2 CudaGraph::getParent(int x, int z)
     return getParentCuda(_frame->getCudaPtr(), pos);
 }
 
+int CudaGraph::getType(int x, int z)
+{
+    if (!__checkLimits(x, z))
+        return -1;
+
+    long pos = computePos(_frame->width(), x, z);
+    return getTypeCuda(_frame->getCudaPtr(), pos);
+}
+
 angle CudaGraph::getHeading(int x, int z)
 {
     long pos = computePos(_frameData->width(), x, z);
@@ -305,6 +345,7 @@ float CudaGraph::getCost(int x, int z)
     long pos = computePos(_frameData->width(), x, z);
     return getCostCuda(_frameData->getCudaPtr(), pos);
 }
+
 void CudaGraph::setCost(int x, int z, float cost)
 {
     if (!__checkLimits(x, z))
@@ -314,11 +355,35 @@ void CudaGraph::setCost(int x, int z, float cost)
     setCostCuda(_frameData->getCudaPtr(), pos, cost);
 }
 
-int CudaGraph::getType(int x, int z)
+angle CudaGraph::getSteering(int x, int z)
 {
     if (!__checkLimits(x, z))
-        return -1;
+        throw std::invalid_argument("(x,z) outside the graph boundaries");
 
-    long pos = computePos(_frame->width(), x, z);
-    return getTypeCuda(_frame->getCudaPtr(), pos);
+    float a = getSteeringCuda(_frameData->getCudaPtr(), _frameData->width(), x, z);
+    return angle::rad(a);
+}
+
+void CudaGraph::setSteering(int x, int z, angle value)
+{
+    if (!__checkLimits(x, z))
+        throw std::invalid_argument("(x,z) outside the graph boundaries");
+
+    setSteeringCuda(_frameData->getCudaPtr(), _frameData->width(), x, z, value.rad());
+}
+
+float CudaGraph::getPathSize(int x, int z)
+{
+    if (!__checkLimits(x, z))
+        throw std::invalid_argument("(x,z) outside the graph boundaries");
+
+    return getPathSizeCuda(_frameData->getCudaPtr(), _frameData->width(), x, z);
+}
+
+void CudaGraph::setPathSize(int x, int z, float value)
+{
+    if (!__checkLimits(x, z))
+        throw std::invalid_argument("(x,z) outside the graph boundaries");
+
+    setPathSizeCuda(_frameData->getCudaPtr(), _frameData->width(), x, z, value);
 }

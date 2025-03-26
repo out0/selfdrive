@@ -25,8 +25,8 @@ TEST(TestGraphBestNode, TestGoalReached)
 
     ASSERT_FALSE(g.checkGoalReached(ptr, {128, 0}, angle::deg(10), 5.0));
 
-    g.add(128, 128, angle::deg(0), -1, -1, 0);
-    g.add(128, 3, angle::deg(0), 128, 128, 10);
+    g.add(128, 128, -1, -1, angle::deg(0), 0, angle::deg(0), 0);
+    g.add(128, 3, 128, 128, angle::deg(0), 0, angle::deg(0), 10);
 
     ASSERT_TRUE(g.checkGoalReached(ptr, {128, 0}, angle::deg(10), 5.0));
     destroySearchFrame(ptr);
@@ -35,7 +35,7 @@ TEST(TestGraphBestNode, TestGoalReached)
 TEST(TestGraphBestNode, TestBestNode)
 {
     CudaGraph g(256, 256);
-    
+
     float3 *ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     int costs[] = {{0},
@@ -48,10 +48,10 @@ TEST(TestGraphBestNode, TestBestNode)
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
-    g.add(128, 128, angle::deg(0), -1, -1, 0);
-    g.add(128, 3, angle::deg(0), 128, 128, 10);
-    g.add(108, 3, angle::deg(0), 128, 128, 10);
-    g.add(158, 3, angle::deg(0), 128, 128, 10);
+    g.add(128, 128, -1, -1, angle::deg(0), 0, angle::deg(0), 0);
+    g.add(128, 3, 128, 128, angle::deg(0), 0, angle::deg(0), 10);
+    g.add(108, 3, 128, 128, angle::deg(0), 0, angle::deg(0), 10);
+    g.add(158, 3, 128, 128, angle::deg(0), 0, angle::deg(0), 10);
 
     int2 p = g.findBestNode(ptr, angle::deg(10), 50.0, 128, 0);
 

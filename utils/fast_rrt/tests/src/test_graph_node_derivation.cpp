@@ -18,7 +18,7 @@ TEST(TestGraph, TestDrawPathCPU)
     CudaGraph g(256, 256);
 
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, angle::deg(40), 5.412658773);
-    g.add(128, 128, angle::rad(0.0), -1, -1, 0);
+    g.add(128, 128, -1, -1,  angle::rad(0.0), 0,  angle::rad(0.0), 0);
 
     float3 *ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
@@ -59,7 +59,7 @@ TEST(TestGraph, TestDrawCurveOnEdge)
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
-    g.add(128, 0, angle::rad(0.0), -1, -1, 0);
+    g.add(128, 0, -1, -1,  angle::rad(0.0), 0,  angle::rad(0.0), 0);
     g.derivateNode(ptr, angle::rad(0), 100, 1);
     g.acceptDerivatedNodes();
     int2 parentOrig = g.getParent(128, 0);
@@ -94,8 +94,8 @@ TEST(TestGraph, TestDrawCurve)
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-    g.add(128, 128, angle::rad(0.0), -1, -1, 0);
 
+    g.add(128, 128, -1, -1,  angle::rad(0.0), 0,  angle::rad(0.0), 0);
     g.derivateNode(ptr, angle::rad(0), 100, 1);
     g.acceptDerivatedNodes();
     ASSERT_EQ(2, g.list().size());
@@ -115,7 +115,7 @@ TEST(TestGraph, TestDrawManyPathsGPU)
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-    g.add(128, 128, angle::rad(0.0), -1, -1, 0);
+    g.add(128, 128, -1, -1,  angle::rad(0.0), 0,  angle::rad(0.0), 0);
 
     for (int i = 0; i < 10; i++)
     {
@@ -142,7 +142,7 @@ TEST(TestGraph, TestBugDeriveNodesEraseParents)
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-    g.add(128, 128, angle::rad(0.0), -1, -1, 0);
+    g.add(128, 128, -1, -1,  angle::rad(0.0), 0,  angle::rad(0.0), 0);
     
     int type = (*g.getFramePtr())[{128, 128}].z;
     ASSERT_EQ(GRAPH_TYPE_NODE, type);

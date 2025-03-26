@@ -7,13 +7,13 @@
 #include "../../include/graph.h"
 #include "../../include/waypoint.h"
 
-extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ bool set(int3 *graph, float4 *graphData, long pos, int parentX, int parentZ, float initialSteering, float pathSize, float finalHeading, float cost, int type, bool override);
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
 extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
-extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
@@ -119,7 +119,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
     return val;
 }
 
-__device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+__device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float4 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -182,7 +182,7 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
         long pos = width * lastp.y + lastp.x;
         size += 1;
 
-        if (set(graph, graphData, pos, heading, last_x, last_z, 0.0, GRAPH_TYPE_PROCESSING, false))
+        if (set(graph, graphData, pos, last_x, last_z, steeringAngle, size, heading, 0.0, GRAPH_TYPE_PROCESSING, false))
         {
             last_x = lastp.x;
             last_z = lastp.y;
@@ -304,7 +304,7 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
 //     return {path, total_steps};
 // }
 
-__device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading)
+__device__ __host__ bool checkKinematicPath(int3 *graph, float4 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading)
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
@@ -379,22 +379,22 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
     return false;
 }
 
-// bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
-// {
+bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
+{
 
-//     double finalHeading = 0;
+    double finalHeading = 0;
 
-//     return checkKinematicPath(
-//         _frame->getCudaPtr(),
-//         _frameData->getCudaPtr(),
-//         og,
-//         _physicalParams,
-//         _searchSpaceParams,
-//         _classCosts,
-//         _gridCenter,
-//         start,
-//         end,
-//         velocity_m_s,
-//         maxSteeringAngle.rad(),
-//         finalHeading);
-// }
+    return checkKinematicPath(
+        _frame->getCudaPtr(),
+        _frameData->getCudaPtr(),
+        og,
+        _physicalParams,
+        _searchSpaceParams,
+        _classCosts,
+        _gridCenter,
+        start,
+        end,
+        velocity_m_s,
+        maxSteeringAngle.rad(),
+        finalHeading);
+}

@@ -25,7 +25,8 @@ class CudaGraph
 {
 private:
     std::shared_ptr<CudaGrid<int3>> _frame;
-    std::shared_ptr<CudaGrid<float3>> _frameData;
+    std::shared_ptr<CudaGrid<float4>> _frameData;
+
     bool __checkLimits(int x, int z);
     unsigned int *_parallelCount = 0;
     int2 _gridCenter;
@@ -68,8 +69,8 @@ public:
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
     void setClassCosts(const int *costs, int size);
-    void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
-    void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost);
+    void add(int x, int z, int parent_x, int parent_z, angle initialSteering, float pathSize, angle finalHeading, float cost);
+    void addTemporary(int x, int z, int parent_x, int parent_z, angle initialSteering, float pathSize, angle finalHeading, float cost);
     void addStart();
     void remove(int x, int z);
     void clear();
@@ -90,7 +91,7 @@ public:
     {
         return _frame;
     }
-    std::shared_ptr<CudaGrid<float3>> getFrameDataPtr()
+    std::shared_ptr<CudaGrid<float4>> getFrameDataPtr()
     {
         return _frameData;
     }
@@ -104,16 +105,28 @@ public:
     }
 
     bool checkInGraph(int x, int z);
+
+    // graph
+    // ---------
     void setParent(int x, int z, int parent_x, int parent_z);
     int2 getParent(int x, int z);
+    void setType(int x, int z, int type);
+    int getType(int x, int z);
+
+    // graphData
     angle getHeading(int x, int z);
     void setHeading(int x, int z, angle heading);
+    
     float getCost(int x, int z);
-    void setCost(int x, int z, float cost);
+    void setCost(int x, int z, float value);
 
-    void setType(int x, int z, int type);
+    angle getSteering(int x, int z);
+    void setSteering(int x, int z, angle value);
 
-    int getType(int x, int z);
+    float getPathSize(int x, int z);
+    void setPathSize(int x, int z, float value);
+
+    
 
     /// @brief Derivates a node on position {x, z} for the specified steeringAngle, pathSize and velocity_m_s. The node must exist in the graph.
     /// @param x

@@ -67,7 +67,7 @@ TEST(TestKinematics, TestCheckKinematicPath)
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
 
-    g.add(128, 128, angle::rad(0), -1, -1, 0);
+    g.add(128, 128, -1, -1, angle::rad(0), 0, angle::rad(0), 0);
 
     int2 node = g.derivateNode(ptr, angle::rad(0), angle::deg(20), 50, 2, 128, 128);
 

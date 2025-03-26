@@ -25,7 +25,7 @@ TEST(TestSimpleAPF, TestAPF)
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-    g.add(128, 230, angle::rad(0.0), -1, -1, 0);
+    g.add(128, 230, -1, -1, angle::rad(0.0), 0, angle::rad(0.0), 0);
 
 
     float3 *og = createEmptySearchFrame(256, 256);

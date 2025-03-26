@@ -27,13 +27,13 @@ TEST(TestGraph, TestBasicFeatures)
 
     ASSERT_EQ(0, g.count());
 
-    g.add(50, 50, angle::rad(0.12), -1, -1, 0);
-    g.add(50, 45, angle::rad(0.12), 50, 50, 10);
-    g.add(55, 40, angle::rad(0.12), 50, 45, 10);
-    g.add(20, 35, angle::rad(0.12), 50, 45, 10);
-    g.add(20, 15, angle::rad(0.12), 20, 35, 10);
-    g.add(20, 5, angle::rad(0.12), 20, 15, 10);
-    g.add(20, 0, angle::rad(0.12), 20, 5, 10);
+    g.add(50, 50, -1, -1, angle::rad(0), 0, angle::rad(0.12), 0);
+    g.add(50, 45, 50, 50, angle::rad(0), 0, angle::rad(0.12), 10);
+    g.add(55, 40, 50, 45, angle::rad(0), 0, angle::rad(0.12), 10);
+    g.add(20, 35, 50, 45, angle::rad(0), 0, angle::rad(0.12), 10);
+    g.add(20, 15, 20, 35, angle::rad(0), 0, angle::rad(0.12), 10);
+    g.add(20, 5, 20, 15, angle::rad(0), 0, angle::rad(0.12), 10);
+    g.add(20, 0, 20, 5, angle::rad(0), 0, angle::rad(0.12), 10);
 
     ASSERT_EQ(7, g.count());
 
@@ -103,26 +103,26 @@ TEST(TestGraph, TestList)
     ASSERT_EQ(0, g.count());
     std::unordered_map<int, double4> map;
 
-    g.add(50, 50, angle::rad(0.12), -1, -1, 0);
+    g.add(50, 50, -1, -1, angle::rad(0), 0, angle::rad(0.12), 0);
 
     map[convert_to_key(50, 50)] = {0.12, -1, -1, 0};
 
-    g.add(50, 45, angle::rad(0.11), 50, 50, 10);
+    g.add(50, 45, 50, 50, angle::rad(0), 0, angle::rad(0.11), 10);
     map[convert_to_key(50, 45)] = {0.11, 50, 50, 10};
 
-    g.add(55, 40, angle::rad(0.10), 50, 45, 20);
+    g.add(55, 40, 50, 45, angle::rad(0), 0, angle::rad(0.10), 20);
     map[convert_to_key(55, 40)] = {0.10, 50, 45, 20};
 
-    g.add(20, 35, angle::rad(0.09), 50, 45, 15);
+    g.add(20, 35, 50, 45, angle::rad(0), 0, angle::rad(0.09), 15);
     map[convert_to_key(20, 35)] = {0.09, 50, 45, 15};
 
-    g.add(20, 15, angle::rad(0.08), 20, 35, 11);
+    g.add(20, 15, 20, 35, angle::rad(0), 0, angle::rad(0.08), 11);
     map[convert_to_key(20, 15)] = {0.08, 20, 35, 11};
 
-    g.add(20, 5, angle::rad(0.07), 20, 15, 14);
+    g.add(20, 5, 20, 15, angle::rad(0), 0, angle::rad(0.07), 14);
     map[convert_to_key(20, 5)] = {0.07, 20, 15, 14};
 
-    g.add(20, 0, angle::rad(-0.12), 20, 5, 99);
+    g.add(20, 0, 20, 5, angle::rad(0), 0, angle::rad(-0.12), 99);
     map[convert_to_key(20, 0)] = {-0.12, 20, 5, 99};
 
     int count = g.count();
@@ -159,26 +159,26 @@ TEST(TestGraph, TestList_LoadTest)
     ASSERT_EQ(0, g.count());
     std::unordered_map<int, double4> map;
 
-    g.add(50, 50, angle::rad(0.12), -1, -1, 0);
+    g.add(50, 50, -1, -1, angle::rad(0), 0, angle::rad(0.12), 0);
 
     map[convert_to_key(50, 50)] = {0.12, -1, -1, 0};
 
-    g.add(50, 45, angle::rad(0.11), 50, 50, 10);
+    g.add(50, 45, 50, 50, angle::rad(0), 0, angle::rad(0.11), 10);
     map[convert_to_key(50, 45)] = {0.11, 50, 50, 10};
 
-    g.add(55, 40, angle::rad(0.10), 50, 45, 20);
+    g.add(55, 40, 50, 45, angle::rad(0), 0, angle::rad(0.10), 20);
     map[convert_to_key(55, 40)] = {0.10, 50, 45, 20};
 
-    g.add(20, 35, angle::rad(0.09), 50, 45, 15);
+    g.add(20, 35, 50, 45, angle::rad(0), 0, angle::rad(0.09), 15);
     map[convert_to_key(20, 35)] = {0.09, 50, 45, 15};
 
-    g.add(20, 15, angle::rad(0.08), 20, 35, 11);
+    g.add(20, 15, 20, 35, angle::rad(0), 0, angle::rad(0.08), 11);
     map[convert_to_key(20, 15)] = {0.08, 20, 35, 11};
 
-    g.add(20, 5, angle::rad(0.07), 20, 15, 14);
+    g.add(20, 5, 20, 15, angle::rad(0), 0, angle::rad(0.07), 14);
     map[convert_to_key(20, 5)] = {0.07, 20, 15, 14};
 
-    g.add(20, 0, angle::rad(-0.12), 20, 5, 99);
+    g.add(20, 0, 20, 5, angle::rad(0), 0, angle::rad(-0.12), 99);
     map[convert_to_key(20, 0)] = {-0.12, 20, 5, 99};
 
     for (int c = 0; c < 1000; c++)
