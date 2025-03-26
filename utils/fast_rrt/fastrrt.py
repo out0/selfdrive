@@ -121,6 +121,14 @@ class FastRRT:
           FastRRT.lib.interpolate_planned_path.argtypes = [
                ctypes.c_void_p,
           ]
+          
+          FastRRT.lib.interpolate_planned_path_p.restype = ctypes.POINTER(ctypes.c_float)
+          FastRRT.lib.interpolate_planned_path_p.argtypes = [
+               ctypes.c_void_p,
+               np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1),
+               ctypes.c_int32
+          ]
+          
 
           FastRRT.lib.release_planned_path_data.restype = None
           FastRRT.lib.release_planned_path_data.argtypes = [
@@ -183,6 +191,16 @@ class FastRRT:
           res = self.__convert_planned_path(ptr)
           FastRRT.lib.release_planned_path_data(ptr)
           return res
+     
+     def interpolate_planned_path_p(self, path: np.ndarray) -> np.ndarray:          
+          size = path.shape[0]
+          path = path.reshape(3*size)
+          ptr = FastRRT.lib.interpolate_planned_path_p(self.__ptr, path, 3*size) 
+          path.reshape((size, 3))
+          res = self.__convert_planned_path(ptr)
+          FastRRT.lib.release_planned_path_data(ptr)
+          return res
+          
      
      def export_graph_nodes(self) -> np.ndarray:
           ptr = FastRRT.lib.export_graph_nodes(self.__ptr)

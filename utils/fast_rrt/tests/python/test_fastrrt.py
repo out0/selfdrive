@@ -66,6 +66,14 @@ def output_path_result(source_bev: str, path: np.ndarray, output: str) -> None:
         f[z, x, :] = [255, 255 , 255]
     
     cv2.imwrite(output, f)
+    
+def output_to_file(path: np.ndarray, output: str) -> None:
+    
+    with open(output, "w") as f:
+        for i in range(path.shape[0]):
+            x = int(path[i,0])
+            z = int(path[i,1])            
+            f.write(f"{x},{z},{path[i,2]}\n")
         
 
 def measure_execution_time(func):
@@ -142,6 +150,8 @@ class TestFastRRT(unittest.TestCase):
                 continue
                    
             output_path_result(bev, path, "output1.png")
+            output_to_file(rrt.get_planned_path(), "output1.txt")
+            output_to_file(path, "output1i.txt")
             loop = False
 
 

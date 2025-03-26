@@ -149,6 +149,11 @@ std::vector<Waypoint> FastRRT::interpolatePlannedPath()
     return interpolate(v, _graph.width(), _graph.height());
 }
 
+std::vector<Waypoint> FastRRT::interpolatePlannedPath(std::vector<Waypoint> path)
+{
+    return interpolate(path, _graph.width(), _graph.height());
+}
+
 std::vector<int3> FastRRT::exportGraphNodes() {
    return _graph.listAll();
 }

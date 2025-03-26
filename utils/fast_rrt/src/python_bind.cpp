@@ -136,4 +136,20 @@ extern "C"
         delete[] ptr;
     }
 
+
+    float *interpolate_planned_path_p(void *ptr, float *p, int size) {
+        FastRRT *rrt = (FastRRT *)ptr;
+
+        std::vector<Waypoint> pref;
+
+        for (int i = 0; i < size; i+=3) {
+            pref.push_back(Waypoint(p[i], p[i+1], angle::rad(p[i+2])));
+            printf ("(%d, %d, %f)\n", (int)p[i], (int)p[i+1], p[i+2]);
+        }
+
+        std::vector<Waypoint> path = rrt->interpolatePlannedPath(pref);
+        return convertPath(path);
+    }
+
+
 };
