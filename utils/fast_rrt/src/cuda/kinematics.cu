@@ -379,22 +379,22 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
     return false;
 }
 
-// bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
-// {
+bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
+{
 
-//     double finalHeading = 0;
+    double finalHeading = 0;
 
-//     return checkKinematicPath(
-//         _frame->getCudaPtr(),
-//         _frameData->getCudaPtr(),
-//         og,
-//         _physicalParams,
-//         _searchSpaceParams,
-//         _classCosts,
-//         _gridCenter,
-//         start,
-//         end,
-//         velocity_m_s,
-//         maxSteeringAngle.rad(),
-//         finalHeading);
-// }
+    return checkKinematicPath(
+        _frame->getCudaPtr(),
+        _frameData->getCudaPtr(),
+        og,
+        _physicalParams,
+        _searchSpaceParams,
+        _classCosts,
+        _gridCenter,
+        start,
+        end,
+        velocity_m_s,
+        maxSteeringAngle.rad(),
+        finalHeading);
+}

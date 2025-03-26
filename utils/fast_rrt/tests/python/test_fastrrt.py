@@ -120,8 +120,8 @@ class TestFastRRT(unittest.TestCase):
 
         rrt.set_plan_data(ptr, 128, 0, 0, 1)
         
-
-        while True:
+        loop = True
+        while loop:
             start_time = time.time()
             rrt.search_init()
             while (not rrt.goal_reached() and rrt.loop()):
@@ -138,24 +138,13 @@ class TestFastRRT(unittest.TestCase):
             
             path = rrt.interpolate_planned_path()
             if path is None:
+                self.fail("should be able to interpolate")
                 continue
-            
-            if (path[path.shape[0] - 1, 1] > 10):
-                output_path_result(bev, path, "output1.png")
-                orig_path = rrt.get_planned_path()
-                j = 1
-        
+                   
             output_path_result(bev, path, "output1.png")
+            loop = False
 
-        # while (rrt.loop_optimize()):
-        #     log_graph(rrt, frame, "output1.png")
-        #     pass
-      
-        path = rrt.interpolate_planned_path()
-        
-        print(path.shape)
-        
-        output_path_result(bev, path, "output1.png")
+
 
 
 if __name__ == "__main__":
