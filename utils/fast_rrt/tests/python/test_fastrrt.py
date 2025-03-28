@@ -144,7 +144,7 @@ class TestFastRRT(unittest.TestCase):
             execution_time = end_time - start_time  # Calculate the time taken
             print(f"Coarse path: {1000*execution_time:.6f} ms")
             
-            path = rrt.interpolate_planned_path()
+            path = rrt.get_planned_path(interpolate=True)
             if path is None:
                 self.fail("should be able to interpolate")
                 continue

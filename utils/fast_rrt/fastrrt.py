@@ -129,6 +129,13 @@ class FastRRT:
                ctypes.c_int32
           ]
           
+          FastRRT.lib.ideal_curve.restype = ctypes.POINTER(ctypes.c_float)
+          FastRRT.lib.ideal_curve.argtypes = [
+               ctypes.c_void_p,
+               ctypes.c_int,       # goal_x
+               ctypes.c_int,       # goal_z
+               ctypes.c_float,     # goal_heading
+          ]
 
           FastRRT.lib.release_planned_path_data.restype = None
           FastRRT.lib.release_planned_path_data.argtypes = [
@@ -144,6 +151,9 @@ class FastRRT:
           FastRRT.lib.release_export_graph_nodes.argtypes = [
                ctypes.POINTER(ctypes.c_int),
           ]
+          
+          
+          
 
      def set_plan_data(self, cuda_ptr: ctypes.c_void_p, goal_x: int, goal_z: int, heading_rad: float, velocity_m_s: float) -> bool:
           return FastRRT.lib.set_plan_data(
@@ -180,27 +190,30 @@ class FastRRT:
                res[i, 2] = float(ptr[pos + 2])
           return res
      
-     def get_planned_path(self) -> np.ndarray:
-          ptr = FastRRT.lib.get_planned_path(self.__ptr)
-          res = self.__convert_planned_path(ptr)
-          FastRRT.lib.release_planned_path_data(ptr)
-          return res
-     
-     def interpolate_planned_path(self) -> np.ndarray:
-          ptr = FastRRT.lib.interpolate_planned_path(self.__ptr)
-          res = self.__convert_planned_path(ptr)
-          FastRRT.lib.release_planned_path_data(ptr)
-          return res
-     
-     def interpolate_planned_path_p(self, path: np.ndarray) -> np.ndarray:          
-          size = path.shape[0]
-          path = path.reshape(3*size)
-          ptr = FastRRT.lib.interpolate_planned_path_p(self.__ptr, path, 3*size) 
-          path.reshape((size, 3))
-          res = self.__convert_planned_path(ptr)
-          FastRRT.lib.release_planned_path_data(ptr)
-          return res
+     def get_planned_path(self, interpolate: bool = False) -> np.ndarray:
+          if interpolate:
+               ptr = FastRRT.lib.interpolate_planned_path(self.__ptr)
+          else:
+               ptr = FastRRT.lib.get_planned_path(self.__ptr)
           
+          res = self.__convert_planned_path(ptr)
+          FastRRT.lib.release_planned_path_data(ptr)
+          return res
+     
+     # def interpolate_planned_path_p(self, path: np.ndarray) -> np.ndarray:          
+     #      size = path.shape[0]
+     #      path = path.reshape(3*size)
+     #      ptr = FastRRT.lib.interpolate_planned_path_p(self.__ptr, path, 3*size) 
+     #      path.reshape((size, 3))
+     #      res = self.__convert_planned_path(ptr)
+     #      FastRRT.lib.release_planned_path_data(ptr)
+     #      return res
+     
+     def build_ideal_curve(self, goal_x: int, goal_z:int, goal_heading: float) -> np.ndarray:
+          ptr = FastRRT.lib.ideal_curve(self.__ptr, goal_x, goal_z, goal_heading)
+          res = self.__convert_planned_path(ptr)
+          FastRRT.lib.release_planned_path_data(ptr)
+          return res
      
      def export_graph_nodes(self) -> np.ndarray:
           ptr = FastRRT.lib.export_graph_nodes(self.__ptr)

@@ -157,3 +157,11 @@ std::vector<Waypoint> FastRRT::interpolatePlannedPath(std::vector<Waypoint> path
 std::vector<int3> FastRRT::exportGraphNodes() {
    return _graph.listAll();
 }
+
+
+extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2);
+
+std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal) {
+    int2 center = _graph.getCenter();
+    return interpolateHermiteCurve(_graph.width(), _graph.height(), Waypoint(center.x, center.y, angle::deg(0)), goal);
+}

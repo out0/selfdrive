@@ -43,7 +43,6 @@ def measure_execution_time(func):
 class TestCudaGraph(unittest.TestCase):
     
     def test_apf(self):
-        return
         graph = CudaGraph(
             width=256,
             height=256,

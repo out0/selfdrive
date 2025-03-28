@@ -42,7 +42,7 @@ extern "C"
         FastRRT *rrt = (FastRRT *)ptr;
         Waypoint p(goal_x, goal_z, angle::rad(heading_rad));
 
-        //printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
+        // printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
 
         CudaFrame *frame = (CudaFrame *)cudaFramePtr;
         rrt->setPlanData(frame->getFramePtr(), p, velocity_m_s);
@@ -76,34 +76,36 @@ extern "C"
         FastRRT *rrt = (FastRRT *)ptr;
         auto nodes = rrt->exportGraphNodes();
 
-        int * res = new int[3 * nodes.size() + 1];
+        int *res = new int[3 * nodes.size() + 1];
 
         res[0] = nodes.size();
 
         int i = 1;
-        for (auto n : nodes) {
+        for (auto n : nodes)
+        {
             res[i] = n.x;
-            res[i+1] = n.y;
-            res[i+2] = n.z;
+            res[i + 1] = n.y;
+            res[i + 2] = n.z;
             i += 3;
         }
-       
+
         return res;
     }
     void release_export_graph_nodes(float *ptr)
     {
-        delete []ptr;
+        delete[] ptr;
     }
 
-    float *convertPath(std::vector<Waypoint> &path) {
+    float *convertPath(std::vector<Waypoint> &path)
+    {
         int size = path.size();
 
-        //printf("size = %d\n", size);
+        // printf("size = %d\n", size);
 
         float *res = new float[3 * size + 1];
         res[0] = (float)size;
 
-        //printf("res[0] = %f\n", res[0]);
+        // printf("res[0] = %f\n", res[0]);
 
         int i = 0;
         for (auto p : path)
@@ -125,7 +127,8 @@ extern "C"
         return convertPath(path);
     }
 
-    float *interpolate_planned_path(void *ptr) {
+    float *interpolate_planned_path(void *ptr)
+    {
         FastRRT *rrt = (FastRRT *)ptr;
         std::vector<Waypoint> path = rrt->interpolatePlannedPath();
         return convertPath(path);
@@ -136,20 +139,28 @@ extern "C"
         delete[] ptr;
     }
 
-
-    float *interpolate_planned_path_p(void *ptr, float *p, int size) {
+    float *interpolate_planned_path_p(void *ptr, float *p, int size)
+    {
         FastRRT *rrt = (FastRRT *)ptr;
 
         std::vector<Waypoint> pref;
 
-        for (int i = 0; i < size; i+=3) {
-            pref.push_back(Waypoint(p[i], p[i+1], angle::rad(p[i+2])));
-            printf ("(%d, %d, %f)\n", (int)p[i], (int)p[i+1], p[i+2]);
+        for (int i = 0; i < size; i += 3)
+        {
+            pref.push_back(Waypoint(p[i], p[i + 1], angle::rad(p[i + 2])));
+            printf("(%d, %d, %f)\n", (int)p[i], (int)p[i + 1], p[i + 2]);
         }
 
         std::vector<Waypoint> path = rrt->interpolatePlannedPath(pref);
         return convertPath(path);
     }
 
-
+    float *ideal_curve(void *ptr, int goal_x, int goal_z, float goal_heading_rad)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        std::vector<Waypoint> path = rrt->idealGeometryCurveNoObstacles({goal_x,
+                                                                         goal_z,
+                                                                         angle::rad(goal_heading_rad)});
+        return convertPath(path);
+    }
 };

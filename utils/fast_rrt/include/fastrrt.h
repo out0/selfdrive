@@ -58,6 +58,7 @@ public:
     std::vector<Waypoint> getPlannedPath();
     std::vector<Waypoint> interpolatePlannedPath();
     std::vector<Waypoint> interpolatePlannedPath(std::vector<Waypoint> path);
+    std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
 
 };
 
