@@ -63,7 +63,7 @@ add_executable(
   ../src/cuda/graph_list.cu
   ../src/cuda/graph_node_derivation.cu
   ../src/cuda/graph_best_node.cu
-  ../src/cuda/graph_optimization.cu
+  #../src/cuda/graph_optimization.cu
   ../src/cuda/graph_costs.cu
   ../src/cuda/cuda_grid.cu
   ../src/cuda/apf.cu

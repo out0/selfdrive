@@ -155,7 +155,7 @@ public:
     /// @param velocity_m_s 
     /// @param maxSteeringAngle 
     /// @return 
-    bool checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle);
+    bool checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s);
 
     /// @brief Returns true if any node in the graph is at a distance equals or lower than distanceToGoalTolerance and is feasible on the given heading.
     /// @param searchFrame 
@@ -171,7 +171,7 @@ public:
     // /// @param radius
     void optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s);
 
-    void optimizeNode(float3 *og, int width, int x, int z, float radius, float velocity_m_s);
+    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s);
 
 };
 

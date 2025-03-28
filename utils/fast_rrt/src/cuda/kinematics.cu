@@ -15,6 +15,7 @@ extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *pa
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
+extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
 /// @param center
@@ -160,7 +161,8 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
     float heading = getHeadingCuda(graphData, computePos(width, start.x, start.y));
     int2 lastp;
 
-    double parentCost = getCostCuda(graphData, computePos(width, start.x, start.y));
+    float parentCost = getCostCuda(graphData, computePos(width, start.x, start.y));
+    float nodeCost = parentCost;
 
     while (size < maxSize)
     {
@@ -182,7 +184,9 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
         long pos = width * lastp.y + lastp.x;
         size += 1;
 
-        if (set(graph, graphData, pos, heading, last_x, last_z, 0.0, GRAPH_TYPE_PROCESSING, false))
+        nodeCost += getIntrinsicCost(graphData, width, lastp.x, lastp.y) + 1;
+
+        if (set(graph, graphData, pos, heading, last_x, last_z, nodeCost, GRAPH_TYPE_PROCESSING, false))
         {
             last_x = lastp.x;
             last_z = lastp.y;
@@ -247,64 +251,20 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
 
 
 
-// std::pair<float3 *, int> drawKinematicIdealPath(double *physicalParams, int width, int2 center, Waypoint goal, float velocity_m_s)
-// {
-//     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-//     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-//     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-//     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
-//     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
-//     const double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
-//     int2 sp = {center.x, center.y};
-//     int2 ep = {goal.x(), goal.z()};
-
-//     double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, sp);
-//     double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, ep);
-
-//     double goal_heading = goal.heading().rad();
-//     double heading = 0.0;
-
-//     double dt = 0.1;
-//     double ds = velocity_m_s * dt;
-//     int total_steps = TO_INT(compute_euclidean_2d_dist(sp, ep) / ds);
-
-//     float3 *path;
-//     if (!cudaAllocMapped(&path, sizeof(float3) * total_steps))
-//     {
-//         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float3) * total_steps) + std::string(" bytes for drawKinematicIdealPath\n");
-//         throw msg;
-//     }
-
-//     double x;
-//     double y;
-
-//     int2 lastWP = {center.x, center.y};
-
-//     for (int i = 0; i < total_steps; i++)
-//     {
-//         double steering_error = clip(goal_heading - heading, -maxSteeringAngle, maxSteeringAngle);
-//         double steer = tan(steering_error);
-//         double beta = atan(steer / lr);
-
-//         x += ds * cos(heading + beta);
-//         y += ds * sin(heading + beta);
-//         heading += ds * cos(beta) * steer / (2 * lr);
-
-//         int2 wp = convert_map_pose_to_waypoint(center, rateW, rateH, {x, y});
-//         if (wp.x == lastWP.x && wp.y == lastWP.y)
-//             continue;
-//         lastWP = wp;
-
-//         path[i].x = wp.x;
-//         path[i].y = wp.y;
-//         path[i].z = heading;
-//     }
-
-//     return {path, total_steps};
-// }
-
-__device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *params, float *classCost, int2 center, int2 start, int2 end, float velocity_m_s, float maxSteeringAngle, double &final_heading)
+__device__ __host__ bool checkKinematicPath(
+    int3 *graph, 
+    float3 *graphData, 
+    float3 *frame, 
+    double *physicalParams, 
+    int *params, 
+    float *classCost, 
+    int2 center, 
+    int2 start, 
+    int2 end, 
+    float velocity_m_s,
+    double &final_heading,
+    double &path_cost)
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
@@ -315,6 +275,7 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
+    const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
     double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
     double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, end);
@@ -324,7 +285,7 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
     double heading = getHeadingCuda(graphData, startPos);
 
     double path_heading = compute_path_heading(startM, endM);
-    double steering_angle_deg = clip(path_heading - heading, -maxSteeringAngle, maxSteeringAngle);
+    double steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
     double ds = velocity_m_s * dt;
 
     int total_steps = TO_INT(distance / ds);
@@ -336,7 +297,10 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
 
     double bestEndDist = distance;
     final_heading = 0;
+    path_cost = 0;
 
+
+    float curr_cost = 0;
     for (int i = 0; i < total_steps; i++)
     {
         double steer = tan(steering_angle_deg);
@@ -346,18 +310,22 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
         nextpM.y += ds * sin(heading + beta);
         heading += ds * cos(beta) * steer / (2 * lr);
 
+
         path_heading = compute_path_heading(nextpM, endM);
-        steering_angle_deg = clip(path_heading - heading, -maxSteeringAngle, maxSteeringAngle);
+        steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
 
         nextp = convert_map_pose_to_waypoint(center, rateW, rateH, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;
+        
+        curr_cost += getIntrinsicCost(graphData, width, nextp.x, nextp.y) + 1;
 
         if (bestEndDist < dist)
         {
             final_heading = heading;
+            path_cost = curr_cost;
             return bestEndDist <= 2;
         }
 
@@ -379,10 +347,10 @@ __device__ __host__ bool checkKinematicPath(int3 *graph, float3 *graphData, floa
     return false;
 }
 
-bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s, angle maxSteeringAngle)
+bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s)
 {
-
     double finalHeading = 0;
+    double pathCost = 0;
 
     return checkKinematicPath(
         _frame->getCudaPtr(),
@@ -395,6 +363,6 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int ve
         start,
         end,
         velocity_m_s,
-        maxSteeringAngle.rad(),
-        finalHeading);
+        finalHeading,
+        pathCost);
 }

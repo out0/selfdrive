@@ -71,7 +71,7 @@ TEST(TestKinematics, TestCheckKinematicPath)
 
     int2 node = g.derivateNode(ptr, angle::rad(0), angle::deg(20), 50, 2, 128, 128);
 
-    ASSERT_TRUE(g.checkFeasibleConnection(ptr, {128, 128}, node, 2, maxSteering));
+    ASSERT_TRUE(g.checkFeasibleConnection(ptr, {128, 128}, node, 2));
 
     
 }
