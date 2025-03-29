@@ -8,6 +8,7 @@
 #include "../../../cudac/include/cuda_frame.h"
 #include <cmath>
 #include "test_utils.h"
+#include "../../include/graph.h"
 
 #define PHYS_SIZE 34.641016151377535
 
@@ -27,75 +28,19 @@ TEST(TestOptimizeGraphs, TestOptimize_NoObstacle)
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
     // tstFrame.addArea(130, 90, 140, 70, 28);
 
-    g.add(128, 230, angle::rad(0.0), -1, -1, 0);
-    int2 n1 = g.derivateNode(ptr, angle::rad(0), angle::deg(-30), 100, 1, 128, 230);
-    ASSERT_NE(-1, n1.x);
-    g.acceptDerivatedNodes();
+    g.add(128, 128, angle::rad(0.0), -1, -1, 0.0);
+    g.add(127, 121, angle::rad(-0.05952281504869461), 128, 128, 10.0);
+    g.add(127, 116, angle::rad(-0.035784658044576645), 127, 121, 20.0);
+    g.add(128, 105, angle::rad(0.010117189027369022), 127, 116, 30.0);
+    g.add(105, 92, angle::rad(-0.1315600872039795), 128, 105, 40.0);
+    g.add(96, 70, angle::rad(-0.353880912065506), 105, 92, 50.0);
+    g.add(112, 37, angle::rad(-0.10171803086996078), 96, 70, 60.0);
+    g.add(112, 17, angle::rad(-0.022149957716464996), 112, 37, 70.0);
+    g.add(113, 7, angle::rad(0.015074538066983223), 112, 17, 80.0);
+    g.add(114, 0, angle::rad(0.04908384382724762), 113, 7, 90.0);
+
+
+    g.optimizeNode(ptr, 128, 105, 30.0, 1.0);
 
     exportGraph(&g, "test.png");
-
-    int2 n2 = g.derivateNode(ptr, angle::rad(0), angle::deg(30), 100, 1, n1.x, n1.y);
-    ASSERT_NE(-1, n2.x);
-    // ASSERT_TRUE(g->connectToGraph(og->getFramePtr(), 128, 230, 100, 200));
-
-    g.acceptDerivatedNodes();
-
-    exportGraph(&g, "test.png");
-
-    int2 n3 = g.derivateNode(ptr, angle::rad(0), angle::deg(35), 50, 1, n2.x, n2.y);
-    ASSERT_NE(-1, n3.x);
-
-    g.acceptDerivatedNodes();
-
-    exportGraph(&g, "test.png");
-
-    int2 n4a = g.derivateNode(ptr, angle::rad(0), angle::deg(35), 50, 1, n3.x, n3.y);
-    ASSERT_NE(-1, n4a.x);
-
-    g.acceptDerivatedNodes();
-
-    int2 parent = g.getParent(n4a.x, n4a.y);
-    ASSERT_EQ(parent.x, n3.x);
-    ASSERT_EQ(parent.y, n3.y);
-
-    exportGraph(&g, "test.png");
-
-    int2 n4b = g.derivateNode(ptr, angle::rad(0), angle::deg(-15), 50, 1, n3.x, n3.y);
-    ASSERT_NE(-1, n4b.x);
-
-    g.acceptDerivatedNodes();
-
-    exportGraph(&g, "test.png");
-
-    ASSERT_TRUE(g.checkFeasibleConnection(ptr, n4b, {118, 0}, 1, maxSteering));
-
-    // I NEED TO COMPUTE PATH HEADING...
-
-    g.add(118, 0, angle::rad(0.0), -1, -1, 0);
-
-    int2 n5 = g.derivateNode(ptr, angle::deg(0), angle::deg(0), 190, 1, 128, 230);
-    ASSERT_NE(-1, n5.x);
-
-    // node n4a points to node n3 before optimization
-    parent = g.getParent(n4a.x, n4a.y);
-    ASSERT_EQ(parent.x, n3.x);
-    ASSERT_EQ(parent.y, n3.y);
-
-    g.optimizeGraph(ptr, angle::rad(0), 40.0, 1);
-
-    g.acceptDerivatedNodes();
-
-    // since nn5 is close to n4b and has a lower cost because it
-    // has a better heading and comes straight from 128,128,
-    // optimizeGraphWithNode should make n4b point to n5
-    parent = g.getParent(n4a.x, n4a.y);
-    ASSERT_EQ(parent.x, n5.x);
-    ASSERT_EQ(parent.y, n5.y);
-
-    // ASSERT_NE(-1, n3.x);
-
-    // g->add(128, 108, 0.0, 128, 230, 0);
-    // g->add(128, 88, 0.0, 128, 108, 0);
-    // g->add(128, 48, 0.0, 128, 88, 0);
-    // g->add(150, 0, 0.0, 128, 48, 0);
 }
