@@ -63,7 +63,8 @@ add_executable(
   ../src/cuda/graph_list.cu
   ../src/cuda/graph_node_derivation.cu
   ../src/cuda/graph_best_node.cu
-  #../src/cuda/graph_optimization.cu
+  ../src/cuda/graph_nodes_in_range.cu
+  ../src/cuda/graph_optimization.cu
   ../src/cuda/graph_costs.cu
   ../src/cuda/cuda_grid.cu
   ../src/cuda/apf.cu
@@ -74,18 +75,18 @@ add_executable(
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp
   ../src/interpolation.cpp
-  ../src/star_optim.cpp
+  #../src/star_optim.cpp
 
   #../src/debug.cpp
   src/test_utils.cpp
   src/unittests.cpp
-  #src/test_graph.cpp
-  #src/test_kinematics.cpp
-  #src/test_graph_node_derivation.cpp
-  #src/test_graph_best_node.cpp
-  #src/test_rrt.cpp
-  src/test_optimize_path.cpp
-  #src/test_simple_apf.cpp
+  src/test_graph.cpp
+  src/test_kinematics.cpp
+  src/test_graph_node_derivation.cpp
+  src/test_graph_best_node.cpp
+  src/test_rrt.cpp
+  #src/test_optimize_path.cpp
+  src/test_simple_apf.cpp
 )
 
 set_property(

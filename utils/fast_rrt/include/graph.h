@@ -38,6 +38,9 @@ private:
     std::pair<int3 *, int> __listAllNodes();
     
     
+    unsigned int __countInRange(int xp, int zp, float radius_sqr);
+    std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
+
     void __optimizeGraph(float3 *og, int x, int z, float radius, float velocity_m_s, angle goalHeading);
     bool *_goalReached;
 
@@ -75,6 +78,7 @@ public:
     void clear();
     std::vector<int2> list();
     std::vector<int3> listAll();
+    std::vector<int2> listInRange(int x, int z, float radius);
     unsigned int count();
     unsigned int countAll();
 
@@ -171,7 +175,7 @@ public:
     // /// @param radius
     void optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s);
 
-    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s);
+    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
 
 };
 
