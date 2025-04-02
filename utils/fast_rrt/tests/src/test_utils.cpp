@@ -3,6 +3,7 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include "test_utils.h"
+#include "../../include/graph.h"
 
 bool _ASSERT_DEQ(double a, double b, int tolerance)
 {
@@ -17,9 +18,27 @@ bool _ASSERT_DEQ(double a, double b, int tolerance)
     return true;
 }
 
-void exportGraph(CudaGraph *graph, const char *filename)
+
+std::vector<int2> get_planned_path(CudaGraph *graph, float3 *ptr, angle goal_heading, int goal_x, int goal_z, float distToGoalTolerance)
+{
+    // res.push_back(*_goal);
+    int2 n = graph->findBestNode(ptr, goal_heading, distToGoalTolerance, goal_x, goal_z);
+    std::vector<int2> res;
+
+    while (n.x != -1 && n.y != -1)
+    {
+        res.push_back({n.x, n.y});
+        n = graph->getParent(n.x, n.y);
+    }
+
+    std::reverse(res.begin(), res.end());
+    return res;
+}
+
+void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path)
 {
     cv::Mat cimg = cv::Mat(graph->height(), graph->width(), CV_8UC3, cv::Scalar(0));
+
 
     int3 *ptr = graph->getFramePtr()->getCudaPtr();
 
@@ -49,6 +68,15 @@ void exportGraph(CudaGraph *graph, const char *filename)
                 pixel[2] = 255;
             default:
                 break;
+            }
+        }
+
+        if (path != nullptr) {
+            for (auto p : *path) {
+                cv::Vec3b &pixel = cimg.at<cv::Vec3b>(p.y, p.x);
+                pixel[0] = 0;
+                pixel[1] = 0;
+                pixel[2] = 255;
             }
         }
 

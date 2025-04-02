@@ -437,6 +437,7 @@ __device__ __host__ bool check_graph_connection(
         if (bestEndDist < dist)
         {
             path_cost = curr_cost;
+            //printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return bestEndDist <= 2;
         }
 

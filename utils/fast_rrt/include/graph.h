@@ -79,7 +79,7 @@ public:
     std::vector<int2> list();
     std::vector<int3> listAll();
     std::vector<int2> listInRange(int x, int z, float radius);
-    unsigned int count();
+    unsigned int count(int type = GRAPH_TYPE_NODE);
     unsigned int countAll();
 
     inline int height()

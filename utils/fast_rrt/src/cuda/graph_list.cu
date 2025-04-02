@@ -19,14 +19,14 @@ __global__ static void __CUDA_KERNEL_count_elements_in_graph(int3 *graph, int wi
     }
 }
 
-unsigned int CudaGraph::count()
+unsigned int CudaGraph::count(int type)
 {
     int size = _frame->width() * _frame->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount = 0;
-    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), GRAPH_TYPE_NODE, _parallelCount);
+    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), type, _parallelCount);
     cudaDeviceSynchronize();
 
     return *_parallelCount;
@@ -81,7 +81,7 @@ __global__ static void __CUDA_KERNEL_list_elements_in_graph(int3 *graph, int wid
 }
 
 std::pair<int2 *, int> CudaGraph::__listNodes(int type) {
-    unsigned int c = count();
+    unsigned int c = count(type);
 
     int size = _frame->width() * _frame->height();
 

@@ -275,7 +275,7 @@ void CudaGraph::setParent(int x, int z, int parent_x, int parent_z)
 
 int2 CudaGraph::getParent(int x, int z)
 {
-    if (!__checkLimits(x, z) || !checkInGraph(x, z))
+    if (!__checkLimits(x, z))
         return {-1, -1};
 
     long pos = computePos(_frame->width(), x, z);

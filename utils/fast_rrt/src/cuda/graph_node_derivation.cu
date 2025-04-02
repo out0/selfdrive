@@ -96,20 +96,27 @@ __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int3 *g
     int2 parent = getParentCuda(graph, pos);
     float heading = getHeadingCuda(graphData, pos);
 
-    float nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
-    set(graph, graphData, pos, heading, start.x, start.y, pos, GRAPH_TYPE_TEMP, true);
+    //float nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
+    float nodeCost = getCostCuda(graphData, pos);
+
+    set(graph, graphData, pos, heading, start.x, start.y, nodeCost, GRAPH_TYPE_TEMP, true);
 
     while (parent.x != start.x || parent.y != start.y)
     {
         pos = computePos(width, parent.x, parent.y);
         // copy the next parent to use in the next iteraction
-        parent.x = graph[pos].x;
-        parent.y = graph[pos].y;
+        parent = getParentCuda(graph, pos);
+        
+        // parent.x = graph[pos].x;
+        // parent.y = graph[pos].y;
+        
         // updates the current parent to point to the last node.
-        graph[pos].x = end.x;
-        graph[pos].y = end.y;
+        setParentCuda(graph, pos, end.x, end.y);
+        // graph[pos].x = end.x;
+        // graph[pos].y = end.y;
     }
 }
+
 
 __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *graph, float3 *graphData, float3 *frame, float *classCosts, int width, int height, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, float goalHeading_rad)
 {
@@ -120,7 +127,6 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
 
     if (!checkInGraphCuda(graph, pos))
         return;
-
 
     int z = pos / width;
     int x = pos - z * width;
@@ -139,13 +145,17 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
     // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
-    int2 start = {x, z}; 
+    int2 start = {x, z};
     int2 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;
 
+    //printf("derivateNode: (%d, %d) -> (%d, %d)\n", start.x, start.y, end.x, end.y);
+
+    // ta errada essa função !!
     prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, goalHeading_rad, pathSize);
+
 }
 
 void CudaGraph::__checkDerivatedPath(float3 *og)
