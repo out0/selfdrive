@@ -59,21 +59,21 @@ __device__ __host__ inline double2 convert_waypoint_to_map_pose(int2 center, dou
         inv_rate_w * (coord.x - center.x)};
 }
 
-__device__ __host__ double compute_euclidean_2d_dist(double2 &start, double2 &end)
+__device__ __host__ double compute_euclidean_2d_dist(const  double2 &start, const  double2 &end)
 {
     double dx = end.x - start.x;
     double dy = end.y - start.y;
     return sqrt(dx * dx + dy * dy);
 }
 
-__device__ __host__ double compute_euclidean_2d_dist(int2 &start, int2 &end)
+__device__ __host__ double compute_euclidean_2d_dist(const int2 &start, const int2 &end)
 {
     double dx = end.x - start.x;
     double dy = end.y - start.y;
     return sqrt(dx * dx + dy * dy);
 }
 
-__device__ __host__ double compute_path_heading(double2 p1, double2 p2)
+__device__ __host__ double compute_path_heading(const double2 p1, const  double2 p2)
 {
     double dy = p2.y - p1.y;
     double dx = p2.x - p1.x;
@@ -195,60 +195,6 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
 
     return {last_x, last_z};
 }
-
-
-// std::vector<Waypoint> drawKinematicPath(double *physicalParams, int width, int height, int2 center, int2 start, float start_heading, Waypoint end, float velocity_m_s)
-// {
-//     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-//     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-//     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-//     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
-//     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
-//     const double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-
-//     int2 ep = {end.x(), end.z()};
-//     double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
-//     double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, ep);
-
-//     double goal_heading = end.heading().rad();
-//     double heading = start_heading;
-
-//     double dt = 0.1;
-//     double ds = velocity_m_s * dt;
-//     int total_steps = TO_INT(compute_euclidean_2d_dist(start, ep) / ds);
-
-//     std::vector<Waypoint> res;
-
-//     double x;
-//     double y;
-
-//     int2 lastWP = {start.x, start.y};
-
-//     for (int i = 0; i < total_steps; i++)
-//     {
-//         double steering_error = clip(goal_heading - heading, -maxSteeringAngle, maxSteeringAngle);
-//         double steer = tan(steering_error);
-//         double beta = atan(steer / lr);
-
-//         x += ds * cos(heading + beta);
-//         y += ds * sin(heading + beta);
-//         heading += ds * cos(beta) * steer / (2 * lr);
-
-//         int2 wp = convert_map_pose_to_waypoint(center, rateW, rateH, {x, y});
-//         if (wp.x == lastWP.x && wp.y == lastWP.y)
-//             continue;
-//         lastWP = wp;
-
-//         if (wp.x < 0 || wp.x >= width) continue;
-//         if (wp.y < 0 || wp.y >= height) continue;
-
-
-//         res.push_back(Waypoint(wp.x, wp.y, angle::rad(heading)));
-//     }
-
-//     return res;
-// }
-
 
 __device__ __host__ bool checkKinematicPath(
     int3 *graph, 
@@ -377,31 +323,29 @@ __device__ __host__ bool check_graph_connection(
     int2 start, 
     int2 end, 
     float velocity_m_s,
-    float path_heading,
     float &path_cost)
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
-    int width = params[FRAME_PARAM_WIDTH];
-
+    const int width = params[FRAME_PARAM_WIDTH];
+    const int height = params[FRAME_PARAM_HEIGHT];
     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    const double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
+    const double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, end);
+    const double dt = 0.1;
+    const long startPos = computePos(width, start.x, start.y);
+    const double max_cost = getCostCuda(graphData, computePos(width, end.x, end.y));
+    const double ds = velocity_m_s * dt;
+    const int total_steps = TO_INT(distance / ds);
 
-    double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
-    double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, end);
-    double dt = 0.1;
-
-    long startPos = computePos(width, start.x, start.y);
     double heading = getHeadingCuda(graphData, startPos);
-
-    double steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
-    double ds = velocity_m_s * dt;
-
-    int total_steps = TO_INT(distance / ds);
+    double path_heading = compute_path_heading(startM, endM);
+    double steering_angle_rad = clip(path_heading - heading, -maxSteering, maxSteering);
 
     double2 nextpM;
     nextpM.x = startM.x;
@@ -411,11 +355,17 @@ __device__ __host__ bool check_graph_connection(
     double bestEndDist = distance;
     path_cost = 0;
 
+    float curr_cost = getCostCuda(graphData, computePos(width, start.x, start.y));
 
-    float curr_cost = 0;
     for (int i = 0; i < total_steps; i++)
     {
-        double steer = tan(steering_angle_deg);
+        // if the current cost is greater than the max cost, the graph connection
+        // is not feasible
+        if (curr_cost > max_cost)
+            return false;
+
+
+        double steer = tan(steering_angle_rad);
         double beta = atan(steer / lr);
 
         nextpM.x += ds * cos(heading + beta);
@@ -424,14 +374,20 @@ __device__ __host__ bool check_graph_connection(
 
 
         path_heading = compute_path_heading(nextpM, endM);
-        steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
+    
+        steering_angle_rad = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
-
         nextp = convert_map_pose_to_waypoint(center, rateW, rateH, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;
         
+        if (nextp.x < 0 || nextp.x >= width)
+            return false;
+        if (nextp.y < 0 || nextp.y >= height)
+            return false;
+
+            
         curr_cost += getIntrinsicCost(graphData, width, nextp.x, nextp.y) + 1;
 
         if (bestEndDist < dist)
@@ -457,4 +413,93 @@ __device__ __host__ bool check_graph_connection(
     }
 
     return false;
+}
+
+
+__device__ __host__ bool check_graph_connection_with_hermite(
+    int3 *graph, 
+    float3 *graphData, 
+    float3 *frame, 
+    double *physicalParams, 
+    int *params, 
+    float *classCost, 
+    int2 center, 
+    int2 start, 
+    int2 end, 
+    float velocity_m_s,
+    float &path_cost) {
+   
+    const int numPoints = abs(end.y - start.y);
+    if (numPoints < 2) {
+        return false;
+    }
+    const int width = params[FRAME_PARAM_WIDTH];
+    const int height = params[FRAME_PARAM_HEIGHT];
+
+    // Distance between points (used to scale tangents)
+    const float dx = end.x - start.x;
+    const float dz = end.y - start.y;
+    const float d = sqrtf(dx * dx + dz * dz);
+    const float a1 = getHeadingCuda(graphData, computePos(width, start.x, start.y)) - HALF_PI;
+    const float a2 =  getHeadingCuda(graphData, computePos(width, end.x, end.y)) - HALF_PI;
+    // Tangent vectors
+    const float2 tan1 = {  d * cosf(a1), d * sinf(a1) };
+    const float2 tan2 = {  d * cosf(a2), d * sinf(a2) };
+
+    int last_x = -1;
+    int last_z = -1;    
+    path_cost = 0;
+
+    for (int i = 0; i < numPoints; ++i) {
+        float t = (float)i / (numPoints - 1);
+
+        float t2 = t*t;
+        float t3 = t2*t;
+
+        // Hermite basis functions
+        float h00 =  2 * t3 - 3 * t2 + 1;
+        float h10 =      t3 - 2 * t2 + t;
+        float h01 = -2 * t3 + 3 * t2;
+        float h11 =      t3     - t2;
+
+        float x = h00 * start.x + h10 * tan1.x + h01 * end.x + h11 * tan2.x;
+        float z = h00 * start.y + h10 * tan1.y + h01 * end.y + h11 * tan2.y;
+
+        if (x < 0 || x >= width) continue;
+        if (z < 0 || z >= height) continue;
+
+        int cx = TO_INT(round(x));
+        int cz = TO_INT(round(z));
+
+        if (cx == last_x && cz == last_z) continue;
+
+
+        float t00 =  6 * t2 - 6 * t;
+        float t10 =  3 * t2 - 4 * t + 1;
+        float t01 = -6 * t2 + 6 * t;
+        float t11 =  3 * t2 - 2 * t;
+
+        float ddx = t00 * start.x + t10 * tan1.x + t01 * end.x + t11 * tan2.x;
+        float ddz = t00 * start.y + t10 * tan1.y + t01 * end.y + t11 * tan2.y;
+
+        float heading = atan2f(ddz, ddx) + HALF_PI;
+
+        // Interpolated point
+        ///curve.push_back({cx, cz, angle::rad(0)});
+
+        if (!__computeFeasibleForAngle(frame, params, classCost, cx, cz, heading))
+        {
+            // if (DEBUG) {
+            //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
+            //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
+            // }
+            return false;
+        }
+
+        last_x = cx;
+        last_z = cz;
+        path_cost += getIntrinsicCost(graphData, width, cx, cz) + 1;
+    }
+
+    return true;
 }

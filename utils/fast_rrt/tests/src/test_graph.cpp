@@ -213,3 +213,58 @@ TEST(TestGraph, TestList_LoadTest)
         }
     }
 }
+
+TEST(TestGraph, TestList_LoadDump)
+{
+    CudaGraph g(100, 100);
+    ASSERT_EQ(0, g.count());
+
+    int parent_x = -1;
+    int parent_z = -1;
+    float cost = 0;
+
+    for (int z = 0; z < 100; z++)
+        for (int x = 0; x < 100; x++)
+        {
+            g.add(x, z, angle::rad(2), parent_x, parent_z, cost);
+            cost++;
+            parent_x = x;
+            parent_z = z;
+        }
+
+    g.dumpGraph("tmp34534.dat");
+
+    g.clear();
+    for (int z = 0; z < 100; z++)
+        for (int x = 0; x < 100; x++)
+        {
+            if (g.getType(x, z) != 0)
+                FAIL();
+        }
+
+    g.readfromDump("tmp34534.dat");
+
+    cost = 0;
+    parent_x = -1;
+    parent_z = -1;    
+    for (int z = 0; z < 100; z++)
+        for (int x = 0; x < 100; x++)
+        {
+            if (g.getType(x, z) != GRAPH_TYPE_NODE)
+                FAIL();
+
+            if (g.getHeading(x, z).rad() != 2)
+                FAIL();
+
+            if (g.getCost(x, z) != cost)
+                FAIL();
+            cost++;
+
+            int2 p = g.getParent(x, z);
+            if (p.x != parent_x && p.y != parent_z)
+                FAIL();
+
+            parent_x = x;
+            parent_z = z;
+        }
+}

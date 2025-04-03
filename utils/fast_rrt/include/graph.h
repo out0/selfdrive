@@ -177,6 +177,10 @@ public:
 
     void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
 
+    void dumpGraph(const char *filename);
+
+    void readfromDump(const char *filename);
+
 };
 
 #endif

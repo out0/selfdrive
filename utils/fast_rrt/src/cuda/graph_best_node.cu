@@ -34,6 +34,12 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int3 *graph, floa
 
     // self cost + dist
     long long cost = __float2ll_rd(sqrtf(dist) + getCostCuda(graphData, pos));
+    // printf("best node candidate: %d,%d: cost %f dist: %f, total cost: %ld\n",
+    //     x,z,
+    //     getCostCuda(graphData, pos),
+    //     sqrtf(dist),
+    //     cost
+    // );
 
     atomicMin(bestCost, cost);
 }
@@ -136,7 +142,7 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
 
 
 
-extern __device__ __host__ double compute_euclidean_2d_dist(int2 &start, int2 &end);
+extern __device__ __host__ double compute_euclidean_2d_dist(const int2 &start, const int2 &end);
 
 __global__ void __CUDA_KERNEL_checkGoalReached(int3 *graph, float3 * frame, int *params, float *costs,  int goalX, int goalZ, float heading_rad, float distToGoalTolerance, bool *goalReached)
 {

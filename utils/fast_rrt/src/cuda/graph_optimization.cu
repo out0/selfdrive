@@ -2,6 +2,36 @@
 #include "../../include/graph.h"
 #include "../../include/cuda_params.h"
 
+extern __device__ __host__ bool check_graph_connection_with_hermite(
+    int3 *graph, 
+    float3 *graphData, 
+    float3 *frame, 
+    double *physicalParams, 
+    int *params, 
+    float *classCost, 
+    int2 center, 
+    int2 start, 
+    int2 end, 
+    float velocity_m_s,
+    float &path_cost);
+
+double computeHeading(int x1, int z1, int x2, int z2)
+{
+    double dz = z2 - z1;
+    double dx = x2 - x1;
+
+    if (dx == 0 && dz == 0)
+        return 0;
+
+    double v1 = 0;
+    if (dz != 0)
+        v1 = atan2(-dz, dx);
+    else
+        v1 = atan2(0, dx);
+
+    return HALF_PI - v1;
+}
+
 void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s)
 {
     // Generate node candidates
@@ -12,7 +42,6 @@ void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float
     // list all feasible node candidates
     std::pair<int2 *, int> lst = __listNodes(GRAPH_TYPE_TEMP);
 
-    
     // printf("Derivating %d nodes\n", lst.second);
 
     // for (int i = 0; i < lst.second; i++)
@@ -20,7 +49,8 @@ void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float
     //     int2 node = lst.first[i];
     //     int2 parent = getParent(node.x, node.y);
     //     if (parent.x != -1 && parent.y != -1)
-    //         printf("Node %d: (%d, %d), parent (%d, %d)\n", i, node.x, node.y, parent.x, parent.y);
+    //         printf("Node %d: (%d, %d), parent (%d, %d), cost: %f, heading: %f\n", i, node.x, node.y, parent.x, parent.y,
+    //                getCost(node.x, node.y), getHeading(node.x, node.y).deg());
     // }
 
     int count = lst.second;
@@ -42,19 +72,6 @@ extern __device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
-extern __device__ __host__ bool check_graph_connection(
-    int3 *graph,
-    float3 *graphData,
-    float3 *frame,
-    double *physicalParams,
-    int *params,
-    float *classCost,
-    int2 center,
-    int2 start,
-    int2 end,
-    float velocity_m_s,
-    float path_heading,
-    float &path_cost);
 
 __device__ __host__ bool checkCyclicRef(int3 *graph, int width, int height, int x, int z, int xc, int zc, int numNodesInGraph)
 {
@@ -121,7 +138,7 @@ __device__ __host__ void __node_optimize(
     // check cyclic ref
     if (checkCyclicRef(graph, width, height, x, z, xc, zc, numNodesInGraph))
     {
-        //printf("cyclic ref in (%d, %d) --> (%d, %d pos: %d)\n", x, z, xc, zc, pos);
+        // printf("cyclic ref in (%d, %d) --> (%d, %d pos: %d)\n", x, z, xc, zc, pos);
         return;
     }
 
@@ -131,18 +148,16 @@ __device__ __host__ void __node_optimize(
     //  and having total size <= maxPathSize
 
     float newPathCost = 0.0; // TODO
-    float heading = getHeadingCuda(graphData, pos);
 
-    if (!check_graph_connection(graph, graphData, frame,
+    if (!check_graph_connection_with_hermite(graph, graphData, frame,
                                 physicalParams, params, classCost,
                                 center,
                                 {xc, zc},
                                 {x, z},
                                 velocity_m_s,
-                                heading,
                                 newPathCost))
     {
-        //printf("this connection is not feasible (%d, %d) --> (%d, %d)\n", x, z, xc, zc);
+        // printf("this connection is not feasible (%d, %d) --> (%d, %d)\n", x, z, xc, zc);
         return;
     }
 
@@ -153,7 +168,7 @@ __device__ __host__ void __node_optimize(
     {
         // connect N to xc, zc
         setParentCuda(graph, pos, xc, zc);
-        //printf("new connection (%d, %d) --> (%d, %d)\n", x, z, xc, zc);
+        // printf("new connection (%d, %d) --> (%d, %d)\n", x, z, xc, zc);
     }
     // else
     // {

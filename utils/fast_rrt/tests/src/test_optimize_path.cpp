@@ -9,7 +9,7 @@
 #include <cmath>
 #include "test_utils.h"
 #include "../../include/graph.h"
-
+#include <string>
 #define PHYS_SIZE 34.641016151377535
 
 TEST(TestOptimizeGraphs, TestOptimizeNode)
@@ -120,18 +120,6 @@ TEST(TestOptimizeGraphs, TestOptimizeGraph)
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
     g.setClassCosts(costs, 6);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-    // tstFrame.addArea(130, 90, 140, 70, 28);
-
-    // g.add(128, 128, angle::rad(0.0), -1, -1, 0.0);
-    // g.add(127, 121, angle::rad(-0.05952281504869461), 128, 128, 10.0);
-    // g.add(127, 116, angle::rad(-0.035784658044576645), 127, 121, 20.0);
-    // g.add(128, 105, angle::rad(0.010117189027369022), 127, 116, 30.0);
-    // g.add(105, 92, angle::rad(-0.1315600872039795), 128, 105, 40.0);
-    // g.add(96, 70, angle::rad(-0.353880912065506), 105, 92, 50.0);
-    // g.add(112, 37, angle::rad(-0.10171803086996078), 96, 70, 60.0);
-    // g.add(112, 17, angle::rad(-0.022149957716464996), 112, 37, 70.0);
-    // g.add(113, 7, angle::rad(0.015074538066983223), 112, 17, 80.0);
-    // g.add(114, 0, angle::rad(0.04908384382724762), 113, 7, 90.0);
 
     addToGraphSeq(g, {128, 128}, angle::rad(0.0));
     addToGraphSeq(g, {127, 121}, angle::rad(-0.05952281504869461));
@@ -150,15 +138,19 @@ TEST(TestOptimizeGraphs, TestOptimizeGraph)
     float3 * og = createEmptySearchFrame(g.width(), g.height());
 
     std::vector<int2> plannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 10.0);
-
     //exportGraph(&g, "test.png", &plannedPath);
-
-    for (int i = 0; i < 6; i++)
+    std::vector<int2> newPlannedPath;
+    
+    for (int i = 0; i < 10; i++)
     {
-        g.optimizeGraph(ptr, angle::rad(0), 30.0, 1.0);
+        std::string s = "../tstlog/graph" + std::to_string(i+1) + ".dat";
+        //g.dumpGraph(s.c_str());
+        g.optimizeGraph(ptr, angle::rad(0), 20.0, 1.0);
+       // newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 10.0);
+        //exportGraph(&g, "test.png", &newPlannedPath);
     }
 
-    std::vector<int2> newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 10.0);
+    newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 10.0);
     // showPathChanged(plannedPath, newPlannedPath);
     exportGraph(&g, "test.png", &newPlannedPath);
 
@@ -180,4 +172,37 @@ TEST(TestOptimizeGraphs, TestOptimizeGraph)
     // ASSERT_EQ(parent.y, 70);
 
     int j = 1;
+}
+
+TEST(TestOptimizeGraphs, TestDebugOptimizeGraph)
+{
+    return;
+    CudaGraph g(256, 256);
+    float3 *ptr = createEmptySearchFrame(256, 256);
+    angle maxSteering = angle::deg(40);
+    int costs[] = {{0},
+                   {1},
+                   {2},
+                   {3},
+                   {4},
+                   {5}};
+    g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
+    g.setClassCosts(costs, 6);
+    g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
+    float3 * og = createEmptySearchFrame(g.width(), g.height());
+
+    for (int i = 0; i < 10; i++)
+    {
+        std::string s = "../tstlog/graph" + std::to_string(i+1) + ".dat";
+        g.readfromDump(s.c_str());
+        std::vector<int2> newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 30.0);
+        exportGraph(&g, "test.png", &newPlannedPath);
+
+        g.optimizeGraph(ptr, angle::rad(0), 30.0, 1.0);
+
+        newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 30.0);
+        exportGraph(&g, "test.png", &newPlannedPath);
+
+
+    }
 }

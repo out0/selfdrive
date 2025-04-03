@@ -108,6 +108,8 @@ __device__ __host__ bool checkInGraphCuda(int3 *graph, long pos)
     return graph[pos].z == GRAPH_TYPE_NODE;
 }
 
+
+
 void CudaGraph::setType(int x, int z, int type)
 {
     long pos = computePos(_frame->width(), x, z);
@@ -256,6 +258,8 @@ void CudaGraph::clear()
     *_goalReached = false;
 }
 
+
+
 bool CudaGraph::checkInGraph(int x, int z)
 {
     if (!__checkLimits(x, z))
@@ -275,7 +279,7 @@ void CudaGraph::setParent(int x, int z, int parent_x, int parent_z)
 
 int2 CudaGraph::getParent(int x, int z)
 {
-    if (!__checkLimits(x, z))
+    if (!__checkLimits(x, z) || getType(x, z) == GRAPH_TYPE_NULL)
         return {-1, -1};
 
     long pos = computePos(_frame->width(), x, z);
@@ -321,4 +325,48 @@ int CudaGraph::getType(int x, int z)
 
     long pos = computePos(_frame->width(), x, z);
     return getTypeCuda(_frame->getCudaPtr(), pos);
+}
+
+void CudaGraph::dumpGraph(const char *filename) {
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+        printf("Error opening file %s\n", filename);
+        return;
+    }
+
+    int3 * fptr = _frame->getCudaPtr();
+    float3 * fptrData = _frameData->getCudaPtr();
+
+    for (int z = 0; z < _frame->height(); z++) {
+        for (int x = 0; x < _frame->width(); x++) {
+            long pos = z * _frame->width() + x;
+            fprintf(fp, "%d %d %d %f %f %f\n", fptr[pos].x, fptr[pos].y, fptr[pos].z, 
+                    fptrData[pos].x, fptrData[pos].y, fptrData[pos].z);
+        }
+    }
+
+    fclose(fp);
+    printf("Graph dumped to %s\n", filename);
+}
+
+void CudaGraph::readfromDump(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        printf("Error opening file %s\n", filename);
+        return;
+    }
+
+    int3 * fptr = _frame->getCudaPtr();
+    float3 * fptrData = _frameData->getCudaPtr();
+
+    for (int z = 0; z < _frame->height(); z++) {
+        for (int x = 0; x < _frame->width(); x++) {
+            long pos = z * _frame->width() + x;
+            fscanf(fp, "%d %d %d %f %f %f\n", &fptr[pos].x, &fptr[pos].y, &fptr[pos].z, 
+                    &fptrData[pos].x, &fptrData[pos].y, &fptrData[pos].z);
+        }
+    }
+
+    fclose(fp);
+    printf("Graph read from %s\n", filename);
 }
