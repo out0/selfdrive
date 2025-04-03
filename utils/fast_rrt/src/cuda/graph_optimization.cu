@@ -64,7 +64,7 @@ void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float
     }
 
     cudaFreeHost(cudaResult);
-    acceptDerivatedNodes();
+    acceptDerivatedNodes();   
 }
 
 extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
@@ -72,6 +72,7 @@ extern __device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
 
 __device__ __host__ bool checkCyclicRef(int3 *graph, int width, int height, int x, int z, int xc, int zc, int numNodesInGraph)
 {
@@ -168,6 +169,7 @@ __device__ __host__ void __node_optimize(
     {
         // connect N to xc, zc
         setParentCuda(graph, pos, xc, zc);
+//        setTypeCuda(graph, computePos(width, xc, zc), GRAPH_TYPE_NODE);
         // printf("new connection (%d, %d) --> (%d, %d)\n", x, z, xc, zc);
     }
     // else

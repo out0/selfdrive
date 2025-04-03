@@ -258,8 +258,6 @@ void CudaGraph::clear()
     *_goalReached = false;
 }
 
-
-
 bool CudaGraph::checkInGraph(int x, int z)
 {
     if (!__checkLimits(x, z))

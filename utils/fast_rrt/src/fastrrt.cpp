@@ -99,16 +99,8 @@ bool FastRRT::loop_optimize()
     if (__check_timeout())
         return false;
 
-    // _graph.derivateNode(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
-    // _graph.optimizeGraph(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
-    // _graph.acceptDerivatedNodes();
-    // __shrink_search_graph();
-
-    std::vector<Waypoint> path = getPlannedPath();
-
-
-
-
+    _graph.optimizeGraph(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
+    __shrink_search_graph();
     return true;
 }
 
