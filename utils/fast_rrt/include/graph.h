@@ -28,6 +28,7 @@ private:
     std::shared_ptr<CudaGrid<float3>> _frameData;
     bool __checkLimits(int x, int z);
     unsigned int *_parallelCount = 0;
+    bool *_newNodesAdded;
     int2 _gridCenter;
     double *_physicalParams;
     int *_searchSpaceParams;
@@ -58,7 +59,7 @@ protected:
 
     /// @brief Checks and accepts all derivated paths for feasibility.
     /// @param searchFrame
-    void __checkDerivatedPath(float3 *og);
+    bool __checkDerivatedPath(float3 *og);
 
 public:
     CudaGraph(int width, int height);
@@ -130,7 +131,7 @@ public:
     /// @param maxSteeringAngle
     /// @param maxPathSize
     /// @param velocity_m_s
-    void derivateNode(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s);
+    bool expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion);
 
     /// @brief Accepts a derivated node and connects it to the graph.
     /// @param start

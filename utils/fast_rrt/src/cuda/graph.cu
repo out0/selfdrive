@@ -164,11 +164,24 @@ CudaGraph::CudaGraph(int width, int height)
         throw msg;
     }
 
+    if (!cudaAllocMapped(&this->_newNodesAdded, sizeof(bool)))
+    {
+        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for tree expansion check (new nodes)\n");
+        throw msg;
+    }
+    
+
 
 }
 CudaGraph::~CudaGraph()
 {
     cudaFreeHost(_parallelCount);
+    cudaFreeHost(_newNodesAdded);
+    cudaFreeHost(_goalReached);
+    cudaFreeHost(_searchSpaceParams);
+
+    if (_physicalParams != nullptr)
+        cudaFreeHost(_physicalParams);
 }
 
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)

@@ -107,8 +107,8 @@ class TestUtils:
         for n in nodes:
             x = n[0]
             z = n[1]
-            if (x < 0 or x > width): continue
-            if (z < 0 or z > height): continue
+            if (x < 0 or x >= width): continue
+            if (z < 0 or z >= height): continue
             
             if int(n[2]) == GRAPH_TYPE_NODE:
                 cimg[z, x, :] = [255, 255, 255]

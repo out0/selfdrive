@@ -49,6 +49,7 @@ __global__ static void __CUDA_KERNEL_count_all_elements_in_graph(int4 *graph, in
 }
 
 
+
 unsigned int CudaGraph::countAll()
 {
     int size = _frame->width() * _frame->height();

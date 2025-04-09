@@ -50,7 +50,7 @@ class TestFastRRT(unittest.TestCase):
         rrt.search_init()
         
         while not rrt.goal_reached() and rrt.loop():
-            TestUtils.log_graph(rrt, data.frame, "output1.png")
+            #TestUtils.log_graph(rrt, data.frame, "output1.png")
             pass
         
         # Check if the goal is reached

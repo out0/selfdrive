@@ -35,7 +35,7 @@ double computeHeading(int x1, int z1, int x2, int z2)
 void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s)
 {
     // Generate node candidates
-    derivateNode(og, goalHeading, radius, velocity_m_s);
+    expandTree(og, goalHeading, radius, velocity_m_s, false);
 
     int numNodesInGraph = count();
 

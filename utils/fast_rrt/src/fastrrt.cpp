@@ -90,7 +90,12 @@ bool FastRRT::loop()
         return false;
     }
 
-    _graph.derivateNode(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
+    
+    if (!_graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, true)) {
+        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, false);
+        printf ("full expandTree\n");
+    }
+
     _graph.acceptDerivatedNodes();
 
     if (goalReached())

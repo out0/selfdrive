@@ -26,7 +26,7 @@ __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
     return a.x == b.x && a.y == b.y;
 }
 
-__device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost, int type, int x, int z)
+__device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost, int type, int x, int z, bool *newNodesAdded)
 {
 
     int width = params[FRAME_PARAM_WIDTH];
@@ -42,6 +42,8 @@ __device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 
     {
         if (!feasible)
             setTypeCuda(graph, pos, GRAPH_TYPE_NULL);
+
+        *newNodesAdded = true;
         return;
     }
 
@@ -54,7 +56,7 @@ __device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 
     setTypeCuda(graph, pos, GRAPH_TYPE_NULL);
 }
 
-__global__ void __CUDA_KERNEL_checkDerivatedPaths(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost)
+__global__ void __CUDA_KERNEL_checkDerivatedPaths(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost, bool *newNodesAdded)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -72,7 +74,7 @@ __global__ void __CUDA_KERNEL_checkDerivatedPaths(int4 *graph, float3 *graphData
     if (type == GRAPH_TYPE_NULL || type == GRAPH_TYPE_NODE)
         return;
 
-    parallel_check_path_node(graph, graphData, cudaFrame, params, classCost, type, x, z);
+    parallel_check_path_node(graph, graphData, cudaFrame, params, classCost, type, x, z, newNodesAdded);
 }
 
 __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int height)
@@ -158,24 +160,33 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     if (end.x < 0 || end.y < 0)
         return;
 
-    prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, pathSize);
+    if (checkInGraphCuda(graph, computePos(width, end.x, end.y)))
+        return;
 
+    // printf("%d, %d is in graph, inc count...\n", x, z);
+    // atomicInc(&(graph[pos].w), 1);
     incNodeDeriveCount(graph, pos);
+
+    prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, pathSize);
 }
 
-void CudaGraph::__checkDerivatedPath(float3 *og)
+bool CudaGraph::__checkDerivatedPath(float3 *og)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+    *_newNodesAdded = false;
 
     __CUDA_KERNEL_checkDerivatedPaths<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
         _searchSpaceParams,
-        _classCosts);
+        _classCosts, 
+        _newNodesAdded);
 
     CUDA(cudaDeviceSynchronize());
+    return *_newNodesAdded;
 }
 
 void CudaGraph::acceptDerivatedNodes()
@@ -222,21 +233,12 @@ void CudaGraph::acceptDerivatedNode(int2 start, int2 lastNode)
     setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NODE);
 }
 
-void CudaGraph::derivateNode(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s)
+bool CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    // printf ("_randState: %p\n", (void *)_randState);
-    // printf ("_frame_ptr: %p\n", (void *)_frame->getCudaPtr());
-    // printf ("_frameData_ptr: %p\n", (void *)_frameData->getCudaPtr());
-    // printf ("og (_ptr): %p\n", (void *)og);
-    // printf ("_classCosts: %p\n", (void *)_classCosts);
-    // printf ("_physicalParams: %p\n", (void *)_physicalParams);
-    // printf ("w: %d, h:%d\n", _frame->width(), _frame->height());
-
-    // TODO
-    bool frontierExpansion = false;
+    *_parallelCount = 0;
 
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState,
@@ -254,7 +256,7 @@ void CudaGraph::derivateNode(float3 *og, angle goalHeading, float maxPathSize, f
 
     CUDA(cudaDeviceSynchronize());
 
-    __checkDerivatedPath(og);
+    return __checkDerivatedPath(og);
 }
 
 int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
