@@ -3,7 +3,7 @@
 #include "../../include/cuda_params.h"
 
 extern __device__ __host__ bool check_graph_connection_with_hermite(
-    int3 *graph, 
+    int4 *graph, 
     float3 *graphData, 
     float3 *frame, 
     double *physicalParams, 
@@ -67,14 +67,14 @@ void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float
     acceptDerivatedNodes();   
 }
 
-extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
-extern __device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_x, int parent_z);
+extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
+extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
-extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
+extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
 
-__device__ __host__ bool checkCyclicRef(int3 *graph, int width, int height, int x, int z, int xc, int zc, int numNodesInGraph)
+__device__ __host__ bool checkCyclicRef(int4 *graph, int width, int height, int x, int z, int xc, int zc, int numNodesInGraph)
 {
 
     int xi = xc;
@@ -95,7 +95,7 @@ __device__ __host__ bool checkCyclicRef(int3 *graph, int width, int height, int 
 
 __device__ __host__ void __node_optimize(
     int pos,
-    int3 *graph,
+    int4 *graph,
     float3 *graphData,
     float3 *frame,
     double *physicalParams,
@@ -179,7 +179,7 @@ __device__ __host__ void __node_optimize(
 }
 
 __global__ static void __CUDA_KERNEL_optimize(
-    int3 *graph,
+    int4 *graph,
     float3 *graphData,
     float3 *frame,
     double *physicalParams,

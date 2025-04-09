@@ -3,7 +3,7 @@
 #include "../../include/graph.h"
 #include <math_constants.h>
 
-__global__ static void __CUDA_KERNEL_count_elements_in_graph(int3 *graph, int width, int height, int type, unsigned int *count)
+__global__ static void __CUDA_KERNEL_count_elements_in_graph(int4 *graph, int width, int height, int type, unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -32,7 +32,7 @@ unsigned int CudaGraph::count(int type)
     return *_parallelCount;
 }
 
-__global__ static void __CUDA_KERNEL_count_all_elements_in_graph(int3 *graph, int width, int height,  unsigned int *count)
+__global__ static void __CUDA_KERNEL_count_all_elements_in_graph(int4 *graph, int width, int height,  unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -62,7 +62,7 @@ unsigned int CudaGraph::countAll()
     return *_parallelCount;
 }
 
-__global__ static void __CUDA_KERNEL_list_elements_in_graph(int3 *graph, int width, int height, int type, int2 *res, unsigned int *currentPos)
+__global__ static void __CUDA_KERNEL_list_elements_in_graph(int4 *graph, int width, int height, int type, int2 *res, unsigned int *currentPos)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -133,7 +133,7 @@ std::vector<int2> CudaGraph::list()
 }
 
 
-__global__ static void __CUDA_KERNEL_list_all_elements_in_graph(int3 *graph, int width, int height, int3 *res, unsigned int *currentPos)
+__global__ static void __CUDA_KERNEL_list_all_elements_in_graph(int4 *graph, int width, int height, int3 *res, unsigned int *currentPos)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 

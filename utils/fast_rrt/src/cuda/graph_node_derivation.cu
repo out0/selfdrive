@@ -2,29 +2,31 @@
 #include "../../include/cuda_params.h"
 #include "../../include/graph.h"
 
-extern __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+extern __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
-extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
-extern __device__ __host__ int getTypeCuda(int3 *graph, long pos);
-extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
+extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
+extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
+extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ void setCostCuda(float3 *graphData, long pos, float cost);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
-extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
-extern __device__ __host__ bool checkInGraphCuda(int3 *graph, long pos);
+extern __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos);
 extern __device__ float generateRandom(curandState *state, int pos, float max);
 extern __device__ float generateRandomNeg(curandState *state, int pos, float max);
-extern __device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_x, int parent_z);
+extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z);
+extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
+extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
 
-extern __device__ __host__ float computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
+extern __device__ __host__ float computeCost(float3 *frame, int4 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
 
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
 {
     return a.x == b.x && a.y == b.y;
 }
 
-__device__ void parallel_check_path_node(int3 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost, int type, int x, int z)
+__device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost, int type, int x, int z)
 {
 
     int width = params[FRAME_PARAM_WIDTH];
@@ -52,7 +54,7 @@ __device__ void parallel_check_path_node(int3 *graph, float3 *graphData, float3 
     setTypeCuda(graph, pos, GRAPH_TYPE_NULL);
 }
 
-__global__ void __CUDA_KERNEL_checkDerivatedPaths(int3 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost)
+__global__ void __CUDA_KERNEL_checkDerivatedPaths(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -73,7 +75,7 @@ __global__ void __CUDA_KERNEL_checkDerivatedPaths(int3 *graph, float3 *graphData
     parallel_check_path_node(graph, graphData, cudaFrame, params, classCost, type, x, z);
 }
 
-__global__ void __CUDA_KERNEL_acceptDerivatedPaths(int3 *graph, int width, int height)
+__global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -88,7 +90,7 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int3 *graph, int width, int h
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
 
-__device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int3 *graph, float3 *graphData, float *classCosts, double *physicalParams, int width, int height, int2 start, int2 end, float goalHeading_rad, float pathSize)
+__device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int4 *graph, float3 *graphData, float *classCosts, double *physicalParams, int width, int height, int2 start, int2 end, float pathSize)
 {
     if (checkEquals(start, end))
         return;
@@ -96,7 +98,7 @@ __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int3 *g
     int2 parent = getParentCuda(graph, pos);
     float heading = getHeadingCuda(graphData, pos);
 
-    //float nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
+    // float nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
     float nodeCost = getCostCuda(graphData, pos);
 
     set(graph, graphData, pos, heading, start.x, start.y, nodeCost, GRAPH_TYPE_TEMP, true);
@@ -106,10 +108,10 @@ __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int3 *g
         pos = computePos(width, parent.x, parent.y);
         // copy the next parent to use in the next iteraction
         parent = getParentCuda(graph, pos);
-        
+
         // parent.x = graph[pos].x;
         // parent.y = graph[pos].y;
-        
+
         // updates the current parent to point to the last node.
         setParentCuda(graph, pos, end.x, end.y);
         // graph[pos].x = end.x;
@@ -117,8 +119,7 @@ __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int3 *g
     }
 }
 
-
-__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *graph, float3 *graphData, float3 *frame, float *classCosts, int width, int height, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, float goalHeading_rad)
+__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int width, int height, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool frontierExploration)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -127,6 +128,12 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
 
     if (!checkInGraphCuda(graph, pos))
         return;
+
+    if (frontierExploration && getNodeDeriveCount(graph, pos) > 0)
+    {
+        // printf("%d, %d has been derived too many times, skipping...\n", x, z);
+        return;
+    }
 
     int z = pos / width;
     int x = pos - z * width;
@@ -151,11 +158,9 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int3 *gr
     if (end.x < 0 || end.y < 0)
         return;
 
-    //printf("derivateNode: (%d, %d) -> (%d, %d)\n", start.x, start.y, end.x, end.y);
+    prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, pathSize);
 
-    // ta errada essa função !!
-    prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, goalHeading_rad, pathSize);
-
+    incNodeDeriveCount(graph, pos);
 }
 
 void CudaGraph::__checkDerivatedPath(float3 *og)
@@ -230,6 +235,9 @@ void CudaGraph::derivateNode(float3 *og, angle goalHeading, float maxPathSize, f
     // printf ("_physicalParams: %p\n", (void *)_physicalParams);
     // printf ("w: %d, h:%d\n", _frame->width(), _frame->height());
 
+    // TODO
+    bool frontierExpansion = false;
+
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState,
         _frame->getCudaPtr(),
@@ -242,7 +250,7 @@ void CudaGraph::derivateNode(float3 *og, angle goalHeading, float maxPathSize, f
         _gridCenter,
         maxPathSize,
         velocity_m_s,
-        goalHeading.rad());
+        frontierExpansion);
 
     CUDA(cudaDeviceSynchronize());
 

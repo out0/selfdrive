@@ -2,14 +2,14 @@
 #include "../../include/cuda_params.h"
 #include "../../include/graph.h"
 
-extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
+extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos) ;
 
 
-__device__ __host__ float computeCost(float3 *frame, int3 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent) {
+__device__ __host__ float computeCost(float3 *frame, int4 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent) {
     int2 parent = getParentCuda(graph, nodePos);
     float parentCost = getCostCuda(graphData, computePos(width, parent.x, parent.y));
     float heading_error_perc = abs(goalHeading_rad - getHeadingCuda(graphData, nodePos)) / physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];

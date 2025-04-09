@@ -7,9 +7,9 @@
 #include "../../include/graph.h"
 #include "../../include/waypoint.h"
 
-extern __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
-extern __device__ __host__ int2 getParentCuda(int3 *graph, long pos);
-extern __device__ __host__ void setTypeCuda(int3 *graph, long pos, int type);
+extern __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
+extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
@@ -120,7 +120,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
     return val;
 }
 
-__device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+__device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -135,7 +135,7 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
 
-    double2 startPose = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
+    const double2 startPose = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
 
     if (steeringAngle > maxSteering)
         steeringAngle = maxSteering;
@@ -157,11 +157,12 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
 
     int last_x = start.x;
     int last_z = start.y;
+    long startPos = computePos(width, start.x, start.y);
 
-    float heading = getHeadingCuda(graphData, computePos(width, start.x, start.y));
+    float heading = getHeadingCuda(graphData, startPos);
     int2 lastp;
 
-    float parentCost = getCostCuda(graphData, computePos(width, start.x, start.y));
+    const float parentCost = getCostCuda(graphData, startPos);
     float nodeCost = parentCost;
 
     while (size < maxSize)
@@ -197,7 +198,7 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int3 *graph, float3 *grap
 }
 
 __device__ __host__ bool checkKinematicPath(
-    int3 *graph, 
+    int4 *graph, 
     float3 *graphData, 
     float3 *frame, 
     double *physicalParams, 
@@ -313,7 +314,7 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int ve
 
 
 __device__ __host__ bool check_graph_connection(
-    int3 *graph, 
+    int4 *graph, 
     float3 *graphData, 
     float3 *frame, 
     double *physicalParams, 
@@ -417,7 +418,7 @@ __device__ __host__ bool check_graph_connection(
 
 
 __device__ __host__ bool check_graph_connection_with_hermite(
-    int3 *graph, 
+    int4 *graph, 
     float3 *graphData, 
     float3 *frame, 
     double *physicalParams, 

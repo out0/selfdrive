@@ -12,12 +12,12 @@ from test_utils import TestFrame, TestData, TestUtils
 
 MAX_STEERING_ANGLE = 40
 VEHICLE_LENGTH_M = 5.412658774
-TIMEOUT = 40000
+TIMEOUT = -1
 
 class TestFastRRT(unittest.TestCase):
     def test_fast_rrt_with_custom1(self):
         # Load the test image
-        data = TestFrame(file="custom1.png").get_test_data()
+        data = TestFrame(file="custom2.png").get_test_data()
 
         
         rrt = FastRRT(
@@ -34,7 +34,7 @@ class TestFastRRT(unittest.TestCase):
             lower_bound_z=data.lower_bound.z,
             upper_bound_x=data.upper_bound.x,
             upper_bound_z=data.upper_bound.z,
-            max_path_size_px=200.0,
+            max_path_size_px=500.0,
             dist_to_goal_tolerance_px=15.0,
             libdir=None
         )

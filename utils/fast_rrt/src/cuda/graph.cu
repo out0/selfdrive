@@ -10,7 +10,7 @@ __device__ __host__ long computePos(int width, int x, int z)
     return z * width + x;
 }
 
-__device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override)
+__device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override)
 {
 #ifdef __CUDA_ARCH__
     if (override)
@@ -35,25 +35,36 @@ __device__ __host__ bool set(int3 *graph, float3 *graphData, long pos, float hea
     return true;
 }
 
-__device__ __host__ void setTypeCuda(int3 *graph, long pos, int type)
-{
-    graph[pos].z = type;
-}
 
-__device__ __host__ int getTypeCuda(int3 *graph, long pos)
-{
-    return graph[pos].z;
-}
-
-__device__ __host__ void setParentCuda(int3 *graph, long pos, int parent_x, int parent_z)
+__device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z)
 {
     graph[pos].x = parent_x;
     graph[pos].y = parent_z;
 }
 
-__device__ __host__ int2 getParentCuda(int3 *graph, long pos)
+__device__ __host__ int2 getParentCuda(int4 *graph, long pos)
 {
     return {graph[pos].x, graph[pos].y};
+}
+
+__device__ __host__ void setTypeCuda(int4 *graph, long pos, int type)
+{
+    graph[pos].z = type;
+}
+
+__device__ __host__ int getTypeCuda(int4 *graph, long pos)
+{
+    return graph[pos].z;
+}
+
+__device__ __host__ void incNodeDeriveCount(int4 *graph, long pos)
+{
+    graph[pos].w++;
+}
+
+__device__ __host__ int getNodeDeriveCount(int4 *graph, long pos)
+{
+    return graph[pos].w;
 }
 
 __device__ __host__ float getHeadingCuda(float3 *graphData, long pos)
@@ -103,7 +114,7 @@ __device__  void incIntrinsicCost(float3 *graphData, int width, int x, int z, fl
     atomicAdd(&graphData[pos].z, cost);
 }
 
-__device__ __host__ bool checkInGraphCuda(int3 *graph, long pos)
+__device__ __host__ bool checkInGraphCuda(int4 *graph, long pos)
 {
     return graph[pos].z == GRAPH_TYPE_NODE;
 }
@@ -119,7 +130,7 @@ void CudaGraph::setType(int x, int z, int type)
 
 CudaGraph::CudaGraph(int width, int height)
 {
-    _frame = std::make_shared<CudaGrid<int3>>(width, height);
+    _frame = std::make_shared<CudaGrid<int4>>(width, height);
     _frameData = std::make_unique<CudaGrid<float3>>(width, height);
     if (!cudaAllocMapped(&this->_parallelCount, sizeof(unsigned int)))
     {
@@ -237,7 +248,7 @@ void CudaGraph::remove(int x, int z)
     setTypeCuda(_frame->getCudaPtr(), computePos(_frame->width(), x, z), GRAPH_TYPE_NULL);
 }
 
-__global__ static void __CUDA_KERNEL_clear(int3 *graph, int width, int height)
+__global__ static void __CUDA_KERNEL_clear(int4 *graph, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -332,7 +343,7 @@ void CudaGraph::dumpGraph(const char *filename) {
         return;
     }
 
-    int3 * fptr = _frame->getCudaPtr();
+    int4 * fptr = _frame->getCudaPtr();
     float3 * fptrData = _frameData->getCudaPtr();
 
     for (int z = 0; z < _frame->height(); z++) {
@@ -354,7 +365,7 @@ void CudaGraph::readfromDump(const char *filename) {
         return;
     }
 
-    int3 * fptr = _frame->getCudaPtr();
+    int4 * fptr = _frame->getCudaPtr();
     float3 * fptrData = _frameData->getCudaPtr();
 
     for (int z = 0; z < _frame->height(); z++) {

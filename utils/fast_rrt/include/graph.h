@@ -24,7 +24,7 @@ typedef float3 pose;
 class CudaGraph
 {
 private:
-    std::shared_ptr<CudaGrid<int3>> _frame;
+    std::shared_ptr<CudaGrid<int4>> _frame;
     std::shared_ptr<CudaGrid<float3>> _frameData;
     bool __checkLimits(int x, int z);
     unsigned int *_parallelCount = 0;
@@ -90,7 +90,7 @@ public:
     {
         return _frame->width();
     }
-    std::shared_ptr<CudaGrid<int3>> getFramePtr()
+    std::shared_ptr<CudaGrid<int4>> getFramePtr()
     {
         return _frame;
     }

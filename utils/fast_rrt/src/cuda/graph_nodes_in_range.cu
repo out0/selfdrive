@@ -4,7 +4,7 @@
 #include "../../include/graph.h"
 #include <math_constants.h>
 
-__global__ static void __CUDA_KERNEL_count_elements_in_range(int3 *graph, int width, int height, int type, int xp, int zp, float radius_sqr, unsigned int *count)
+__global__ static void __CUDA_KERNEL_count_elements_in_range(int4 *graph, int width, int height, int type, int xp, int zp, float radius_sqr, unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -44,7 +44,7 @@ unsigned int CudaGraph::__countInRange(int xp, int zp, float radius_sqr)
     return *_parallelCount;
 }
 
-__global__ static void __CUDA_KERNEL_list_elements_in_range(int3 *graph, int width, int height, int type, int xp, int zp, float radius_sqr, int2 *res, unsigned int *currentPos)
+__global__ static void __CUDA_KERNEL_list_elements_in_range(int4 *graph, int width, int height, int type, int xp, int zp, float radius_sqr, int2 *res, unsigned int *currentPos)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
