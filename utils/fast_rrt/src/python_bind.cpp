@@ -37,15 +37,15 @@ extern "C"
         delete rrt;
     }
 
-    void set_plan_data(void *ptr, void *cudaFramePtr, int goal_x, int goal_z, float heading_rad, float velocity_m_s)
+    void set_plan_data(void *ptr, void *cudaFramePtr, int start_x, int start_z, float start_heading_rad, int goal_x, int goal_z, float goal_heading_rad, float velocity_m_s)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        Waypoint p(goal_x, goal_z, angle::rad(heading_rad));
-
+        Waypoint s(start_x, start_z, angle::rad(start_heading_rad));
+        Waypoint p(goal_x, goal_z, angle::rad(goal_heading_rad));
         // printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
 
         CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        rrt->setPlanData(frame->getFramePtr(), p, velocity_m_s);
+        rrt->setPlanData(frame->getFramePtr(), s, p, velocity_m_s);
     }
 
     bool goal_reached(void *ptr)

@@ -126,7 +126,7 @@ class TestFastRRT(unittest.TestCase):
 
         ptr = frame.get_cuda_frame()
 
-        rrt.set_plan_data(ptr, 128, 0, 0, 1)
+        rrt.set_plan_data(ptr, (128, 128, 0), (128, 0, 0), 1)
         
         loop = True
         while loop:
@@ -148,10 +148,18 @@ class TestFastRRT(unittest.TestCase):
             if path is None:
                 self.fail("should be able to interpolate")
                 continue
-                   
-            output_path_result(bev, path, "output1.png")
-            output_to_file(rrt.get_planned_path(), "output1.txt")
-            output_to_file(path, "output1i.txt")
+                
+            start_time = time.time()
+            for _ in range(100):
+                rrt.loop_optimize()
+            
+            end_time = time.time()
+            execution_time = end_time - start_time  # Calculate the time taken
+            print(f"Optimized path: {1000*execution_time:.6f} ms")
+                
+            #output_path_result(bev, path, "output1.png")
+            #output_to_file(rrt.get_planned_path(), "output1.txt")
+            #output_to_file(path, "output1i.txt")
             loop = False
 
 

@@ -73,7 +73,7 @@ public:
     void setClassCosts(const int *costs, int size);
     void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
     void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost);
-    void addStart();
+    void addStart(int x, int z, angle heading);
     void remove(int x, int z);
     void clear();
     std::vector<int2> list();

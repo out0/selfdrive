@@ -13,7 +13,13 @@ FastRRT::FastRRT(
     std::pair<int, int> lowerBound,
     std::pair<int, int> upperBound,
     float maxPathSize,
-    float distToGoalTolerance) : _graph(CudaGraph(width, height)), _distToGoalTolerance(distToGoalTolerance), _timeout_ms(timeout_ms), _maxPathSize(maxPathSize), _goal(Waypoint(0, 0, angle::rad(0)))
+    float distToGoalTolerance) : 
+        _graph(CudaGraph(width, height)), 
+        _distToGoalTolerance(distToGoalTolerance), 
+        _timeout_ms(timeout_ms), 
+        _maxPathSize(maxPathSize), 
+        _start(Waypoint(0, 0, angle::rad(0))),
+        _goal(Waypoint(0, 0, angle::rad(0)))
 {
     // printf ("Parameters: \n");
     // printf ("width: %d, height: %d\n", width, height);
@@ -50,8 +56,9 @@ bool FastRRT::__check_timeout()
     return (_timeout_ms > 0 && __get_exec_time_ms() > _timeout_ms);
 }
 
-void FastRRT::setPlanData(cudaPtr ptr, Waypoint goal, float velocity_m_s)
+void FastRRT::setPlanData(cudaPtr ptr, Waypoint start, Waypoint goal, float velocity_m_s)
 {
+    this->_start = start;
     this->_goal = goal;
     this->_ptr = ptr;
     this->_planningVelocity_m_s = velocity_m_s;
@@ -65,7 +72,7 @@ void FastRRT::search_init()
 {
     __set_exec_started();
     _graph.clear();
-    _graph.addStart();
+    _graph.addStart(_start.x(), _start.z(), _start.heading());
 }
 
 void FastRRT::__shrink_search_graph()

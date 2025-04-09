@@ -169,7 +169,8 @@ TEST(TestRRT, TestSearch)
     ASSERT_EQ(path.size(), 0);
 
     Waypoint goal(128, 0, angle::rad(0));
-    rrt.setPlanData(frame.getFramePtr(), goal, 1);
+    Waypoint start(128, 128, angle::rad(0));
+    rrt.setPlanData(frame.getFramePtr(), start, goal, 1);
 
     rrt.search_init();
 
@@ -189,7 +190,7 @@ TEST(TestRRT, TestSearch)
         logGraph(&rrt, &frame, "output1.png");
     }
 
-    exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output2.png");
+    //exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output2.png");
     // auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
     
 

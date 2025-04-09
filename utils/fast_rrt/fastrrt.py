@@ -86,9 +86,12 @@ class FastRRT:
           FastRRT.lib.set_plan_data.argtypes = [
                ctypes.c_void_p,
                ctypes.c_void_p,   # cuda_ptr
+               ctypes.c_int,      # start_x
+               ctypes.c_int,      # start_z
+               ctypes.c_float,    # start_heading_rad
                ctypes.c_int,      # goal_x
                ctypes.c_int,      # goal_z
-               ctypes.c_float,    # heading_rad
+               ctypes.c_float,    # goal_heading_rad
                ctypes.c_float     # velocity_m_s             
           ]
 
@@ -155,13 +158,16 @@ class FastRRT:
           
           
 
-     def set_plan_data(self, cuda_ptr: ctypes.c_void_p, goal_x: int, goal_z: int, heading_rad: float, velocity_m_s: float) -> bool:
+     def set_plan_data(self, cuda_ptr: ctypes.c_void_p, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float) -> bool:
           return FastRRT.lib.set_plan_data(
             self.__ptr, 
             cuda_ptr,
-            goal_x,
-            goal_z,
-            heading_rad,
+            start[0],
+            start[1],
+            start[2],
+            goal[0],
+            goal[1],
+            goal[2],
             velocity_m_s
           )
    

@@ -200,9 +200,9 @@ void CudaGraph::setClassCosts(const int *costs, int size) {
     }
 }
 
-void CudaGraph::addStart()
+void CudaGraph::addStart(int x, int z, angle heading)
 {
-    add(_gridCenter.x, _gridCenter.y, angle::rad(0), -1, -1, 0);
+    add(x, z, heading, -1, -1, 0);
 }
 
 void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, float cost)

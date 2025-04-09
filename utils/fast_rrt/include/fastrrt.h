@@ -21,6 +21,7 @@ private:
     long _timeout_ms;
     float _maxPathSize;
     float _distToGoalTolerance;
+    Waypoint _start;
     Waypoint _goal;
     cudaPtr _ptr;
     float _planningVelocity_m_s;
@@ -44,7 +45,7 @@ public:
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 
-    void setPlanData(cudaPtr frame, Waypoint goal, float velocity_m_s);
+    void setPlanData(cudaPtr frame, Waypoint start, Waypoint goal, float velocity_m_s);
 
     void search_init();
     bool loop();
