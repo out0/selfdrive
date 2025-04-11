@@ -205,3 +205,28 @@ std::vector<int3> CudaGraph::listAll()
     return res;
 }
 
+extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
+__global__ static void __CUDA_KERNEL_check_new_nodes_added(int4 *graph, int width, int height, bool *added)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pos >= width * height)
+        return;
+
+    if (getTypeCuda(graph, pos) == GRAPH_TYPE_TEMP)
+        *added = true;
+}
+
+bool CudaGraph::checkNewNodesAddedOnTreeExpansion()
+{
+    int size = _frame->width() * _frame->height();
+
+    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+    *_newNodesAdded = false;
+    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _newNodesAdded);
+
+    CUDA(cudaDeviceSynchronize());
+    
+    return *_newNodesAdded;
+}

@@ -155,7 +155,12 @@ class FastRRT:
                ctypes.POINTER(ctypes.c_int),
           ]
           
-          
+          FastRRT.lib.debug_nodes_count.restype = ctypes.c_int
+          FastRRT.lib.debug_nodes_count.argtypes = [
+               ctypes.c_void_p,
+               ctypes.c_int,       # node_type
+          ]
+
           
 
      def set_plan_data(self, cuda_ptr: ctypes.c_void_p, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float) -> bool:
@@ -240,4 +245,5 @@ class FastRRT:
           FastRRT.lib.release_export_graph_nodes(ptr)
           return nodes
           
-     
+     def count_nodes(self, node_type: int) -> int:
+          return FastRRT.lib.debug_nodes_count(self.__ptr, node_type)

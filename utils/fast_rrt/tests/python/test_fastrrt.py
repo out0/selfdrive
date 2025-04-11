@@ -157,7 +157,7 @@ class TestFastRRT(unittest.TestCase):
             execution_time = end_time - start_time  # Calculate the time taken
             print(f"Optimized path: {1000*execution_time:.6f} ms")
                 
-            #output_path_result(bev, path, "output1.png")
+            output_path_result(bev, path, "output1.png")
             #output_to_file(rrt.get_planned_path(), "output1.txt")
             #output_to_file(path, "output1i.txt")
             loop = False

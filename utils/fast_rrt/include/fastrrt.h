@@ -61,6 +61,8 @@ public:
     std::vector<Waypoint> interpolatePlannedPath(std::vector<Waypoint> path);
     std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
 
+    int _debug_nodesCount(int type);
+
 };
 
 #endif

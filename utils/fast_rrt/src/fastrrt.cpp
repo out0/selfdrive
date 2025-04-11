@@ -90,10 +90,12 @@ bool FastRRT::loop()
         return false;
     }
 
+    _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, true);
+    //printf ("new nodes = %d\n", _graph.count(GRAPH_TYPE_TEMP));
     
-    if (!_graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, true)) {
+    if (!_graph.checkNewNodesAddedOnTreeExpansion()) {
         _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, false);
-        printf ("full expandTree\n");
+        //printf ("full expandTree\n");
     }
 
     _graph.acceptDerivatedNodes();
@@ -168,4 +170,9 @@ extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Wayp
 std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal) {
     int2 center = _graph.getCenter();
     return interpolateHermiteCurve(_graph.width(), _graph.height(), Waypoint(center.x, center.y, angle::deg(0)), goal);
+}
+
+
+int FastRRT::_debug_nodesCount(int type) {
+    return _graph.count(type);
 }

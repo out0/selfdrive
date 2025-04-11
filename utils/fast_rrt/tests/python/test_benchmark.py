@@ -17,7 +17,7 @@ TIMEOUT = -1
 class TestFastRRT(unittest.TestCase):
     def test_fast_rrt_with_custom1(self):
         # Load the test image
-        data = TestFrame(file="custom2.png").get_test_data()
+        data = TestFrame(file="custom1.png").get_test_data()
 
         
         rrt = FastRRT(
@@ -34,7 +34,7 @@ class TestFastRRT(unittest.TestCase):
             lower_bound_z=data.lower_bound.z,
             upper_bound_x=data.upper_bound.x,
             upper_bound_z=data.upper_bound.z,
-            max_path_size_px=500.0,
+            max_path_size_px=100.0,
             dist_to_goal_tolerance_px=15.0,
             libdir=None
         )
@@ -50,7 +50,7 @@ class TestFastRRT(unittest.TestCase):
         rrt.search_init()
         
         while not rrt.goal_reached() and rrt.loop():
-            #TestUtils.log_graph(rrt, data.frame, "output1.png")
+            TestUtils.log_graph(rrt, data.frame, "output1.png")
             pass
         
         # Check if the goal is reached
@@ -59,6 +59,14 @@ class TestFastRRT(unittest.TestCase):
         path = rrt.get_planned_path(interpolate=True)
                
         print ("path size: ", len(path))
+        TestUtils.output_path_result(data.frame, path, "output1.png")
+        
+        print ("optimizing")
+        for _ in range(30):
+            rrt.loop_optimize()
+            path = rrt.get_planned_path(interpolate=True)
+            TestUtils.output_path_result(data.frame, path, "output1.png")
+            
         TestUtils.output_path_result(data.frame, path, "output1.png")
 
 if __name__ == "__main__":

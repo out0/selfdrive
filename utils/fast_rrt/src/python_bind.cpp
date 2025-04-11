@@ -163,4 +163,10 @@ extern "C"
                                                                          angle::rad(goal_heading_rad)});
         return convertPath(path);
     }
+
+
+    int debug_nodes_count(void *ptr, int type) {
+        FastRRT *rrt = (FastRRT *)ptr;
+        return rrt->_debug_nodesCount(type);
+    }
 };

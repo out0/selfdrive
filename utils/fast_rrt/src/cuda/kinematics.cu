@@ -59,7 +59,7 @@ __device__ __host__ inline double2 convert_waypoint_to_map_pose(int2 center, dou
         inv_rate_w * (coord.x - center.x)};
 }
 
-__device__ __host__ double compute_euclidean_2d_dist(const  double2 &start, const  double2 &end)
+__device__ __host__ double compute_euclidean_2d_dist(const double2 &start, const double2 &end)
 {
     double dx = end.x - start.x;
     double dy = end.y - start.y;
@@ -73,7 +73,7 @@ __device__ __host__ double compute_euclidean_2d_dist(const int2 &start, const in
     return sqrt(dx * dx + dy * dy);
 }
 
-__device__ __host__ double compute_path_heading(const double2 p1, const  double2 p2)
+__device__ __host__ double compute_path_heading(const double2 p1, const double2 p2)
 {
     double dy = p2.y - p1.y;
     double dx = p2.x - p1.x;
@@ -134,8 +134,10 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *grap
     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
-
     const double2 startPose = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
+
+    // printf("rateW: %f, rateH: %f, invRateW: %f, invRateH: %f, maxSteering: %f, lr: %f, startPose: (%d, %d)==(%f, %f)\n",
+    //        rateW, rateH, invRateW, invRateH, maxSteering, lr, start.x, start.y, startPose.x, startPose.y);
 
     if (steeringAngle > maxSteering)
         steeringAngle = maxSteering;
@@ -145,7 +147,7 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *grap
     const float steer = tanf(steeringAngle);
     const float dt = 0.1;
     const float ds = velocity_m_s * dt;
-    const float beta = atanf(steer / lr);
+    const float beta = atanf(steer / 2);
     const float heading_increment_factor = ds * cosf(beta) * steer / (2 * lr);
 
     float x = startPose.x;
@@ -198,15 +200,15 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *grap
 }
 
 __device__ __host__ bool checkKinematicPath(
-    int4 *graph, 
-    float3 *graphData, 
-    float3 *frame, 
-    double *physicalParams, 
-    int *params, 
-    float *classCost, 
-    int2 center, 
-    int2 start, 
-    int2 end, 
+    int4 *graph,
+    float3 *graphData,
+    float3 *frame,
+    double *physicalParams,
+    int *params,
+    float *classCost,
+    int2 center,
+    int2 start,
+    int2 end,
     float velocity_m_s,
     double &final_heading,
     double &path_cost)
@@ -244,7 +246,6 @@ __device__ __host__ bool checkKinematicPath(
     final_heading = 0;
     path_cost = 0;
 
-
     float curr_cost = 0;
     for (int i = 0; i < total_steps; i++)
     {
@@ -255,7 +256,6 @@ __device__ __host__ bool checkKinematicPath(
         nextpM.y += ds * sin(heading + beta);
         heading += ds * cos(beta) * steer / (2 * lr);
 
-
         path_heading = compute_path_heading(nextpM, endM);
         steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
@@ -264,7 +264,7 @@ __device__ __host__ bool checkKinematicPath(
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;
-        
+
         curr_cost += getIntrinsicCost(graphData, width, nextp.x, nextp.y) + 1;
 
         if (bestEndDist < dist)
@@ -312,17 +312,16 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int ve
         pathCost);
 }
 
-
 __device__ __host__ bool check_graph_connection(
-    int4 *graph, 
-    float3 *graphData, 
-    float3 *frame, 
-    double *physicalParams, 
-    int *params, 
-    float *classCost, 
-    int2 center, 
-    int2 start, 
-    int2 end, 
+    int4 *graph,
+    float3 *graphData,
+    float3 *frame,
+    double *physicalParams,
+    int *params,
+    float *classCost,
+    int2 center,
+    int2 start,
+    int2 end,
     float velocity_m_s,
     float &path_cost)
 {
@@ -365,7 +364,6 @@ __device__ __host__ bool check_graph_connection(
         if (curr_cost > max_cost)
             return false;
 
-
         double steer = tan(steering_angle_rad);
         double beta = atan(steer / lr);
 
@@ -373,28 +371,26 @@ __device__ __host__ bool check_graph_connection(
         nextpM.y += ds * sin(heading + beta);
         heading += ds * cos(beta) * steer / (2 * lr);
 
-
         path_heading = compute_path_heading(nextpM, endM);
-    
+
         steering_angle_rad = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
         nextp = convert_map_pose_to_waypoint(center, rateW, rateH, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;
-        
+
         if (nextp.x < 0 || nextp.x >= width)
             return false;
         if (nextp.y < 0 || nextp.y >= height)
             return false;
 
-            
         curr_cost += getIntrinsicCost(graphData, width, nextp.x, nextp.y) + 1;
 
         if (bestEndDist < dist)
         {
             path_cost = curr_cost;
-            //printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
+            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return bestEndDist <= 2;
         }
 
@@ -416,22 +412,23 @@ __device__ __host__ bool check_graph_connection(
     return false;
 }
 
-
 __device__ __host__ bool check_graph_connection_with_hermite(
-    int4 *graph, 
-    float3 *graphData, 
-    float3 *frame, 
-    double *physicalParams, 
-    int *params, 
-    float *classCost, 
-    int2 center, 
-    int2 start, 
-    int2 end, 
+    int4 *graph,
+    float3 *graphData,
+    float3 *frame,
+    double *physicalParams,
+    int *params,
+    float *classCost,
+    int2 center,
+    int2 start,
+    int2 end,
     float velocity_m_s,
-    float &path_cost) {
-   
+    float &path_cost)
+{
+
     const int numPoints = abs(end.y - start.y);
-    if (numPoints < 2) {
+    if (numPoints < 2)
+    {
         return false;
     }
     const int width = params[FRAME_PARAM_WIDTH];
@@ -442,43 +439,46 @@ __device__ __host__ bool check_graph_connection_with_hermite(
     const float dz = end.y - start.y;
     const float d = sqrtf(dx * dx + dz * dz);
     const float a1 = getHeadingCuda(graphData, computePos(width, start.x, start.y)) - HALF_PI;
-    const float a2 =  getHeadingCuda(graphData, computePos(width, end.x, end.y)) - HALF_PI;
+    const float a2 = getHeadingCuda(graphData, computePos(width, end.x, end.y)) - HALF_PI;
     // Tangent vectors
-    const float2 tan1 = {  d * cosf(a1), d * sinf(a1) };
-    const float2 tan2 = {  d * cosf(a2), d * sinf(a2) };
+    const float2 tan1 = {d * cosf(a1), d * sinf(a1)};
+    const float2 tan2 = {d * cosf(a2), d * sinf(a2)};
 
     int last_x = -1;
-    int last_z = -1;    
+    int last_z = -1;
     path_cost = 0;
 
-    for (int i = 0; i < numPoints; ++i) {
+    for (int i = 0; i < numPoints; ++i)
+    {
         float t = (float)i / (numPoints - 1);
 
-        float t2 = t*t;
-        float t3 = t2*t;
+        float t2 = t * t;
+        float t3 = t2 * t;
 
         // Hermite basis functions
-        float h00 =  2 * t3 - 3 * t2 + 1;
-        float h10 =      t3 - 2 * t2 + t;
+        float h00 = 2 * t3 - 3 * t2 + 1;
+        float h10 = t3 - 2 * t2 + t;
         float h01 = -2 * t3 + 3 * t2;
-        float h11 =      t3     - t2;
+        float h11 = t3 - t2;
 
         float x = h00 * start.x + h10 * tan1.x + h01 * end.x + h11 * tan2.x;
         float z = h00 * start.y + h10 * tan1.y + h01 * end.y + h11 * tan2.y;
 
-        if (x < 0 || x >= width) continue;
-        if (z < 0 || z >= height) continue;
+        if (x < 0 || x >= width)
+            continue;
+        if (z < 0 || z >= height)
+            continue;
 
         int cx = TO_INT(round(x));
         int cz = TO_INT(round(z));
 
-        if (cx == last_x && cz == last_z) continue;
+        if (cx == last_x && cz == last_z)
+            continue;
 
-
-        float t00 =  6 * t2 - 6 * t;
-        float t10 =  3 * t2 - 4 * t + 1;
+        float t00 = 6 * t2 - 6 * t;
+        float t10 = 3 * t2 - 4 * t + 1;
         float t01 = -6 * t2 + 6 * t;
-        float t11 =  3 * t2 - 2 * t;
+        float t11 = 3 * t2 - 2 * t;
 
         float ddx = t00 * start.x + t10 * tan1.x + t01 * end.x + t11 * tan2.x;
         float ddz = t00 * start.y + t10 * tan1.y + t01 * end.y + t11 * tan2.y;
@@ -486,7 +486,7 @@ __device__ __host__ bool check_graph_connection_with_hermite(
         float heading = atan2f(ddz, ddx) + HALF_PI;
 
         // Interpolated point
-        ///curve.push_back({cx, cz, angle::rad(0)});
+        /// curve.push_back({cx, cz, angle::rad(0)});
 
         if (!__computeFeasibleForAngle(frame, params, classCost, cx, cz, heading))
         {

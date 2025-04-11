@@ -59,7 +59,9 @@ protected:
 
     /// @brief Checks and accepts all derivated paths for feasibility.
     /// @param searchFrame
-    bool __checkDerivatedPath(float3 *og);
+    void __checkDerivatedPath(float3 *og);
+
+    
 
 public:
     CudaGraph(int width, int height);
@@ -131,7 +133,7 @@ public:
     /// @param maxSteeringAngle
     /// @param maxPathSize
     /// @param velocity_m_s
-    bool expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion);
+    void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion);
 
     /// @brief Accepts a derivated node and connects it to the graph.
     /// @param start
@@ -182,6 +184,7 @@ public:
 
     void readfromDump(const char *filename);
 
+    bool checkNewNodesAddedOnTreeExpansion();
 };
 
 #endif
