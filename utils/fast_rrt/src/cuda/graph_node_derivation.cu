@@ -175,7 +175,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, pathSize);
 }
 
-void CudaGraph::__checkDerivatedPath(float3 *og)
+void CudaGraph::__checkDerivedPath(float3 *og)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -190,7 +190,7 @@ void CudaGraph::__checkDerivatedPath(float3 *og)
     CUDA(cudaDeviceSynchronize());
 }
 
-void CudaGraph::acceptDerivatedNodes()
+void CudaGraph::acceptDerivedNodes()
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -203,7 +203,7 @@ void CudaGraph::acceptDerivatedNodes()
     CUDA(cudaDeviceSynchronize());
 }
 
-bool CudaGraph::__checkDerivatedPath(float3 *og, int2 start, int2 lastNode)
+bool CudaGraph::__checkDerivedPath(float3 *og, int2 start, int2 lastNode)
 {
     int2 node;
     node.x = lastNode.x;
@@ -228,7 +228,7 @@ bool CudaGraph::__checkDerivatedPath(float3 *og, int2 start, int2 lastNode)
     return feasible;
 }
 
-void CudaGraph::acceptDerivatedNode(int2 start, int2 lastNode)
+void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
 {
     long pos = computePos(_frame->width(), lastNode.x, lastNode.y);
     setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NODE);
@@ -255,7 +255,7 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
 
     CUDA(cudaDeviceSynchronize());
 
-    __checkDerivatedPath(og);
+    __checkDerivedPath(og);
 }
 
 int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
@@ -265,7 +265,7 @@ int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle,
 
     int2 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, og, _classCosts, _frame->width(), _frame->height(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
-    if (__checkDerivatedPath(og, {x, z}, p))
+    if (__checkDerivedPath(og, {x, z}, p))
     {
         long pos = computePos(_frame->width(), p.x, p.y);
         setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_TEMP);

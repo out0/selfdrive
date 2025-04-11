@@ -133,6 +133,7 @@ class CudaFrame:
     _min_dist_z: int
     _lower_bound: Waypoint
     _upper_bound: Waypoint
+    _update_frame: bool
     
     def __get_flatten_size(self, frame: np.ndarray) -> int:
         size = 1
@@ -170,6 +171,7 @@ class CudaFrame:
             upper_bound.z
         )
         self.__unflatten()
+        self._update_frame = False
         
         
     def __del__(self):
@@ -181,16 +183,23 @@ class CudaFrame:
     def set_goal(self, goal: Waypoint) -> np.ndarray:
         self.__flatten()
         lib.set_goal(self._cuda_frame, goal.x, goal.z)
-        lib.copy_back(self._cuda_frame, self._cpu_frame)
+        self._update_frame = True
+        #lib.copy_back(self._cuda_frame, self._cpu_frame)
         self.__unflatten()
         
     def set_goal_vectorized(self, goal: Waypoint) -> np.ndarray:
         self.__flatten()
         lib.set_goal_vectorized(self._cuda_frame, goal.x, goal.z)
-        lib.copy_back(self._cuda_frame, self._cpu_frame)
+        self._update_frame = True
+        #lib.copy_back(self._cuda_frame, self._cpu_frame)
         self.__unflatten()
-        
+    
     def get_frame (self) -> np.ndarray:
+        if self._update_frame:
+            self.__flatten()
+            lib.copy_back(self._cuda_frame, self._cpu_frame)
+            self.__unflatten()
+            self._update_frame = False
         return self._cpu_frame
         
     def get_cuda_frame (self) -> ctypes.c_void_p:

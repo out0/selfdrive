@@ -73,6 +73,7 @@ void FastRRT::search_init()
     __set_exec_started();
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
+    _last_expanded_node_count = 0;
 }
 
 void FastRRT::__shrink_search_graph()
@@ -90,15 +91,24 @@ bool FastRRT::loop()
         return false;
     }
 
-    _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, true);
-    //printf ("new nodes = %d\n", _graph.count(GRAPH_TYPE_TEMP));
+    // _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, true);
+    // //printf ("new nodes = %d\n", _graph.count(GRAPH_TYPE_TEMP));
     
-    if (!_graph.checkNewNodesAddedOnTreeExpansion()) {
-        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, false);
-        //printf ("full expandTree\n");
-    }
+    // if (!_graph.checkNewNodesAddedOnTreeExpansion()) {
+    //     _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, false);
+    //     //printf ("full expandTree\n");
+    // }
+
+    // _graph.acceptDerivatedNodes();
+
+    bool expandFrontier = _last_expanded_node_count >= 10;
+
+    _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier);
+
+    _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
 
     _graph.acceptDerivatedNodes();
+
 
     if (goalReached())
     {

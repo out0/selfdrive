@@ -7,7 +7,7 @@ sys.path.append("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive")
 import unittest
 from utils.fast_rrt.fastrrt import FastRRT
 from test_utils import TestFrame, TestData, TestUtils
-
+import time
 
 
 MAX_STEERING_ANGLE = 40
@@ -34,7 +34,7 @@ class TestFastRRT(unittest.TestCase):
             lower_bound_z=data.lower_bound.z,
             upper_bound_x=data.upper_bound.x,
             upper_bound_z=data.upper_bound.z,
-            max_path_size_px=100.0,
+            max_path_size_px=50.0,
             dist_to_goal_tolerance_px=15.0,
             libdir=None
         )
@@ -49,10 +49,16 @@ class TestFastRRT(unittest.TestCase):
         
         rrt.search_init()
         
+        start_time = time.time()
         while not rrt.goal_reached() and rrt.loop():
-            TestUtils.log_graph(rrt, data.frame, "output1.png")
+            #TestUtils.log_graph(rrt, data.frame, "output1.png")
             pass
-        
+        end_time = time.time()
+
+        execution_time = end_time - start_time  # Calculate the time taken
+        print(f"Coarse path: {1000*execution_time:.6f} ms")
+            
+            
         # Check if the goal is reached
         self.assertTrue(rrt.goal_reached())
         
@@ -61,11 +67,11 @@ class TestFastRRT(unittest.TestCase):
         print ("path size: ", len(path))
         TestUtils.output_path_result(data.frame, path, "output1.png")
         
-        print ("optimizing")
-        for _ in range(30):
-            rrt.loop_optimize()
-            path = rrt.get_planned_path(interpolate=True)
-            TestUtils.output_path_result(data.frame, path, "output1.png")
+        # print ("optimizing")
+        # for _ in range(30):
+        #     rrt.loop_optimize()
+        #     path = rrt.get_planned_path(interpolate=True)
+        #     TestUtils.output_path_result(data.frame, path, "output1.png")
             
         TestUtils.output_path_result(data.frame, path, "output1.png")
 

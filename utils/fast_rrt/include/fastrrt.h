@@ -26,6 +26,7 @@ private:
     cudaPtr _ptr;
     float _planningVelocity_m_s;
     int2 _bestNode;
+    int _last_expanded_node_count;
 
     void __set_exec_started();
     long __get_exec_time_ms();

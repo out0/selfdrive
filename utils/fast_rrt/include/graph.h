@@ -55,11 +55,11 @@ protected:
     /// @param start
     /// @param lastNode
     /// @return true for accepted path, false otherwise
-    bool __checkDerivatedPath(float3 *og, int2 start, int2 lastNode);
+    bool __checkDerivedPath(float3 *og, int2 start, int2 lastNode);
 
     /// @brief Checks and accepts all derivated paths for feasibility.
     /// @param searchFrame
-    void __checkDerivatedPath(float3 *og);
+    void __checkDerivedPath(float3 *og);
 
     
 
@@ -139,11 +139,11 @@ public:
     /// @param start
     /// @param lastNode
     /// @return true for accepted nodes, false otherwise
-    void acceptDerivatedNode(int2 start, int2 lastNode);
+    void acceptDerivedNode(int2 start, int2 lastNode);
 
     /// @brief Accepts all derivated nodes and connects them to the graph.
     /// @return
-    void acceptDerivatedNodes();
+    void acceptDerivedNodes();
 
     /// @brief Finds the best node in graph (with the lowest cost) that is feasible with the given heading, in a given search radius
     /// @param searchFrame
