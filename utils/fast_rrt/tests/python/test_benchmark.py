@@ -14,11 +14,14 @@ MAX_STEERING_ANGLE = 40
 VEHICLE_LENGTH_M = 5.412658774
 TIMEOUT = -1
 
+def get_test_data(file: str) -> TestData:
+    return TestFrame(file).get_test_data()
+
 class TestFastRRT(unittest.TestCase):
     def test_fast_rrt_with_custom1(self):
         # Load the test image
-        data = TestFrame(file="custom1.png").get_test_data()
-
+        
+        data = TestUtils.timed_exec(get_test_data, "custom1.png")
         
         rrt = FastRRT(
             width=data.width(),

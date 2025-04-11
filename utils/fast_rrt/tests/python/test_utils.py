@@ -7,6 +7,7 @@ from utils.cudac.cuda_frame import CudaFrame
 from model.physical_parameters import PhysicalParameters
 from model.waypoint import Waypoint
 from utils.fast_rrt.fastrrt import FastRRT
+import time
 
 PROPORTION_meters_per_px = 0.135316469
 GRAPH_TYPE_NODE = 1
@@ -131,7 +132,13 @@ class TestUtils:
         cv2.imwrite(output, f)
         
         
-        
+    def timed_exec(func, *args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"[{func.__name__}] {1000 * execution_time:.6f} ms")
+        return result
 
 
 if __name__ == "__main__":
