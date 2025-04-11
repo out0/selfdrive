@@ -64,7 +64,7 @@ void CudaGraph::optimizeGraph(float3 *og, angle goalHeading, float radius, float
     }
 
     cudaFreeHost(cudaResult);
-    acceptDerivatedNodes();   
+    acceptDerivedNodes();   
 }
 
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);

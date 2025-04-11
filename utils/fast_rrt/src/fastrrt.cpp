@@ -107,7 +107,7 @@ bool FastRRT::loop()
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
 
-    _graph.acceptDerivatedNodes();
+    _graph.acceptDerivedNodes();
 
 
     if (goalReached())
