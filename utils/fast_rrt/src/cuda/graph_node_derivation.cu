@@ -158,8 +158,8 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     if (end.x < 0 || end.y < 0)
         return;
 
-    float startHeading = 180 * heading  / M_PI;
-    float endHeading = 180 * getHeadingCuda(graphData, computePos(width, end.x, end.y)) / M_PI;
+    // float startHeading = 180 * heading  / M_PI;
+    // float endHeading = 180 * getHeadingCuda(graphData, computePos(width, end.x, end.y)) / M_PI;
 
     incNodeDeriveCount(graph, pos);
 

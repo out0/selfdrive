@@ -171,8 +171,3 @@ std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal) {
     int2 center = _graph.getCenter();
     return interpolateHermiteCurve(_graph.width(), _graph.height(), Waypoint(center.x, center.y, angle::deg(0)), goal);
 }
-
-
-int FastRRT::_debug_nodesCount(int type) {
-    return _graph.count(type);
-}
