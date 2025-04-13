@@ -50,10 +50,10 @@ class TestFastRRT(unittest.TestCase):
             velocity_m_s=1.0
         )
         
+        start_time = time.time()
         rrt.search_init()
         
         num_loops = 0
-        start_time = time.time()
         while not rrt.goal_reached() and rrt.loop(True):
             #TestUtils.timed_exec(rrt.compute_region_debug_performance)
             #rrt.compute_region_debug_performance()
@@ -74,11 +74,11 @@ class TestFastRRT(unittest.TestCase):
         print ("path size: ", len(path))
         TestUtils.output_path_result(data.frame, path, "output1.png")
         
-        # print ("optimizing")
-        # for _ in range(30):
-        #     rrt.loop_optimize()
-        #     path = rrt.get_planned_path(interpolate=True)
-        #     TestUtils.output_path_result(data.frame, path, "output1.png")
+        print ("optimizing")
+        for _ in range(30):
+            rrt.loop_optimize()
+            #path = rrt.get_planned_path(interpolate=True)
+            #TestUtils.output_path_result(data.frame, path, "output1.png")
             
         TestUtils.output_path_result(data.frame, path, "output1.png")
 

@@ -132,8 +132,8 @@ class TestFastRRT(unittest.TestCase):
         while loop:
             start_time = time.time()
             rrt.search_init()
-            while (not rrt.goal_reached() and rrt.loop()):
-                #log_graph(rrt, frame, "output1.png")
+            while (not rrt.goal_reached() and rrt.loop(False)):
+       #         log_graph(rrt, frame, "output1.png")
                 pass
             
             end_time = time.time()
@@ -160,7 +160,7 @@ class TestFastRRT(unittest.TestCase):
             output_path_result(bev, path, "output1.png")
             #output_to_file(rrt.get_planned_path(), "output1.txt")
             #output_to_file(path, "output1i.txt")
-            loop = False
+            loop = True
 
 
 

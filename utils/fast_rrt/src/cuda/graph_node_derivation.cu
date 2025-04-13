@@ -36,7 +36,9 @@ __device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 
     int2 parent = getParentCuda(graph, pos);
 
     bool finalNode = type == GRAPH_TYPE_TEMP;
-    bool feasible = __computeFeasibleForAngle(cudaFrame, params, classCost, x, z, heading);
+    bool feasible = cudaFrame[computePos(width, x, z)].z == 0.0;
+    //bool feasible = __computeFeasibleForAngle(cudaFrame, params, classCost, x, z, heading);
+
 
     if (finalNode)
     {
@@ -220,7 +222,10 @@ bool CudaGraph::__checkDerivedPath(float3 *og, int2 start, int2 lastNode)
     {
         long pos = computePos(width, node.x, node.y);
         float heading = getHeadingCuda(_frameData->getCudaPtr(), pos);
-        feasible = feasible && __computeFeasibleForAngle(og, _searchSpaceParams, _classCosts, node.x, node.y, heading);
+        //feasible = feasible && __computeFeasibleForAngle(og, _searchSpaceParams, _classCosts, node.x, node.y, heading);
+
+        feasible = feasible && og[computePos(width, node.x, node.y)].z == 0.0;
+
         setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NULL);
         node = getParentCuda(_frame->getCudaPtr(), pos);
     }

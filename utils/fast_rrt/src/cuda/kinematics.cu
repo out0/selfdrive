@@ -274,14 +274,19 @@ __device__ __host__ bool checkKinematicPath(
             return bestEndDist <= 2;
         }
 
-        if (!__computeFeasibleForAngle(frame, params, classCost, nextp.x, nextp.y, heading))
+        if (frame[computePos(width, nextp.x, nextp.y)].z == 1.0)
         {
-            // if (DEBUG) {
-            //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
-            //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
-            // }
             return false;
         }
+
+        // if (!__computeFeasibleForAngle(frame, params, classCost, nextp.x, nextp.y, heading))
+        // {
+        //     // if (DEBUG) {
+        //     //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
+        //     //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
+        //     // }
+        //     return false;
+        // }
 
         lastp.x = nextp.x;
         lastp.y = nextp.y;
@@ -394,14 +399,20 @@ __device__ __host__ bool check_graph_connection(
             return bestEndDist <= 2;
         }
 
-        if (!__computeFeasibleForAngle(frame, params, classCost, nextp.x, nextp.y, heading))
+        if (frame[computePos(width, nextp.x, nextp.y)].z == 1.0 )
         {
-            // if (DEBUG) {
-            //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
-            //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
-            // }
+            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return false;
         }
+
+        // if (!__computeFeasibleForAngle(frame, params, classCost, nextp.x, nextp.y, heading))
+        // {
+        //     // if (DEBUG) {
+        //     //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
+        //     //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
+        //     // }
+        //     return false;
+        // }
 
         lastp.x = nextp.x;
         lastp.y = nextp.y;
@@ -488,14 +499,20 @@ __device__ __host__ bool check_graph_connection_with_hermite(
         // Interpolated point
         /// curve.push_back({cx, cz, angle::rad(0)});
 
-        if (!__computeFeasibleForAngle(frame, params, classCost, cx, cz, heading))
+        if (frame[computePos(width, cx, cz)].z == 1.0 )
         {
-            // if (DEBUG) {
-            //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
-            //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
-            // }
+            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return false;
         }
+
+        // if (!__computeFeasibleForAngle(frame, params, classCost, cx, cz, heading))
+        // {
+        //     // if (DEBUG) {
+        //     //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
+        //     //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
+        //     // }
+        //     return false;
+        // }
 
         last_x = cx;
         last_z = cz;

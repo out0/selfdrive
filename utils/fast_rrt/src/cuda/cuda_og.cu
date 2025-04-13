@@ -148,7 +148,7 @@ void CudaGraph::computeBoundaries(float3 *og)
         og,
         _classCosts,
         _searchSpaceParams,
-        minDistance);
+        TO_INT(minDistance / 2));
 
     CUDA(cudaDeviceSynchronize());
 }

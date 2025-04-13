@@ -62,7 +62,6 @@ void FastRRT::setPlanData(cudaPtr ptr, Waypoint start, Waypoint goal, float velo
     this->_goal = goal;
     this->_ptr = ptr;
     this->_planningVelocity_m_s = velocity_m_s;
-
     //printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 
@@ -74,6 +73,7 @@ void FastRRT::search_init()
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
     _last_expanded_node_count = 0;
+    this->_graph.computeBoundaries(this->_ptr);    
 }
 
 void FastRRT::__shrink_search_graph()

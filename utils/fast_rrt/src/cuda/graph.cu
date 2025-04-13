@@ -171,7 +171,6 @@ CudaGraph::CudaGraph(int width, int height)
     }
     
     __initializeRegionDensity();
-
 }
 CudaGraph::~CudaGraph()
 {
