@@ -108,6 +108,7 @@ class FastRRT:
           FastRRT.lib.loop.restype = ctypes.c_bool
           FastRRT.lib.loop.argtypes = [
                ctypes.c_void_p,
+               ctypes.c_bool       # smartExpansion
           ]          
 
           FastRRT.lib.loop_optimize.restype = ctypes.c_bool
@@ -154,6 +155,11 @@ class FastRRT:
           FastRRT.lib.release_export_graph_nodes.argtypes = [
                ctypes.POINTER(ctypes.c_int),
           ]
+          
+          FastRRT.lib.compute_region_debug_performance.restype = None
+          FastRRT.lib.compute_region_debug_performance.argtypes = [
+               ctypes.c_void_p
+          ]
          
 
      def set_plan_data(self, cuda_ptr: ctypes.c_void_p, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float) -> bool:
@@ -172,8 +178,8 @@ class FastRRT:
      def search_init(self) -> None:
           FastRRT.lib.search_init(self.__ptr)
      
-     def loop(self) -> bool:
-          return FastRRT.lib.loop(self.__ptr)
+     def loop(self, smart: bool) -> bool:
+          return FastRRT.lib.loop(self.__ptr, smart)
         
      def loop_optimize(self) -> bool:
           return FastRRT.lib.loop_optimize(self.__ptr)
@@ -237,3 +243,6 @@ class FastRRT:
                
           FastRRT.lib.release_export_graph_nodes(ptr)
           return nodes
+
+     def compute_region_debug_performance(self) -> None:
+          FastRRT.lib.compute_region_debug_performance(self.__ptr)

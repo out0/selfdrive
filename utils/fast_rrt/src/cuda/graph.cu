@@ -170,7 +170,7 @@ CudaGraph::CudaGraph(int width, int height)
         throw msg;
     }
     
-
+    __initializeRegionDensity();
 
 }
 CudaGraph::~CudaGraph()
@@ -182,6 +182,8 @@ CudaGraph::~CudaGraph()
 
     if (_physicalParams != nullptr)
         cudaFreeHost(_physicalParams);
+
+    __dealocRegionDensity();
 }
 
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)

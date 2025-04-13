@@ -84,30 +84,25 @@ void FastRRT::__shrink_search_graph()
         _graph.setType(p.x(), p.z(), GRAPH_TYPE_NODE);
 }
 
-bool FastRRT::loop()
+bool FastRRT::loop(bool smart)
 {
     if (__check_timeout()) {
         printf ("timeout\n");
         return false;
     }
 
-    // _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, true);
-    // //printf ("new nodes = %d\n", _graph.count(GRAPH_TYPE_TEMP));
-    
-    // if (!_graph.checkNewNodesAddedOnTreeExpansion()) {
-    //     _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, false);
-    //     //printf ("full expandTree\n");
-    // }
+    bool expandFrontier = _last_expanded_node_count >= 100;
 
-    // _graph.acceptDerivatedNodes();
+    //printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
-    bool expandFrontier = _last_expanded_node_count >= 10;
-
-    _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier);
+    if (smart) {
+        _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0);
+    } else {        
+        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier);
+    }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
-
-    _graph.acceptDerivedNodes();
+    _graph.acceptDerivedNodes();    
 
 
     if (goalReached())
@@ -180,4 +175,9 @@ extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Wayp
 std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal) {
     int2 center = _graph.getCenter();
     return interpolateHermiteCurve(_graph.width(), _graph.height(), Waypoint(center.x, center.y, angle::deg(0)), goal);
+}
+
+
+void  FastRRT::__computeGraphRegionDensity() {
+    _graph.__computeGraphRegionDensity();
 }

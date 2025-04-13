@@ -38,6 +38,12 @@ private:
     std::pair<int2 *, int> __listNodes(int type);
     std::pair<int3 *, int> __listAllNodes();
     
+    void __initializeRegionDensity();
+    void __dealocRegionDensity();
+    
+    unsigned int *_region_node_count;
+    float _node_mean;
+    
     
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
     std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
@@ -66,6 +72,8 @@ protected:
 public:
     CudaGraph(int width, int height);
     ~CudaGraph();
+
+    void __computeGraphRegionDensity();
 
     void computeRepulsiveFieldAPF(float3 *og, float Kr, int radius);
     void computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal);
@@ -134,6 +142,8 @@ public:
     /// @param maxPathSize
     /// @param velocity_m_s
     void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion);
+
+    void smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand);
 
     /// @brief Accepts a derivated node and connects it to the graph.
     /// @param start

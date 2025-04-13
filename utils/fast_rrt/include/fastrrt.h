@@ -49,7 +49,7 @@ public:
     void setPlanData(cudaPtr frame, Waypoint start, Waypoint goal, float velocity_m_s);
 
     void search_init();
-    bool loop();
+    bool loop(bool smartExpansion = false);
     bool loop_optimize();
     bool goalReached();
     
@@ -62,6 +62,7 @@ public:
     std::vector<Waypoint> interpolatePlannedPath(std::vector<Waypoint> path);
     std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
 
+    void __computeGraphRegionDensity();
 };
 
 #endif

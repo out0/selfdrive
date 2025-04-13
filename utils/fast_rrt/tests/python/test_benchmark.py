@@ -52,14 +52,18 @@ class TestFastRRT(unittest.TestCase):
         
         rrt.search_init()
         
+        num_loops = 0
         start_time = time.time()
-        while not rrt.goal_reached() and rrt.loop():
+        while not rrt.goal_reached() and rrt.loop(True):
+            #TestUtils.timed_exec(rrt.compute_region_debug_performance)
+            #rrt.compute_region_debug_performance()
             #TestUtils.log_graph(rrt, data.frame, "output1.png")
+            num_loops += 1
             pass
         end_time = time.time()
 
         execution_time = end_time - start_time  # Calculate the time taken
-        print(f"Coarse path: {1000*execution_time:.6f} ms")
+        print(f"Coarse path: {1000*execution_time:.6f} ms in {num_loops} loops")
             
             
         # Check if the goal is reached

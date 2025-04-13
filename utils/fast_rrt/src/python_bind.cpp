@@ -59,10 +59,10 @@ extern "C"
         FastRRT *rrt = (FastRRT *)ptr;
         rrt->search_init();
     }
-    bool loop(void *ptr)
+    bool loop(void *ptr, bool smartExpansion)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        return rrt->loop();
+        return rrt->loop(smartExpansion);
     }
 
     bool loop_optimize(void *ptr)
@@ -164,4 +164,9 @@ extern "C"
         return convertPath(path);
     }
 
+
+    void compute_region_debug_performance(void *ptr) {
+        FastRRT *rrt = (FastRRT *)ptr;
+        rrt->__computeGraphRegionDensity();
+    }
 };
