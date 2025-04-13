@@ -21,7 +21,7 @@ class TestFastRRT(unittest.TestCase):
     def test_fast_rrt_with_custom1(self):
         # Load the test image
         
-        data = TestUtils.timed_exec(get_test_data, "custom1.png")
+        data = TestUtils.timed_exec(get_test_data, "custom3.png")
         
         rrt = FastRRT(
             width=data.width(),

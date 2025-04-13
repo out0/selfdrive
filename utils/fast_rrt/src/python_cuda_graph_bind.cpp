@@ -62,4 +62,10 @@ extern "C"
     void destroy_intrinsic_costs_ptr (float *ptr) {
         delete []ptr;
     }
+
+    void compute_boundaries(void *ptr, void *cudaFramePtr) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        CudaFrame *frame = (CudaFrame *)cudaFramePtr;
+        graph->computeBoundaries(frame->getFramePtr());
+    }
 }

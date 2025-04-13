@@ -195,6 +195,7 @@ public:
     void readfromDump(const char *filename);
 
     bool checkNewNodesAddedOnTreeExpansion();
+    void computeBoundaries(float3 *og);
 };
 
 #endif

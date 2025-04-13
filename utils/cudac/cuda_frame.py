@@ -315,3 +315,7 @@ class CudaFrame:
     
     def get_cost(self, x: int, z: int) -> float:
         return lib.get_cost(self._cuda_frame, x, z)
+    
+    
+    def invalidate_cpu_frame(self) -> None:
+        self._update_frame = True

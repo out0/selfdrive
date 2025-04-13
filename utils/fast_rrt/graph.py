@@ -96,6 +96,14 @@ class CudaGraph:
               ctypes.c_int     # goal_z
           ]
           
+          CudaGraph.lib.compute_boundaries.restype = None
+          CudaGraph.lib.compute_boundaries.argtypes = [
+              ctypes.c_void_p,  # graph ptr
+              ctypes.c_void_p  # cuda search frame ptr
+          ]
+          
+          
+          
           CudaGraph.lib.get_intrinsic_costs.restype = ctypes.POINTER(ctypes.c_float)
           CudaGraph.lib.get_intrinsic_costs.argtypes = [
               ctypes.c_void_p,  # graph ptr
@@ -112,6 +120,10 @@ class CudaGraph:
     def compute_apf_attraction(self, cuda_ptr: CudaFrame, ka: float, goal_x: int, goal_z: int):
         CudaGraph.lib.compute_apf_attraction(self.__ptr, cuda_ptr.get_cuda_frame(), ka, goal_x, goal_z)
 
+
+    def compute_boundaries(self, cuda_ptr: CudaFrame) -> None:
+        CudaGraph.lib.compute_boundaries(self.__ptr, cuda_ptr.get_cuda_frame())
+        
 
     def get_intrinsic_costs (self) -> np.ndarray:
         

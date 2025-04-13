@@ -10,6 +10,7 @@ import numpy as np
 from cudac.cuda_frame import CudaFrame, Waypoint
 import cv2
 import time
+from test_utils import TestFrame, TestData, TestUtils
 
 OG_REAL_WIDTH = 34.641016151377535
 OG_REAL_HEIGHT = 34.641016151377535
@@ -100,9 +101,7 @@ class TestCudaGraph(unittest.TestCase):
         )
         
         raw = np.array(cv2.imread("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/utils/fast_rrt/tests/bev_1.png", cv2.IMREAD_COLOR), dtype=np.float32)
-        
-        print (f"{raw[46,46,0]}")
-       
+         
         frame = CudaFrame(
             frame=raw,
             lower_bound=Waypoint(119, 148),
@@ -119,6 +118,35 @@ class TestCudaGraph(unittest.TestCase):
         
         measure_execution_time(lambda  : graph.compute_apf_attraction(frame, 2.0, 128, 0))
 
+    
+
+    def test_compute_min_distances(self):
+        graph = CudaGraph(
+            width=1383,
+            height=825,
+            perception_height_m=OG_REAL_HEIGHT,
+            perception_width_m=OG_REAL_WIDTH,
+            max_steering_angle_deg=MAX_STEERING_ANGLE,
+            vehicle_length_m=VEHICLE_LENGTH_M,
+            min_dist_x=22,
+            min_dist_z=40,
+            lower_bound_x=-1,
+            lower_bound_z=-1,
+            upper_bound_x=-1,
+            upper_bound_z=-1,
+            libdir=None
+        )
+        
+        data: TestData = TestUtils.timed_exec(TestFrame("custom3.png").get_test_data)
+        
+        TestUtils.timed_exec(graph.compute_boundaries, data.frame)
+        
+        
+        
+        TestUtils.output_obstacle_graph(data.frame, "output1.png")
+        
+  
+        
 
 if __name__ == "__main__":
     unittest.main()

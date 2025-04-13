@@ -63,6 +63,7 @@ public:
     std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
 
     void __computeGraphRegionDensity();
+
 };
 
 #endif

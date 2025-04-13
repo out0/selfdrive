@@ -72,6 +72,8 @@ class TestFrame:
         
         for i in range(frame.shape[0]):
             for j in range(frame.shape[1]):
+                if (i == 428 and j == 265):
+                    pass
                 if self.__is_empty(frame[i, j]):
                     new_frame[i, j] = [1.0, 0, 0]
                 elif self.__is_start(frame[i, j]):
@@ -131,6 +133,19 @@ class TestUtils:
         
         cv2.imwrite(output, f)
         
+    def output_obstacle_graph(frame: CudaFrame, output: str) -> None:
+        shape = frame.get_shape()
+        frame.invalidate_cpu_frame()
+        orig_frame = frame.get_frame()
+        raw = np.zeros((shape[0], shape[1], 3), dtype=np.uint8)
+        
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                if (orig_frame[i, j, 2] == 1.0):
+                    raw[i, j] = [255, 255, 255]
+                else:
+                    raw[i, j] = [0, 0, 0]
+        cv2.imwrite(output, raw)
         
     def timed_exec(func, *args, **kwargs):
         start_time = time.time()
