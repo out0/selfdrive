@@ -45,7 +45,7 @@ TEST(TestOptimizeGraphs, TestOptimizeNode)
     g.optimizeNode(ptr, 128, 10, 30.0, 1.0, 11);
 
     //exportGraph(&g, "test.png");
-    g.acceptDerivatedNodes();
+    g.acceptDerivedNodes();
 
     int2 parent;
 

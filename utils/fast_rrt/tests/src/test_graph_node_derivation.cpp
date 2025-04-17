@@ -33,7 +33,7 @@ TEST(TestGraph, TestDrawPathCPU)
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
     int2 lastNode = g.derivateNode(ptr, angle::rad(0), angle::deg(20), 70, 1, 128, 128);
-    g.acceptDerivatedNode({128, 128}, lastNode);
+    g.acceptDerivedNode({128, 128}, lastNode);
     // exportGraph(&g, "test.png");
 
     ASSERT_NE(lastNode.x, -1);
@@ -60,8 +60,8 @@ TEST(TestGraph, TestDrawCurveOnEdge)
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
     g.add(128, 0, angle::rad(0.0), -1, -1, 0);
-    g.derivateNode(ptr, angle::rad(0), 100, 1);
-    g.acceptDerivatedNodes();
+    g.derivateNode(ptr, angle::rad(0), angle::rad(15), 100, 1, 128, 0);
+    g.acceptDerivedNodes();
     int2 parentOrig = g.getParent(128, 0);
 
     ASSERT_EQ(g.getType(128, 0), GRAPH_TYPE_NODE);
@@ -71,7 +71,7 @@ TEST(TestGraph, TestDrawCurveOnEdge)
 
 int countTempNodes(CudaGraph *g)
 {
-    int3 *ptr = g->getFramePtr()->getCudaPtr();
+    int4 *ptr = g->getFramePtr()->getCudaPtr();
     int count_temp = 0;
     for (int i = 0; i < g->height(); i++)
         for (int j = 0; j < g->width(); j++)
@@ -96,8 +96,8 @@ TEST(TestGraph, TestDrawCurve)
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
     g.add(128, 128, angle::rad(0.0), -1, -1, 0);
 
-    g.derivateNode(ptr, angle::rad(0), 100, 1);
-    g.acceptDerivatedNodes();
+    g.derivateNode(ptr, angle::rad(0), angle::rad(0), 100, 1, 128, 128);
+    g.acceptDerivedNodes();
     ASSERT_EQ(2, g.list().size());
 }
 
@@ -119,8 +119,8 @@ TEST(TestGraph, TestDrawManyPathsGPU)
 
     for (int i = 0; i < 10; i++)
     {
-        g.derivateNode(ptr, angle::rad(0), (float)100.0, (float)1.0);
-        g.acceptDerivatedNodes();
+        g.derivateNode(ptr, angle::rad(0), angle::rad(0), (float)100.0, (float)1.0, 128, 128);
+        g.acceptDerivedNodes();
     }
 
     ASSERT_GE(g.list().size(), 10);
@@ -147,12 +147,12 @@ TEST(TestGraph, TestBugDeriveNodesEraseParents)
     int type = (*g.getFramePtr())[{128, 128}].z;
     ASSERT_EQ(GRAPH_TYPE_NODE, type);
 
-    g.derivateNode(ptr, angle::rad(0), (float)30.0, (float)1.0);
+    g.derivateNode(ptr, angle::rad(0), angle::rad(0), (float)30.0, (float)1.0, 128, 128);
 
     type = (*g.getFramePtr())[{128, 128}].z;
     ASSERT_EQ(GRAPH_TYPE_NODE, type);
 
-    g.acceptDerivatedNodes();
+    g.acceptDerivedNodes();
     type = (*g.getFramePtr())[{128, 128}].z;
     ASSERT_EQ(GRAPH_TYPE_NODE, type);
 }

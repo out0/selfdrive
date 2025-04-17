@@ -160,7 +160,7 @@ class TestFastRRT(unittest.TestCase):
             output_path_result(bev, path, "output1.png")
             #output_to_file(rrt.get_planned_path(), "output1.txt")
             #output_to_file(path, "output1i.txt")
-            loop = True
+            loop = False
 
 
 
