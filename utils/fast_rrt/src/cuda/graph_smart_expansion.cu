@@ -2,7 +2,7 @@
 #include "../../include/cuda_params.h"
 #include "../../include/graph.h"
 
-extern __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
@@ -18,7 +18,7 @@ extern __device__ float generateRandomNeg(curandState *state, int pos, float max
 extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z);
 extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
-
+extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
 
 #define BLOCK_SIZE 128
 
@@ -157,7 +157,7 @@ void CudaGraph::__computeGraphRegionDensity()
 
 extern __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int4 *graph, float3 *graphData, float *classCosts, double *physicalParams, int width, int height, int2 start, int2 end, float pathSize);
 
-__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float3 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand)
+__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float3 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -196,27 +196,32 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
     int2 start = {x, z};
-    int2 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
+    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;
 
-    // float startHeading = 180 * heading  / M_PI;
-    // float endHeading = 180 * getHeadingCuda(graphData, computePos(width, end.x, end.y)) / M_PI;
+        int end_x = TO_INT(end.x);
+        int end_z = TO_INT(end.y);
+        float end_cost = end.z;
+        float end_heading = end.w;
 
-    incNodeDeriveCount(graph, pos);
+        long end_pos = computePos(width, end_x, end_z);
 
-    if (checkInGraphCuda(graph, computePos(width, end.x, end.y)))
-    {
-        // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        return;
-    }
-    // printf ("[derive] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-
-    // printf("%d, %d is in graph, inc count...\n", x, z);
-    // atomicInc(&(graph[pos].w), 1);
-
-    prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, pathSize);
+        if (end_pos == pos) return;
+    
+        if (checkInGraphCuda(graph, computePos(width, end_x, end_z)))
+        {
+            // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
+            set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+            setNodeDeriveCount(graph, pos, 1);
+            *nodeCollision = true;
+        }
+        else
+        {
+            set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+            incNodeDeriveCount(graph, pos);
+        }
 }
 
 void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand)
@@ -224,6 +229,8 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
+    *_nodeCollision = false;
+    
     __CUDA_smart_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState,
         _frame->getCudaPtr(),
@@ -238,11 +245,14 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
         maxPathSize,
         velocity_m_s,
         expandFrontier,
-        forceExpand);
+        forceExpand,
+        _nodeCollision);
 
     CUDA(cudaDeviceSynchronize());
 
-    __checkDerivedPath(og);
-
     __computeGraphRegionDensity();
+
+    if (*_nodeCollision) {
+        solveCollisions();
+    }
 }

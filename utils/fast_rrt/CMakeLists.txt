@@ -69,6 +69,7 @@ add_library(
   src/cuda/apf.cu
   src/cuda/graph_smart_expansion.cu
   src/cuda/cuda_og.cu
+  src/cuda/graph_collision.cu
 #  src/cuda/graph_clear_except.cu
   src/fastrrt.cpp
   src/angle.cpp

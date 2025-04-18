@@ -152,3 +152,9 @@ void CudaGraph::computeBoundaries(float3 *og)
 
     CUDA(cudaDeviceSynchronize());
 }
+
+
+__device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z)
+{
+    return og[COMPUTE_POS(width, x, z)].z == 0.0;
+}

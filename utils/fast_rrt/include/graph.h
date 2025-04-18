@@ -16,6 +16,7 @@
 #define GRAPH_TYPE_NODE 1
 #define GRAPH_TYPE_TEMP 2
 #define GRAPH_TYPE_PROCESSING 3
+#define GRAPH_TYPE_COLLISION 4
 
 #define THREADS_IN_BLOCK 256
 
@@ -29,6 +30,7 @@ private:
     bool __checkLimits(int x, int z);
     unsigned int *_parallelCount = 0;
     bool *_newNodesAdded;
+    bool *_nodeCollision;
     int2 _gridCenter;
     double *_physicalParams;
     int *_searchSpaceParams;
@@ -50,24 +52,7 @@ private:
 
     void __optimizeGraph(float3 *og, int x, int z, float radius, float velocity_m_s, angle goalHeading);
     bool *_goalReached;
-
-protected:
-    /// @brief Checks and accepts a derivated path from a node for feasibility. All nodes will be cleared. If acceptable, the last node will be a node in the graph.
-    /// @param graph
-    /// @param graphData
-    /// @param cudaFrame
-    /// @param params
-    /// @param classCost
-    /// @param start
-    /// @param lastNode
-    /// @return true for accepted path, false otherwise
-    bool __checkDerivedPath(float3 *og, int2 start, int2 lastNode);
-
-    /// @brief Checks and accepts all derivated paths for feasibility.
-    /// @param searchFrame
-    void __checkDerivedPath(float3 *og);
-
-    
+   
 
 public:
     CudaGraph(int width, int height);
@@ -195,7 +180,10 @@ public:
     void readfromDump(const char *filename);
 
     bool checkNewNodesAddedOnTreeExpansion();
+    
     void computeBoundaries(float3 *og);
+
+    void solveCollisions();
 };
 
 #endif

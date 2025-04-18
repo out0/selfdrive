@@ -62,6 +62,12 @@ __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos)
     graph[pos].w++;
 }
 
+__device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count)
+{
+    graph[pos].w = count;
+}
+
+
 __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos)
 {
     return graph[pos].w;
@@ -170,6 +176,13 @@ CudaGraph::CudaGraph(int width, int height)
         throw msg;
     }
     
+    if (!cudaAllocMapped(&this->_nodeCollision, sizeof(bool)))
+    {
+        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for tree node collision check\n");
+        throw msg;
+    }
+    
+
     __initializeRegionDensity();
 }
 CudaGraph::~CudaGraph()

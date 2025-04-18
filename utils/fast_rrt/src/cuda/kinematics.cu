@@ -16,6 +16,7 @@ extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
 extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
+extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
 /// @param center
@@ -120,7 +121,8 @@ __device__ __host__ inline double clip(double val, double min, double max)
     return val;
 }
 
-__device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+
+__device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -184,19 +186,20 @@ __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *grap
         if (lastp.y < 0 || lastp.y >= height)
             break;
 
-        long pos = width * lastp.y + lastp.x;
         size += 1;
-
         nodeCost += getIntrinsicCost(graphData, width, lastp.x, lastp.y) + 1;
 
-        if (set(graph, graphData, pos, heading, last_x, last_z, nodeCost, GRAPH_TYPE_PROCESSING, false))
+        if (!checkFeasible(frame, width, last_x, last_z))
         {
-            last_x = lastp.x;
-            last_z = lastp.y;
+            return {-1.0, -1.0, 0.0, 0.0};
         }
+
+        last_x = lastp.x;
+        last_z = lastp.y;
+
     }
 
-    return {last_x, last_z};
+    return {(float)last_x, (float)last_z, nodeCost, heading};
 }
 
 __device__ __host__ bool checkKinematicPath(
@@ -274,8 +277,9 @@ __device__ __host__ bool checkKinematicPath(
             return bestEndDist <= 2;
         }
 
-        if (frame[computePos(width, nextp.x, nextp.y)].z == 1.0)
+        if (!checkFeasible(frame, width, nextp.x, nextp.y))
         {
+            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return false;
         }
 

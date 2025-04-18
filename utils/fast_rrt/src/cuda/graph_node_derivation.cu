@@ -2,8 +2,7 @@
 #include "../../include/cuda_params.h"
 #include "../../include/graph.h"
 
-extern __device__ __host__ int2 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
-extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
+extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
@@ -17,6 +16,7 @@ extern __device__ float generateRandom(curandState *state, int pos, float max);
 extern __device__ float generateRandomNeg(curandState *state, int pos, float max);
 extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z);
 extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
+extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
 extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
 
 extern __device__ __host__ float computeCost(float3 *frame, int4 *graph, float3 *graphData, double *physicalParams, float *classCosts, int width, float goalHeading_rad, long nodePos, double distToParent);
@@ -26,56 +26,6 @@ __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
     return a.x == b.x && a.y == b.y;
 }
 
-__device__ void parallel_check_path_node(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost, int type, int x, int z)
-{
-
-    int width = params[FRAME_PARAM_WIDTH];
-    long pos = computePos(width, x, z);
-
-    float heading = getHeadingCuda(graphData, pos);
-    int2 parent = getParentCuda(graph, pos);
-
-    bool finalNode = type == GRAPH_TYPE_TEMP;
-    bool feasible = cudaFrame[computePos(width, x, z)].z == 0.0;
-    //bool feasible = __computeFeasibleForAngle(cudaFrame, params, classCost, x, z, heading);
-
-
-    if (finalNode)
-    {
-        if (!feasible)
-            setTypeCuda(graph, pos, GRAPH_TYPE_NULL);
-        return;
-    }
-
-    if (!feasible)
-    {
-        long parentPos = computePos(width, parent.x, parent.y);
-        setTypeCuda(graph, parentPos, GRAPH_TYPE_NULL);
-    }
-
-    setTypeCuda(graph, pos, GRAPH_TYPE_NULL);
-}
-
-__global__ void __CUDA_KERNEL_checkDerivatedPaths(int4 *graph, float3 *graphData, float3 *cudaFrame, int *params, float *classCost)
-{
-    int pos = blockIdx.x * blockDim.x + threadIdx.x;
-
-    int width = params[FRAME_PARAM_WIDTH];
-    int height = params[FRAME_PARAM_HEIGHT];
-
-    if (pos >= width * height)
-        return;
-
-    int z = pos / width;
-    int x = pos - z * width;
-
-    int type = getTypeCuda(graph, pos);
-
-    if (type == GRAPH_TYPE_NULL || type == GRAPH_TYPE_NODE)
-        return;
-
-    parallel_check_path_node(graph, graphData, cudaFrame, params, classCost, type, x, z);
-}
 
 __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int height)
 {
@@ -92,36 +42,7 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int h
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
 
-__device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int4 *graph, float3 *graphData, float *classCosts, double *physicalParams, int width, int height, int2 start, int2 end, float pathSize)
-{
-    if (checkEquals(start, end))
-        return;
-    long pos = computePos(width, end.x, end.y);
-    int2 parent = getParentCuda(graph, pos);
-    float heading = getHeadingCuda(graphData, pos);
-
-    // float nodeCost = computeCost(frame, graph, graphData, physicalParams, classCosts, width, goalHeading_rad, pos, pathSize);
-    float nodeCost = getCostCuda(graphData, pos);
-
-    set(graph, graphData, pos, heading, start.x, start.y, nodeCost, GRAPH_TYPE_TEMP, true);
-
-    while (parent.x != start.x || parent.y != start.y)
-    {
-        pos = computePos(width, parent.x, parent.y);
-        // copy the next parent to use in the next iteraction
-        parent = getParentCuda(graph, pos);
-
-        // parent.x = graph[pos].x;
-        // parent.y = graph[pos].y;
-
-        // updates the current parent to point to the last node.
-        setParentCuda(graph, pos, end.x, end.y);
-        // graph[pos].x = end.x;
-        // graph[pos].y = end.y;
-    }
-}
-
-__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int width, int height, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool frontierExploration)
+__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int width, int height, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -155,42 +76,35 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
     int2 start = {x, z};
-    int2 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
+    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;
 
-    // float startHeading = 180 * heading  / M_PI;
-    // float endHeading = 180 * getHeadingCuda(graphData, computePos(width, end.x, end.y)) / M_PI;
+    int end_x = TO_INT(end.x);
+    int end_z = TO_INT(end.y);
+    float end_cost = end.z;
+    float end_heading = end.w;
 
-    incNodeDeriveCount(graph, pos);
+    long end_pos = computePos(width, end_x, end_z);
 
-    if (checkInGraphCuda(graph, computePos(width, end.x, end.y)))  {
-        //printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        return;
+    if (end_pos == pos) return;
+
+
+    if (checkInGraphCuda(graph, end_pos))
+    {
+        // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
+        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+        setNodeDeriveCount(graph, pos, 1);
+        *nodeCollision = true;
     }
-    //printf ("[derive] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-
-    // printf("%d, %d is in graph, inc count...\n", x, z);
-    // atomicInc(&(graph[pos].w), 1);
-    
-    prepare_path_candidate_for_parallel_check(frame, graph, graphData, classCosts, physicalParams, width, height, start, end, pathSize);
+    else
+    {
+        incNodeDeriveCount(graph, pos);
+        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+    }
 }
 
-void CudaGraph::__checkDerivedPath(float3 *og)
-{
-    int size = _frame->width() * _frame->height();
-    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
-    __CUDA_KERNEL_checkDerivatedPaths<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
-        og,
-        _searchSpaceParams,
-        _classCosts);
-
-    CUDA(cudaDeviceSynchronize());
-}
 
 void CudaGraph::acceptDerivedNodes()
 {
@@ -205,34 +119,6 @@ void CudaGraph::acceptDerivedNodes()
     CUDA(cudaDeviceSynchronize());
 }
 
-bool CudaGraph::__checkDerivedPath(float3 *og, int2 start, int2 lastNode)
-{
-    int2 node;
-    node.x = lastNode.x;
-    node.y = lastNode.y;
-
-    bool feasible = true;
-
-    int width = _frame->width();
-
-    if (checkEquals(start, lastNode))
-        return false;
-
-    while ((node.x != start.x || node.y != start.y) && node.x != -1 && node.y != -1)
-    {
-        long pos = computePos(width, node.x, node.y);
-        float heading = getHeadingCuda(_frameData->getCudaPtr(), pos);
-        //feasible = feasible && __computeFeasibleForAngle(og, _searchSpaceParams, _classCosts, node.x, node.y, heading);
-
-        feasible = feasible && og[computePos(width, node.x, node.y)].z == 0.0;
-
-        setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NULL);
-        node = getParentCuda(_frame->getCudaPtr(), pos);
-    }
-
-    return feasible;
-}
-
 void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
 {
     long pos = computePos(_frame->width(), lastNode.x, lastNode.y);
@@ -243,6 +129,8 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+    *_nodeCollision = false;
 
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState,
@@ -256,11 +144,16 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         _gridCenter,
         maxPathSize,
         velocity_m_s,
-        frontierExpansion);
+        frontierExpansion, 
+        _nodeCollision);
 
     CUDA(cudaDeviceSynchronize());
 
-    __checkDerivedPath(og);
+    if (*_nodeCollision)
+    {
+        //printf("Collision detected, solving...\n");
+        solveCollisions();
+    }
 }
 
 int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
@@ -268,18 +161,33 @@ int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle,
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    int2 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, og, _classCosts, _frame->width(), _frame->height(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, og, _classCosts, _frame->width(), _frame->height(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
-    if (__checkDerivedPath(og, {x, z}, p))
+    if (p.x < 0 || p.y < 0)
+        return int2{-1, -1};
+    
+
+    int end_x = static_cast<int>(p.x);
+    int end_z = static_cast<int>(p.y);
+    float end_cost = p.z;
+    float end_heading = p.w;
+
+
+    long pos = computePos(width(), x, z);
+    long pos_end = computePos(width(), end_x, end_z);
+
+    if (checkInGraphCuda(_frame->getCudaPtr(), pos))
     {
-        long pos = computePos(_frame->width(), p.x, p.y);
-        setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_TEMP);
-        setParentCuda(_frame->getCudaPtr(), pos, x, z);
-
-        double nodeCost = computeCost(og, _frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, _classCosts, width(), goalHeading.rad(), pos, pathSize);
-        setCostCuda(_frameData->getCudaPtr(), pos, nodeCost);
-        return p;
+        return {-1, -1};
+        // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
+        set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+        setNodeDeriveCount(_frame->getCudaPtr(), pos, 1);
+    }
+    else
+    {
+        set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+        incNodeDeriveCount(_frame->getCudaPtr(), pos);
     }
 
-    return {-1, -1};
+    return {end_x, end_z};
 }

@@ -126,7 +126,6 @@ bool FastRRT::loop_optimize()
 
 bool FastRRT::goalReached()
 {
-    //printf ("goalReached: _goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
     int2 goal = {_goal.x(), _goal.z()};
     return _graph.checkGoalReached(_ptr, goal, _goal.heading(), _distToGoalTolerance);
 }
@@ -141,10 +140,17 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
     // res.push_back(*_goal);
     int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z());
 
+    // long i = 0;
     while (n.x != -1 && n.y != -1)
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
+        // if (i >= 1000000)
+        // {
+        //     printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
+        //     //break;
+        // }
+        // i++;
     }
 
     std::reverse(res.begin(), res.end());
