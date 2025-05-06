@@ -86,6 +86,11 @@ std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1
         if (cx == last_x && cz == last_z)
             continue;
 
+        if (cx < 0 || cx >= width)
+            continue;
+        if (cz < 0 || cz >= height)
+            continue;
+
         // Interpolated point
         curve.push_back({cx, cz, angle::rad(0)});
         last_x = cx;
