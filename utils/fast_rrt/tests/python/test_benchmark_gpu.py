@@ -101,6 +101,7 @@ class TestFastRRT(unittest.TestCase):
         coarse_data.goal_reached = rrt.goal_reached()
         coarse_data.coarse = True
         coarse_data.name = f"gpu_{scenario.file}"
+        coarse_data.curve = rrt.get_planned_path(interpolate=False)
   
         print(f"[{scenario.file}] coarse path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
         TestUtils.output_path_result(data.frame, path, f"test_result/coarse_{coarse_data.name}.png")       
@@ -125,6 +126,7 @@ class TestFastRRT(unittest.TestCase):
         optim_data.name = f"gpu_{scenario.file}"
         
         TestUtils.output_path_result(data.frame, path, f"test_result/optim_{coarse_data.name}.png")
+        optim_data.curve = rrt.get_planned_path(interpolate=False)
         
         result_file = f"test_result/results.csv"
         data_result_file = f"test_result/data_results.csv"

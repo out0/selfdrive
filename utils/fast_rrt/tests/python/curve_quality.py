@@ -221,6 +221,7 @@ class CurveAssessment:
                 return True
                 #print(f"pos: {i} {(curve[i][0], curve[i][1])} spike: {a_before} -> {a}")
             a_before = a
+        return False
 
 
     def __derivate_p(self, p1: tuple[int, int], p2: tuple[int, int]) -> float:

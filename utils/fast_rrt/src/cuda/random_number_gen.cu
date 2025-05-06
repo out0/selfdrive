@@ -11,12 +11,12 @@ __global__ void __CUDA_KERNEL_setupRandomGenKernel(curandState *state, int size,
     }
 }
 
-__device__ float generateRandom(curandState* state, int pos, float max) {
-    return  max * curand_uniform(&state[pos]);
+__device__ float generateRandom(curandState* state, int pos, float min_val, float max_val) {
+    return max(min_val, max_val * curand_uniform(&state[pos]));
 }
 
-__device__ float generateRandomNeg(curandState* state, int pos, float max) {
-    return  (2.0f * curand_uniform(&state[pos]) - 1.0f) * max;
+__device__ float generateRandomNeg(curandState* state, int pos, float max_val) {
+    return  (2.0f * curand_uniform(&state[pos]) - 1.0f) * max_val;
 }
 
     

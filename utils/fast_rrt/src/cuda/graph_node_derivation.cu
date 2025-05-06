@@ -12,8 +12,8 @@ extern __device__ __host__ void setCostCuda(float3 *graphData, long pos, float c
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos);
-extern __device__ float generateRandom(curandState *state, int pos, float max);
-extern __device__ float generateRandomNeg(curandState *state, int pos, float max);
+extern __device__ float generateRandom(curandState *state, int pos, float min_val, float max_val);
+extern __device__ float generateRandomNeg(curandState *state, int pos, float max_val);
 extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z);
 extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
@@ -69,7 +69,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
 
     while (pathSize <= 0)
     {
-        pathSize = generateRandom(state, pos, maxPathSize);
+        pathSize = generateRandom(state, pos, 5.0, maxPathSize);
     }
 
     // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
