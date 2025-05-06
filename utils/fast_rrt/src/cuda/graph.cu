@@ -184,6 +184,7 @@ CudaGraph::CudaGraph(int width, int height)
     
 
     __initializeRegionDensity();
+    _directOptimPos = -1;
 }
 CudaGraph::~CudaGraph()
 {
@@ -287,6 +288,7 @@ __global__ static void __CUDA_KERNEL_clear(int4 *graph, int width, int height)
 
 void CudaGraph::clear()
 {
+    _directOptimPos = -1;
     int size = width() * height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 

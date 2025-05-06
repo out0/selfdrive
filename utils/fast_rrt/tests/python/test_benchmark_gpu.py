@@ -40,7 +40,7 @@ class TestScenario:
 
 class TestFastRRT(unittest.TestCase):
     
-    def execute_scenario(self, scenario: TestScenario, smart: bool = True, path_step_size: float = 50.0, dist_to_goal_tolerance: float = 15.0, optim_loop_count: int = 100):
+    def execute_scenario(self, scenario: TestScenario, smart: bool = True, path_step_size: float = 50.0, dist_to_goal_tolerance: float = 15.0, optim_loop_count: int = 20):
         
         print (f"executing scenario {scenario.file}")
         

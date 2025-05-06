@@ -37,6 +37,7 @@ FastRRT::FastRRT(
     _graph.setSearchParams(minDistance, lowerBound, upperBound);
     _graph.setClassCosts((int *)segmentationClassCost, 29);
     _ptr = nullptr;
+    
 }
 
 void FastRRT::__set_exec_started()
@@ -118,8 +119,8 @@ bool FastRRT::loop_optimize()
     if (__check_timeout())
         return false;
 
-    _graph.optimizeGraph(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s);
-    __shrink_search_graph();
+    _graph.optimizeGraph(_ptr, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _planningVelocity_m_s);
+    //__shrink_search_graph();
     return true;
 }
 

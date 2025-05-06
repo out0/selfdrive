@@ -45,14 +45,17 @@ private:
     
     unsigned int *_region_node_count;
     float _node_mean;
+    int _directOptimPos;
     
     
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
     std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
 
-    void __optimizeGraph(float3 *og, int x, int z, float radius, float velocity_m_s, angle goalHeading);
     bool *_goalReached;
    
+    int __optimizePathDirectConnect(float3 *og, float distanceToGoalTolerance, float velocity_m_s, std::vector<float4> res);
+    std::vector<float4> __getPlannedPath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance);
+    void __optimizePath(float3 *og,  int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s, int directOptimPos);
 
 public:
     CudaGraph(int width, int height);
@@ -171,7 +174,9 @@ public:
     // /// @brief Optimizes the graph with the added new nodes, changing node parents for total cost reduction (RRT*)
     // /// @param searchFrame
     // /// @param radius
-    void optimizeGraph(float3 *og, angle goalHeading, float radius, float velocity_m_s);
+    void optimizeGraphInit(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s);
+
+    void optimizeGraph(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s);
 
     void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
 
