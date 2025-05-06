@@ -1,0 +1,109 @@
+large2:
+
+
+[Coarse path] total: 473.926783 ms, mean: 5.575609 ms/loop, num loops: 85
+path size:  3763
+[Optimized path] total: 1580.376625 ms, mean: 15.803766 ms/loop, num loops: 100
+path size:  3093
+
+large1:
+
+
+[Coarse path] total: 283.496618 ms, mean: 5.558757 ms/loop, num loops: 51
+path size:  1135
+[Optimized path] total: 2120.590925 ms, mean: 21.205909 ms/loop, num loops: 100
+path size:  1079
+
+large3:
+
+[Coarse path] total: 230.665922 ms, mean: 6.234214 ms/loop, num loops: 37
+path size:  1535
+[Optimized path] total: 1047.119856 ms, mean: 10.471199 ms/loop, num loops: 100
+path size:  1594
+
+small_1:
+
+[Coarse path] total: 11.507988 ms, mean: 1.278665 ms/loop, num loops: 9
+path size:  225
+[Optimized path] total: 300.112247 ms, mean: 3.001122 ms/loop, num loops: 100
+path size:  218
+
+small_2:
+
+[Coarse path] total: 14.612436 ms, mean: 1.043745 ms/loop, num loops: 14
+path size:  197
+[Optimized path] total: 243.206501 ms, mean: 2.432065 ms/loop, num loops: 100
+path size:  199
+
+small_3:
+
+[Coarse path] total: 13.128042 ms, mean: 1.009849 ms/loop, num loops: 13
+path size:  228
+[Optimized path] total: 293.013573 ms, mean: 2.930136 ms/loop, num loops: 100
+path size:  262
+
+
+
+
+CPU  (GPU boundary check)
+
+large1:
+
+[compute_boundaries] 1.129150 ms
+[Coarse path] total: 60005.363226 ms, mean: 0.573457 ms/loop, num loops: 104638
+Goal not reached, timeout
+
+large2:
+
+[compute_boundaries] 1.481295 ms
+[Coarse path] total: 60000.287294 ms, mean: 0.437103 ms/loop, num loops: 137268
+Goal not reached, timeout
+
+large3:
+[compute_boundaries] 1.463413 ms
+[Coarse path] total: 60000.056267 ms, mean: 0.434119 ms/loop, num loops: 138211
+Goal not reached, timeout
+
+small1:
+[compute_boundaries] 1.141548 ms
+[Coarse path] total: 148.470163 ms, mean: 0.409009 ms/loop, num loops: 363
+path size:  223
+
+small2:
+[compute_boundaries] 1.050711 ms
+[Coarse path] total: 92.558146 ms, mean: 0.411370 ms/loop, num loops: 225
+path size:  210
+
+small3:
+
+[compute_boundaries] 1.083612 ms
+[Coarse path] total: 2067.024708 ms, mean: 0.335774 ms/loop, num loops: 6156
+path size:  256
+
+CPU  (CPU boundary check)
+
+
+large1:
+[Coarse path] total: 29069.855452 ms, mean: 2.667693 ms/loop, num loops: 10897
+path size:  1208
+
+large2:
+[Coarse path] total: 60007.424355 ms, mean: 3.335599 ms/loop, num loops: 17990
+Goal not reached, timeout
+
+large3:
+[Coarse path] total: 60002.308607 ms, mean: 0.935023 ms/loop, num loops: 64172
+Goal not reached, timeout
+
+small1:
+[Coarse path] total: 1239.376307 ms, mean: 0.724781 ms/loop, num loops: 1710
+path size:  212
+
+small2:
+[Coarse path] total: 1023.902416 ms, mean: 2.767304 ms/loop, num loops: 370
+path size:  255
+
+small3:
+[Coarse path] total: 5228.426456 ms, mean: 0.786821 ms/loop, num loops: 6645
+path size:  247
+

@@ -1,10 +1,24 @@
 import numpy as np
 import random, time
-from test_utils import TestFrame, TestData, TestUtils
 from scipy.spatial import KDTree
 from scipy.interpolate import CubicSpline
 import math
-from basic_types import *
+
+int2 = tuple[int, int]
+float2 = tuple[float, float]
+#Waypoint = tuple[int, int, float]
+
+class PhysicalParameters:
+    rate: float2
+    inv_rate: float2
+    lr: float
+    maxSteering_rad: float
+    
+    def __init__(self, rate: float2, lr: float, maxSteering_rad: float):
+        self.rate = rate
+        self.inv_rate = (1/rate[0], 1/rate[1])
+        self.lr = lr
+        self.maxSteering_rad = maxSteering_rad
 
 
 def convert_map_pose_to_waypoint(center: int2, rate: float2, coord: float2) -> int2:
@@ -70,6 +84,8 @@ class NodeGrid:
     _lower_bound: int2
     _upper_bound: int2
     _physical_params: PhysicalParameters
+    _check_min_distances: bool
+    _check_min_distances_gpu: bool
     
     def __init__(self, width: int, height: int, start: int2):
         self._grid = np.zeros((height, width, 3), dtype=np.int32)
@@ -81,6 +97,8 @@ class NodeGrid:
         self._class_costs = None
         self._physical_params = None
         self._center = (int(width/2), int(height/2))
+        self._check_min_distances = False
+        self._check_min_distances_gpu = False
         
     
     def add_node(self, node: int2, parent: int2, cost: float) -> None:
@@ -119,33 +137,56 @@ class NodeGrid:
     def find_nearest(self, node: int2) -> tuple[int2, float]:
         dist, idx = self._search_tree.query(node)
         nearest_node = self._search_tree.data[idx]
-        return (nearest_node[0], nearest_node[1]), dist
+        return (int(nearest_node[0]), int(nearest_node[1])), dist
+
+    def find_near_nodes(self, node: int2, radius: float) -> list[int2]:
+        if self._node_list is None:
+            return []
+        indices = self._search_tree.query_ball_point(node, radius)
+        near_nodes = [self._node_list[i] for i in indices]
+        return near_nodes
 
     def get_parent(self, node: int2) -> int2:
-        x = node[0]
-        z = node[1]
+        x, z = node
         parent_x = self._grid[z, x, 0]
         parent_z = self._grid[z, x, 1]
         return (int(parent_x), int(parent_z))
+    
+    def set_parent(self, target: int2, new_parent: int2) -> int2:
+        x, z = target
+        self._grid[z, x, 0] = new_parent[0]
+        self._grid[z, x, 1] = new_parent[1]
     
     def __in_ego_boundaries(self, x: int, z: int) -> bool:
         return (
             self._lower_bound[0] <= x <= self._upper_bound[0] and
             self._upper_bound[1] <= z <= self._lower_bound[1])
     
+    def get_intrinsic_cost(self, frame: np.ndarray, p: int2) -> float:
+        x, z = p
+        segmentation_class = int(frame[z, x, 0])
+        return self._class_costs[segmentation_class]
+    
     def check_feasible(self, frame: np.ndarray, p: int2) -> bool:
-        for z in range(p[1] - self._min_dist[1], p[1] + self._min_dist[1] + 1):
-            for x in range(p[0] - self._min_dist[0], p[0] + self._min_dist[0] + 1):
-                if not self.__check_pos_limits((x, z)):
-                    continue
-                
-                if self.__in_ego_boundaries(x, z):
-                    continue
-                
-                segmentation_class = int(frame[z, x, 0])
-                if self._class_costs[segmentation_class] < 0:
-                    return False
-        return True
+        
+        if self._check_min_distances:      
+            for z in range(p[1] - self._min_dist[1], p[1] + self._min_dist[1] + 1):
+                for x in range(p[0] - self._min_dist[0], p[0] + self._min_dist[0] + 1):
+                    if not self.__check_pos_limits((x, z)):
+                        continue
+                    
+                    if self.__in_ego_boundaries(x, z):
+                        continue
+                    
+                    segmentation_class = int(frame[z, x, 0])
+                    if self._class_costs[segmentation_class] < 0:
+                        return False
+            return True
+        elif self._check_min_distances_gpu:
+            x, z = p
+            return frame[z, x, 2] == 0
+        else: # no checking
+            return True
     
     def set_class_costs(self, class_costs: list[float]) -> None:
         self._class_costs = class_costs
@@ -160,7 +201,55 @@ class NodeGrid:
         self._physical_params = physical_params
         
     
-    def check_graph_connection(
+    def check_min_dist(self) -> None:
+        self._check_min_distances = True
+        
+    def check_min_dist_gpu(self) -> None:
+        self._check_min_distances_gpu = True
+    
+    def get_node_list(self) -> list[int2]:
+        return self._node_list
+    
+    def __interpolate_straight_line(self, p1: int2, p2: int2, og_height: int) -> list[int2]:
+        forward_movement = p1[1] > p2[1]
+        
+        dx = p2[0]- p1[0]
+        dz = p2[1] - p1[1]
+        
+        if dz == 0:
+            return []
+        
+        slope = dx / dz
+
+        dz = (2 * dz) / og_height
+
+        z = p1[1]
+
+        result: list[int2] = []
+
+        if forward_movement:
+            while z > p2[1]:
+                x = p1[0] + (z - p1[1]) * slope
+                z += dz
+                result.append((math.floor(x), math.floor(z)))
+        else:
+            while z < p2[1]:
+                x = p1[0] + (z - p1[1]) * slope
+                z += dz
+                result.append((math.floor(x), math.floor(z)))
+        
+        return result
+    
+    def check_direct_connection(self, frame: np.ndarray, start: int2, end: int2) -> bool:
+        line = self.__interpolate_straight_line(start, end, frame.shape[0])
+        if len(line) == 0:
+            return False
+        for p in line:
+            if not self.check_feasible(frame, p):
+                return False
+        return True
+    
+    def check_kinematic_connection(
         self,
         frame: np.ndarray,
         start: int2,
@@ -175,7 +264,7 @@ class NodeGrid:
         DT = 0.1        
         DS = velocity * DT
         DISTANCE = euclidean_distance(start, end)
-        TOTAL_STEPS = int(round(DISTANCE / DS))
+        
         
         heading = self.get_heading(start[0], start[1])
         path_heading = compute_path_heading(START_MAP, END_MAP)
@@ -184,11 +273,12 @@ class NodeGrid:
         nextp_m: float2 = (START_MAP[0], START_MAP[1])
         nextp: int2 = (-1, -1)
         lastp: int2 = (start[0], start[1])
-        best_end_dist = DISTANCE
-        path_cost = 0
         curr_cost = self.get_cost(start[0], start[1])
         
-        for _ in range(TOTAL_STEPS):
+        curr_dist = 0
+        points = []
+        
+        while curr_dist < DISTANCE:
             steer = math.tan(steering_angle_rad)
             beta = math.atan(steer / self._physical_params.lr)
             nextp_m = (
@@ -198,25 +288,32 @@ class NodeGrid:
             
             path_heading = compute_path_heading(nextp_m, END_MAP)
             steering_angle_rad = clip(path_heading - heading, -self._physical_params.maxSteering_rad, self._physical_params.maxSteering_rad)
-            dist = euclidean_distance(nextp_m, END_MAP)
             nextp = convert_map_pose_to_waypoint(self._center, self._physical_params.rate, nextp_m)
             
             if (nextp[0] == lastp[0] and nextp[1] == lastp[1]):
                 continue
 
             if (nextp[0] < 0 or nextp[0] >= WIDTH):
-                return GraphConnectionResult(heading, False, path_cost)
+                return GraphConnectionResult(heading, False, curr_cost)
             if (nextp[1] < 0 or nextp[1] >= HEIGHT):
-                return GraphConnectionResult(heading, False, path_cost)
+                return GraphConnectionResult(heading, False, curr_cost)
             
-            if (best_end_dist < dist):
-                path_cost = curr_cost
-                return GraphConnectionResult(heading, best_end_dist <= 2, path_cost)
-            
-            if not self.check_feasible(frame, nextp):
-                return GraphConnectionResult(heading, False, path_cost)
+            # if not self.check_feasible(frame, nextp):
+            #     return GraphConnectionResult(heading, False, curr_cost)
             
             lastp = (nextp[0], nextp[1])
-            best_end_dist = dist
-                
-        return GraphConnectionResult(heading, False, path_cost)
+            points.append(nextp)
+            curr_cost += self.get_intrinsic_cost(frame, nextp) + 1
+            curr_dist += 1
+
+
+        if euclidean_distance(lastp, end) <= 2:
+            for p in points:
+                if not self.check_feasible(frame, p):
+                    return GraphConnectionResult(heading, False, curr_cost)
+
+            return GraphConnectionResult(heading, True, curr_cost)
+        
+        return GraphConnectionResult(heading, False, curr_cost)
+    
+        

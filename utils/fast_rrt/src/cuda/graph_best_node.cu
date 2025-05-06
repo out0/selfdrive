@@ -5,6 +5,7 @@
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
+extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long *bestCost)
 {
@@ -34,6 +35,11 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, floa
     {
         return;
     }
+
+    float heading = getHeadingCuda(graphData, pos);
+
+    if (abs(heading - targetHeading) > 0.035)
+        return;
 
     // if (!__computeFeasibleForAngle(frame, params, classCost, x, z, targetHeading))
     //     return;
@@ -80,6 +86,10 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
     {
         return;
     }
+
+    float heading = getHeadingCuda(graphData, pos);
+    if (abs(heading - targetHeading) > 0.035)
+        return;
 
     // self cost + dist
     long long cost = __float2ll_rd(sqrtf(dist) + getCostCuda(graphData, pos));
@@ -152,7 +162,7 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
 
 extern __device__ __host__ double compute_euclidean_2d_dist(const int2 &start, const int2 &end);
 
-__global__ void __CUDA_KERNEL_checkGoalReached(int4 *graph, float3 *frame, int *params, float *costs, int goalX, int goalZ, float heading_rad, float distToGoalTolerance, bool *goalReached)
+__global__ void __CUDA_KERNEL_checkGoalReached(int4 *graph, float3 *graphData, float3 *frame, int *params, float *costs, int goalX, int goalZ, float goalHeading, float distToGoalTolerance, bool *goalReached)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -174,10 +184,14 @@ __global__ void __CUDA_KERNEL_checkGoalReached(int4 *graph, float3 *frame, int *
     if (compute_euclidean_2d_dist(s, e) > distToGoalTolerance)
         return;
 
-    if (frame[computePos(width, x, z)].z == 0.0)
-    {
+    float heading = getHeadingCuda(graphData, pos);
+
+    if (abs(heading - goalHeading) <= 0.035)
         *goalReached = true;
-    }
+    // if (frame[computePos(width, x, z)].z == 0.0)
+    // {
+        
+    // }
 
     // if (__computeFeasibleForAngle(frame, params, costs, x, z, heading_rad)) {
     //     *goalReached = true;
@@ -200,6 +214,7 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
 
     __CUDA_KERNEL_checkGoalReached<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
+        _frameData->getCudaPtr(),
         og,
         _searchSpaceParams,
         _classCosts,
