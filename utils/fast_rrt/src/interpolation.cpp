@@ -37,7 +37,7 @@ std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1
 {
     std::vector<Waypoint> curve;
 
-    //int numPoints = 2 * abs(max(int(p2.z() - p1.z()), int(p2.x() - p1.x()), 100));
+    // int numPoints = 2 * abs(max(int(p2.z() - p1.z()), int(p2.x() - p1.x()), 100));
 
     int numPoints = TO_INT(Waypoint::distanceBetween(p1, p2));
 
@@ -85,21 +85,29 @@ std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1
 
         if (cx == last_x && cz == last_z)
             continue;
-
         if (cx < 0 || cx >= width)
             continue;
         if (cz < 0 || cz >= height)
             continue;
 
+        float t00 = 6 * t2 - 6 * t;
+        float t10 = 3 * t2 - 4 * t + 1;
+        float t01 = -6 * t2 + 6 * t;
+        float t11 = 3 * t2 - 2 * t;
+
+        float ddx = t00 * p1.x() + t10 * tan1.x + t01 * p2.x() + t11 * tan2.x;
+        float ddz = t00 * p1.z() + t10 * tan1.y + t01 * p2.z() + t11 * tan2.y;
+
+        float heading = atan2f(ddz, ddx) + HALF_PI;
+
         // Interpolated point
-        curve.push_back({cx, cz, angle::rad(0)});
+        curve.push_back({cx, cz, angle::rad(heading)});
         last_x = cx;
         last_z = cz;
     }
 
     return curve;
 }
-
 
 std::vector<Waypoint> interpolate(std::vector<Waypoint> &controlPoints, int width, int height)
 {
@@ -113,7 +121,7 @@ std::vector<Waypoint> interpolate(std::vector<Waypoint> &controlPoints, int widt
     }
 
     Waypoint p1 = controlPoints[0];
-    
+
     for (size_t i = 1; i < controlPoints.size(); i++)
     {
         Waypoint p2 = controlPoints[i];
