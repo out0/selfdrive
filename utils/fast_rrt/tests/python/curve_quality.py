@@ -96,7 +96,7 @@ class CurveAssessment:
         return len
 
     
-    def assess_curve(self, curve: np.ndarray, start_heading: float) -> CurveData:
+    def assess_curve(self, curve: np.ndarray, start_heading: float, compute_heading: bool = True) -> CurveData:
         return CurveData(
             name=None,
             coarse=False,
@@ -108,7 +108,7 @@ class CurveAssessment:
             num_points=curve.shape[0],
             total_length=CurveAssessment.__compute_curve_length(curve),
             jerk=self.__compute_jerk(curve),
-            tan_discontinuity=self.__tangential_discontinuity(curve, window_side=4, threshold=15, start_heading=start_heading),
+            tan_discontinuity=self.__tangential_discontinuity(curve, window_side=4, threshold=15, start_heading=start_heading, compute_heading=compute_heading),
         )
 
 
@@ -212,12 +212,16 @@ class CurveAssessment:
 
         return h/count
 
-    def __tangential_discontinuity(self, curve: np.ndarray, window_side: int=2, threshold: float = 15, start_heading: float = 0.0):
+    def __tangential_discontinuity(self, curve: np.ndarray, window_side: int=2, threshold: float = 15, start_heading: float = 0.0, compute_heading: bool = True):
         #a_before = curve_mean_heading(curve, 0, window_side=window_side)
         a_before = start_heading
+        threshold_rad = math.radians(threshold)
         for i in range(1, curve.shape[0]):
-            a = math.degrees(self.__curve_mean_heading(curve, i, window_side=window_side))
-            if a - a_before > threshold:
+            if compute_heading:
+                a = self.__curve_mean_heading(curve, i, window_side=window_side)
+            else:
+                a = curve[i, 2]
+            if abs(a - a_before) > threshold_rad:
                 return True
                 #print(f"pos: {i} {(curve[i][0], curve[i][1])} spike: {a_before} -> {a}")
             a_before = a
