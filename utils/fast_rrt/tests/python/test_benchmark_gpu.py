@@ -94,7 +94,7 @@ class TestFastRRT(unittest.TestCase):
             print(f"[{scenario.file}] no path found")
             return False
 
-        coarse_data = CurveAssessment(data.width(), data.height()).assess_curve(path, start[2])
+        coarse_data = CurveAssessment(data.width(), data.height()).assess_curve(path, start_heading=start[2], compute_heading=False)
         coarse_data.num_loops = loop_count
         coarse_data.proc_time_ms = execution_time * 1000
         coarse_data.timeout = TIMEOUT > 0 and coarse_data.proc_time_ms >= TIMEOUT
@@ -117,7 +117,7 @@ class TestFastRRT(unittest.TestCase):
         
         path = rrt.get_planned_path(interpolate=True)
         
-        optim_data = CurveAssessment(data.width(), data.height()).assess_curve(path, start[2])
+        optim_data = CurveAssessment(data.width(), data.height()).assess_curve(path, start_heading=start[2], compute_heading=False)
         optim_data.num_loops = loop_count
         optim_data.proc_time_ms = execution_time * 1000
         optim_data.timeout = TIMEOUT > 0 and optim_data.proc_time_ms >= TIMEOUT
@@ -145,7 +145,10 @@ class TestFastRRT(unittest.TestCase):
 
     def test_gpu_scenarios(self):
 
-        self.execute_scenario(TestScenario("large_1"))
+        self.execute_scenario(TestScenario("large_1",
+                                           custom_start_heading=math.radians(90), 
+                                           custom_goal_heading=math.radians(45)
+                                           ), path_step_size=100.0)
 
         self.execute_scenario(TestScenario("large_2",
                                            custom_start_heading=math.radians(90), 

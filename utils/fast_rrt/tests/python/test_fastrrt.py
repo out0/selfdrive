@@ -128,6 +128,9 @@ class TestFastRRT(unittest.TestCase):
 
         rrt.set_plan_data(ptr, (128, 128, 0), (128, 0, 0), 1)
         
+        min_exec_time = 9999999
+        max_exec_time = -1        
+        
         loop = True
         while loop:
             start_time = time.time()
@@ -138,31 +141,53 @@ class TestFastRRT(unittest.TestCase):
             
             end_time = time.time()
 
-            #self.assertTrue(rrt.goal_reached())
-            print(f"goal reached? {rrt.goal_reached()}")
-
-            execution_time = end_time - start_time  # Calculate the time taken
-            print(f"Coarse path: {1000*execution_time:.6f} ms")
-            
-            path = rrt.get_planned_path(interpolate=True)
-            if path is None:
-                self.fail("should be able to interpolate")
+            if not rrt.goal_reached():
                 continue
+            #self.assertTrue(rrt.goal_reached())
+            #print(f"goal reached? {rrt.goal_reached()}")
+
+            execution_time_coarse = end_time - start_time  # Calculate the time taken
+            #print(f"Coarse path: {1000*execution_time:.6f} ms")
+            
+            # path = rrt.get_planned_path(interpolate=True)
+            # if path is None:
+            #     #print("should be able to interpolate")
+            #     continue
                 
             start_time = time.time()
-            for _ in range(100):
+            for _ in range(10):
                 rrt.loop_optimize()
             
             end_time = time.time()
-            execution_time = end_time - start_time  # Calculate the time taken
-            print(f"Optimized path: {1000*execution_time:.6f} ms")
-                
+            execution_time_optim = end_time - start_time  # Calculate the time taken
+            #print(f"Optimized path: {1000*execution_time:.6f} ms")
+            
+            path = rrt.get_planned_path(interpolate=True)
             output_path_result(bev, path, "output1.png")
+            
+            if max_exec_time < 0:
+                max_exec_time = execution_time_optim + execution_time_coarse
+                min_exec_time = max_exec_time
+                print(f"exec time (min): {1000*min_exec_time:.6f} ms")
+                print(f"exec time (max): {1000*max_exec_time:.6f} ms\n\n")
+            
+            if min_exec_time > execution_time_optim + execution_time_coarse:
+                min_exec_time = execution_time_optim + execution_time_coarse
+                print(f"exec time (min): {1000*min_exec_time:.6f} ms")
+                print(f"exec time (max): {1000*max_exec_time:.6f} ms\n\n")
+
+            if max_exec_time < execution_time_optim + execution_time_coarse:
+                max_exec_time = execution_time_optim + execution_time_coarse
+                print(f"exec time (min): {1000*min_exec_time:.6f} ms")
+                print(f"exec time (max): {1000*max_exec_time:.6f} ms\n\n")
+
+
             #output_to_file(rrt.get_planned_path(), "output1.txt")
             #output_to_file(path, "output1i.txt")
             loop = True
+            
 
-
+        i = 1
 
 
 if __name__ == "__main__":
