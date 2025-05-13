@@ -92,7 +92,7 @@ class TestFastRRT(unittest.TestCase):
         
         
         start_time = time.time()
-        rrt.search_init()
+        rrt.search_init(True)
         loop_count = 0
 
         while not rrt.goal_reached() and rrt.loop(smart):

@@ -54,10 +54,10 @@ extern "C"
         return rrt->goalReached();
     }
 
-    void search_init(void *ptr)
+    void search_init(void *ptr, bool copyIntrinsicCostsFromFrame)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        rrt->search_init();
+        rrt->search_init(copyIntrinsicCostsFromFrame);
     }
     bool loop(void *ptr, bool smartExpansion)
     {

@@ -103,6 +103,7 @@ class FastRRT:
           FastRRT.lib.search_init.restype = None
           FastRRT.lib.search_init.argtypes = [
                ctypes.c_void_p,
+               ctypes.c_bool       # copyIntrinsicCostsFromFrame
           ]
 
           FastRRT.lib.loop.restype = ctypes.c_bool
@@ -175,8 +176,8 @@ class FastRRT:
             velocity_m_s
           )
    
-     def search_init(self) -> None:
-          FastRRT.lib.search_init(self.__ptr)
+     def search_init(self, copy_intrinsic_costs_from_frame: bool = False) -> None:
+          FastRRT.lib.search_init(self.__ptr, copy_intrinsic_costs_from_frame)
      
      def loop(self, smart: bool) -> bool:
           return FastRRT.lib.loop(self.__ptr, smart)

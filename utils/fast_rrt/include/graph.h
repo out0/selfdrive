@@ -186,7 +186,7 @@ public:
 
     bool checkNewNodesAddedOnTreeExpansion();
     
-    void computeBoundaries(float3 *og);
+    void computeBoundaries(float3 *og, bool copyIntrinsicCost);
 
     void solveCollisions();
 };

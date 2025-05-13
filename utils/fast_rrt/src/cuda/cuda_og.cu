@@ -22,6 +22,8 @@
 // {
 // }
 
+extern __device__ __host__ void setIntrinsicCostCuda(float3 *graphData, long pos, float cost);
+
 __device__ __host__ inline int COMPUTE_POS(int width, int x, int z)
 {
     return z * width + x;
@@ -102,7 +104,7 @@ __device__ __host__ inline void propagateMinDistance(float3 *frame, float *class
     }
 }
 
-__global__ void __CUDA_compute_minimal_distance_boundaries(float3 *frame, float *classCosts, int *_searchSpaceParams, const int minDistance)
+__global__ void __CUDA_compute_minimal_distance_boundaries(float3 *graphData,  float3 *frame, float *classCosts, int *_searchSpaceParams, const int minDistance, bool copyIntrinsicCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -125,6 +127,10 @@ __global__ void __CUDA_compute_minimal_distance_boundaries(float3 *frame, float 
 
     int nodeClass = TO_INT(frame[pos].x);
 
+    if (copyIntrinsicCost) {
+        setIntrinsicCostCuda(graphData, pos, frame[pos].y);
+    } 
+
     if (classCosts[nodeClass] < 0)
     {
         propagateMinDistance(frame, classCosts, width, height, minDistance, pos, x, z);
@@ -132,7 +138,7 @@ __global__ void __CUDA_compute_minimal_distance_boundaries(float3 *frame, float 
     // frame[pos].z = 1.0f;
 }
 
-void CudaGraph::computeBoundaries(float3 *og)
+void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
 {
 
     int size = _frame->width() * _frame->height();
@@ -145,10 +151,12 @@ void CudaGraph::computeBoundaries(float3 *og)
 
 
     __CUDA_compute_minimal_distance_boundaries<<<numBlocks, THREADS_IN_BLOCK>>>(
+        _frameData->getCudaPtr(),
         og,
         _classCosts,
         _searchSpaceParams,
-        TO_INT(minDistance / 2));
+        TO_INT(minDistance / 2),
+        copyIntrinsicCost);
 
     CUDA(cudaDeviceSynchronize());
 }

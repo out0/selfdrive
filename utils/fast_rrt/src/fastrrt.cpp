@@ -68,13 +68,13 @@ void FastRRT::setPlanData(cudaPtr ptr, Waypoint start, Waypoint goal, float velo
 
 // extern void exportGraph2(CudaGraph *graph, const char *filename);
 
-void FastRRT::search_init()
+void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
 {
     __set_exec_started();
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
     _last_expanded_node_count = 0;
-    this->_graph.computeBoundaries(this->_ptr);    
+    this->_graph.computeBoundaries(this->_ptr, copyIntrinsicCostsFromFrame);    
 }
 
 void FastRRT::__shrink_search_graph()

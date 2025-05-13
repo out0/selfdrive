@@ -48,7 +48,9 @@ public:
 
     void setPlanData(cudaPtr frame, Waypoint start, Waypoint goal, float velocity_m_s);
 
-    void search_init();
+    /// @brief 
+    /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.
+    void search_init(bool copyIntrinsicCostsFromFrame = false);
     bool loop(bool smartExpansion = false);
     bool loop_optimize();
     bool goalReached();

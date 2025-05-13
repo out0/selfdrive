@@ -63,9 +63,9 @@ extern "C"
         delete []ptr;
     }
 
-    void compute_boundaries(void *ptr, void *cudaFramePtr) {
+    void compute_boundaries(void *ptr, void *cudaFramePtr, bool copyIntrinsicCostsFromFrame) {
         CudaGraph *graph = (CudaGraph *)ptr;
         CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        graph->computeBoundaries(frame->getFramePtr());
+        graph->computeBoundaries(frame->getFramePtr(), copyIntrinsicCostsFromFrame);
     }
 }
