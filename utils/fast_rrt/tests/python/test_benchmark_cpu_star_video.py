@@ -12,7 +12,7 @@ from curve_quality import CurveAssessment
 MAX_STEERING_ANGLE = 40
 VEHICLE_LENGTH_M = 5.412658774
 TIMEOUT = 60000
-#TIMEOUT = -1
+TIMEOUT = -1
 SEGMENTATION_COST = [-1, 0, -1, -1, -1, -1, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 0, 0, 0, 0, -1]
 
 def get_test_data(file: str) -> TestData:
@@ -77,8 +77,10 @@ class TestFastRRT(unittest.TestCase):
             max_steering_angle_deg=MAX_STEERING_ANGLE,
             vehicle_length_m=VEHICLE_LENGTH_M,
             timeout_ms=TIMEOUT,
-            min_dist_x=22,
-            min_dist_z=40,
+            # min_dist_x=22,
+            # min_dist_z=40,
+            min_dist_x=0,
+            min_dist_z=0,
             lower_bound_x=-1,
             lower_bound_z=-1,
             upper_bound_x=-1,
@@ -96,25 +98,22 @@ class TestFastRRT(unittest.TestCase):
         if scenario.custom_goal_heading is not None:
             goal = (goal[0], goal[1], scenario.custom_goal_heading)
         
-        S = Waypoint(start[0], start[1], start[2])
-        G = Waypoint(goal[0], goal[1], goal[2])
-
         rrt.set_plan_data(
             proc,
-            start=S,
-            goal=G,
+            start=Waypoint(start[0], start[1], start[2]),
+            goal=Waypoint(goal[0], goal[1], goal[2]),
             velocity_m_s=1.0
         )
         
         
         start_time = time.time()
-        rrt.search_init(MIN_DIST_CPU)
+        rrt.search_init(MIN_DIST_GPU)
         loop_count = 0
-        while not rrt.goal_reached() and rrt.loop_rrt(True):
-            # partial_path = rrt.list_nodes()
-            # if len(partial_path) > 0:
-            #     path = convert_to_ndarray(partial_path)
-            #     TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")
+        while not rrt.goal_reached() and rrt.loop_rrt_star(False):
+            partial_path = rrt.list_nodes()
+            if len(partial_path) > 0:
+                path = convert_to_ndarray(partial_path)
+                TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")
             loop_count += 1       
         end_time = time.time()
         execution_time = end_time - start_time
@@ -132,42 +131,50 @@ class TestFastRRT(unittest.TestCase):
         coarse_data.timeout = TIMEOUT > 0 and coarse_data.proc_time_ms >= TIMEOUT
         coarse_data.goal_reached = rrt.goal_reached()
         coarse_data.coarse = True
-        coarse_data.name = f"cpu_{scenario.file}"
+        coarse_data.name = f"gpu_{scenario.file}"
         coarse_data.curve = convert_to_ndarray(rrt.get_planned_path(interpolate=False))
   
         print(f"[{scenario.file}] coarse path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
-        TestUtils.output_path_result_cpu(data.frame, path, f"test_result/coarse_{coarse_data.name}.png")       
+        TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")       
         
-        result_file = f"test_result/results.csv"
-        data_result_file = f"test_result/data_results.csv"
-        if not os.path.exists(result_file):
-            with open(result_file, "w") as f:
-                f.write(coarse_data.to_csv_header())
+        optim_loop_count = 2000
+        optim_total_count = 40000
+        count = 0
+        
+        
+        while count < optim_total_count:
+            start_time = time.time()
+            loop_count = 0
+            while loop_count < optim_loop_count and rrt.loop_rrt_star(True):
+                loop_count += 1
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"[{scenario.file}] optim path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
                 
-        with open(result_file, "a") as f:
-            f.write(coarse_data.to_csv())
-            
-        with open(data_result_file, "a") as f:
-            f.write(coarse_data.to_json())
+            path = convert_to_ndarray(rrt.get_planned_path(interpolate=True))
+            TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")
+            count += loop_count
+        
+        
         
 
     def test_cpu_scenarios(self):
 
-        self.execute_scenario(TestScenario("large_1"), path_step_size=100.0, optim_loop_count=1000)
+        # self.execute_scenario(TestScenario("large_1"), path_step_size=100.0)
 
-        self.execute_scenario(TestScenario("large_2",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), optim_loop_count=1000)
+        # self.execute_scenario(TestScenario("large_2",
+        #                                    custom_start_heading=math.radians(90), 
+        #                                    custom_goal_heading=math.radians(45)))
 
-        self.execute_scenario(TestScenario("large_3",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), optim_loop_count=1000)
+        # self.execute_scenario(TestScenario("large_3",
+        #                                    custom_start_heading=math.radians(90), 
+        #                                    custom_goal_heading=math.radians(45)))
 
-        self.execute_scenario(TestScenario("small_1"), smart=False, optim_loop_count=1000)
+        #self.execute_scenario(TestScenario("small_1"), smart=False)
 
-        self.execute_scenario(TestScenario("small_2"), smart=False, optim_loop_count=1000)
+        self.execute_scenario(TestScenario("small_2"), smart=False, path_step_size=10.0, dist_to_goal_tolerance=15.0, optim_loop_count=2000)
         
-        self.execute_scenario(TestScenario("small_3"), smart=False, optim_loop_count=1000)
+        #self.execute_scenario(TestScenario("small_3"), smart=False, path_step_size=10.0, dist_to_goal_tolerance=15.0, optim_loop_count=20000)        
 
 
 if __name__ == "__main__":

@@ -269,6 +269,8 @@ class NodeGrid:
         heading = self.get_heading(start[0], start[1])
         path_heading = compute_path_heading(START_MAP, END_MAP)
         steering_angle_rad = clip(path_heading - heading, -self._physical_params.maxSteering_rad, self._physical_params.maxSteering_rad)
+
+        #print(f"{start} -> {end} size: {DISTANCE}, path heading: {math.degrees(path_heading)}, curr heading in start: {math.degrees(heading)}, steering: {math.degrees(steering_angle_rad)}")
         
         nextp_m: float2 = (START_MAP[0], START_MAP[1])
         nextp: int2 = (-1, -1)
@@ -305,6 +307,8 @@ class NodeGrid:
             points.append(nextp)
             curr_cost += self.get_intrinsic_cost(frame, nextp) + 1
             curr_dist += 1
+
+        #print (f"\t last point: {lastp}, target: {end}")
 
 
         if euclidean_distance(lastp, end) <= 2:

@@ -64,10 +64,9 @@ class TestFastRRT(unittest.TestCase):
         
         print (f"executing scenario {scenario.file}")
         
-        f = TestFrame(f"test_scenarios/{scenario.file}.png")
-        data: TestData = TestUtils.timed_exec(f.get_data_cpu)
-        data_gpu: TestData = TestUtils.timed_exec(f.get_data_cuda)
-        proc = TestUtils.pre_process_gpu(data, data_gpu.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M)
+        data = TestUtils.timed_exec(lambda  :TestFrame(f"scenarios/{scenario.file}.pfm").get_data_cuda(cost_map=True, start=scenario.custom_start, goal=scenario.custom_goal))
+
+        proc = TestUtils.pre_process_gpu(data, data.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M)
 
         rrt = RRT(
             width=data.width(),
@@ -77,8 +76,8 @@ class TestFastRRT(unittest.TestCase):
             max_steering_angle_deg=MAX_STEERING_ANGLE,
             vehicle_length_m=VEHICLE_LENGTH_M,
             timeout_ms=TIMEOUT,
-            min_dist_x=22,
-            min_dist_z=40,
+            min_dist_x=10,
+            min_dist_z=10,
             lower_bound_x=-1,
             lower_bound_z=-1,
             upper_bound_x=-1,
@@ -108,13 +107,13 @@ class TestFastRRT(unittest.TestCase):
         
         
         start_time = time.time()
-        rrt.search_init(MIN_DIST_CPU)
+        rrt.search_init(MIN_DIST_NONE)
         loop_count = 0
         while not rrt.goal_reached() and rrt.loop_rrt(True):
-            # partial_path = rrt.list_nodes()
-            # if len(partial_path) > 0:
-            #     path = convert_to_ndarray(partial_path)
-            #     TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")
+            partial_path = rrt.list_nodes()
+            if len(partial_path) > 0:
+                path = convert_to_ndarray(partial_path)
+                TestUtils.output_path_result_cpu(proc, path, f"output1.png")
             loop_count += 1       
         end_time = time.time()
         execution_time = end_time - start_time
@@ -126,7 +125,7 @@ class TestFastRRT(unittest.TestCase):
         
         path = convert_to_ndarray(path)
 
-        coarse_data = CurveAssessment(data.width(), data.height()).assess_curve(path, start_heading=start[2], compute_heading=False)
+        coarse_data = CurveAssessment(data.width(), data.height()).assess_curve(data.cpu_frame, path, start_heading=start[2], compute_heading=False)
         coarse_data.num_loops = loop_count
         coarse_data.proc_time_ms = execution_time * 1000
         coarse_data.timeout = TIMEOUT > 0 and coarse_data.proc_time_ms >= TIMEOUT
@@ -136,7 +135,7 @@ class TestFastRRT(unittest.TestCase):
         coarse_data.curve = convert_to_ndarray(rrt.get_planned_path(interpolate=False))
   
         print(f"[{scenario.file}] coarse path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
-        TestUtils.output_path_result_cpu(data.frame, path, f"test_result/coarse_{coarse_data.name}.png")       
+        TestUtils.output_path_result_cpu(proc, path, f"test_result/coarse_{coarse_data.name}.png")       
         
         result_file = f"test_result/results.csv"
         data_result_file = f"test_result/data_results.csv"
@@ -153,21 +152,10 @@ class TestFastRRT(unittest.TestCase):
 
     def test_cpu_scenarios(self):
 
-        self.execute_scenario(TestScenario("large_1"), path_step_size=100.0, optim_loop_count=1000)
+        self.execute_scenario(TestScenario("map_cost_25",
+                                           custom_start=(344, 428, math.radians(45)),
+                                           custom_goal=(714, 528, math.radians(180))), smart=True)
 
-        self.execute_scenario(TestScenario("large_2",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), optim_loop_count=1000)
-
-        self.execute_scenario(TestScenario("large_3",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), optim_loop_count=1000)
-
-        self.execute_scenario(TestScenario("small_1"), smart=False, optim_loop_count=1000)
-
-        self.execute_scenario(TestScenario("small_2"), smart=False, optim_loop_count=1000)
-        
-        self.execute_scenario(TestScenario("small_3"), smart=False, optim_loop_count=1000)
 
 
 if __name__ == "__main__":

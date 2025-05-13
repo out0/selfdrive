@@ -112,8 +112,8 @@ class RRT:
     
     def __sample(self) -> int2:
         return (
-            random.randint(0, self._width - 1),
-            random.randint(0, self._height - 1)
+            random.randint(1, self._width - 1),
+            random.randint(1, self._height - 1)
         )
     
     
@@ -162,6 +162,8 @@ class RRT:
             self._goal_node_reached = new_node
             self._goal_reached = True
 
+    def timeout(self) -> bool:
+        return self.__check_timeout()
     
     def loop_rrt(self, kinematic: bool) -> bool:              
         if (self.__check_timeout()):
@@ -215,15 +217,16 @@ class RRT:
         x_new = self.__steer(x_nearest, x_rand, self._max_path_size_px)
         if (x_nearest[0] == x_new[0] and x_nearest[1] == x_new[1]):
             return True
+       
+    #    # bug! 
+    #     res = self.__check_connection(x_nearest, x_new, dist, kinematic)
         
-        res = self.__check_connection(x_nearest, x_new, dist, kinematic)
-        
-        if not res.feasible:
-            return True
+    #     if not res.feasible:
+    #         return True
 
-        x_min = x_nearest
-        c_min = res.cost
-        heading = res.final_heading
+        x_min = None
+        c_min = 999999999
+        heading = -1
        
         X_near_lst = self._nodes.find_near_nodes(x_new, self._max_path_size_px)
                
@@ -235,13 +238,16 @@ class RRT:
                 c_min = res.cost
                 heading = res.final_heading
         
+        if x_min is None:
+            return True
+
         x_new_parent = x_min
         if not self.connect_new_node(parent=x_new_parent, node=x_new, cost=c_min):
-            self._nodes.set_heading(x_new[0], x_new[1], heading)
             #self.__test_cyclic_ref(x_new)
             return True
         
-        
+        self._nodes.set_heading(x_new[0], x_new[1], heading)
+
         for x_near in X_near_lst:
             if self.__equals(x_near, x_new) or self.__equals(x_near, x_new_parent):
                 continue
@@ -261,7 +267,7 @@ class RRT:
         return self._goal_reached
     
     
-    def __hermite_interpolation(self, p1: Waypoint, p2: Waypoint) -> list[int2]:     
+    def __hermite_interpolation(self, p1: Waypoint, p2: Waypoint) -> list[tuple[int, int, float]]:     
         curve =[]
         d = Waypoint.distance_between(p1, p2)
         numPoints = int(round(d))
@@ -302,7 +308,21 @@ class RRT:
             if (cx == last_x and cz == last_z):
                 continue
 
-            curve.append((cx, cz))
+            if cx < 0 or cx > self._width: continue
+            if cz < 0 or cz > self._height: continue
+            if cx == last_x and cz == last_z: continue
+
+            t00 =  6 * t2 - 6 * t
+            t10 =  3 * t2 - 4 * t + 1
+            t01 = -6 * t2 + 6 * t
+            t11 =  3 * t2 - 2 * t
+
+            ddx = t00 * p1.x + t10 * tan1[0] + t01 * p2.x + t11 * tan2[0]
+            ddz = t00 * p1.z + t10 * tan1[1] + t01 * p2.z + t11 * tan2[1]
+
+            heading = math.atan2(ddz, ddx) + 0.5*math.pi
+
+            curve.append((cx, cz, heading))
             last_x = cx
             last_z = cz
         
@@ -317,12 +337,12 @@ class RRT:
         
         path = []
         heading = self._nodes.get_heading(nearest_parent[0], nearest_parent[1])
-        node = Waypoint(int(nearest_parent[0]), int(nearest_parent[1]), heading)
-        while node.x != -1 and node.z != -1:
+        node = (int(nearest_parent[0]), int(nearest_parent[1]), heading)
+        while node[0] != -1 and node[1] != -1:
             path.append(node)
-            n = self._nodes.get_parent((node.x, node.z))
+            n = self._nodes.get_parent((node[0], node[1]))
             heading = self._nodes.get_heading(n[0], n[1])
-            node = Waypoint(n[0], n[1], heading)
+            node = (n[0], n[1], heading)
         
         path.reverse()
         
@@ -335,9 +355,9 @@ class RRT:
         p2 = None
         for p in path:
             if p1 is None:
-                p1 = p
+                p1 = Waypoint(p[0], p[1], p[2])
                 continue
-            p2 = p
+            p2 = Waypoint(p[0], p[1], p[2])
             partial_path = self.__hermite_interpolation(p1, p2)
             intepolate_path.extend(partial_path)
             p1 = p2
