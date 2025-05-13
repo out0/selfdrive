@@ -71,7 +71,7 @@ class CurveData:
         curve_type = "coarse" if self.coarse else "optim"
         timeout = "yes" if self.timeout else "no"
         goal_reached = "yes" if self.goal_reached else "no"
-        return f"\"{self.name}\";\"{self.num_points}\"; \"{self.jerk}\"; \"{self.total_length}\"; \"{disc}\"; \"{curve_type}\"; \"{self.proc_time_ms}\" \"{timeout}\"; \"{self.num_loops}\";\"{goal_reached}\";\"{self.total_cost}\"\n"
+        return f"\"{self.name}\";\"{self.num_points}\"; \"{self.jerk}\"; \"{self.total_length}\"; \"{disc}\"; \"{curve_type}\"; \"{self.proc_time_ms}\"; \"{timeout}\"; \"{self.num_loops}\";\"{goal_reached}\";\"{self.total_cost}\"\n"
 
 class CurveAssessment:
     __width: int

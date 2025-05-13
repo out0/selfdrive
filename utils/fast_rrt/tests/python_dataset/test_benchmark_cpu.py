@@ -56,14 +56,12 @@ def convert_to_ndarray(path: list[tuple[int, int, float]]) -> np.ndarray:
     return path_array
 
 
+DEBUG_EXEC = False
+
 class TestFastRRT(unittest.TestCase):
-
-
     
     def execute_scenario(self, scenario: TestScenario, smart: bool = True, path_step_size: float = 50.0, dist_to_goal_tolerance: float = 15.0, optim_loop_count: int = 20):
-        
         print (f"executing scenario {scenario.file}")
-        
         data = TestUtils.timed_exec(lambda  :TestFrame(f"scenarios/{scenario.file}.pfm").get_data_cuda(cost_map=True, start=scenario.custom_start, goal=scenario.custom_goal))
 
         proc = TestUtils.pre_process_gpu(data, data.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M)
@@ -78,10 +76,10 @@ class TestFastRRT(unittest.TestCase):
             timeout_ms=TIMEOUT,
             min_dist_x=10,
             min_dist_z=10,
-            lower_bound_x=-1,
-            lower_bound_z=-1,
-            upper_bound_x=-1,
-            upper_bound_z=-1,
+            lower_bound_x=data.lower_bound.x,
+            lower_bound_z=data.lower_bound.z,
+            upper_bound_x=data.upper_bound.x,
+            upper_bound_z=data.upper_bound.z,
             max_path_size_px=path_step_size,
             dist_to_goal_tolerance_px=dist_to_goal_tolerance,
             class_cost=SEGMENTATION_COST
@@ -107,13 +105,14 @@ class TestFastRRT(unittest.TestCase):
         
         
         start_time = time.time()
-        rrt.search_init(MIN_DIST_NONE)
+        rrt.search_init(MIN_DIST_GPU)
         loop_count = 0
         while not rrt.goal_reached() and rrt.loop_rrt(True):
-            partial_path = rrt.list_nodes()
-            if len(partial_path) > 0:
-                path = convert_to_ndarray(partial_path)
-                TestUtils.output_path_result_cpu(proc, path, f"output1.png")
+            if DEBUG_EXEC:
+                partial_path = rrt.list_nodes()
+                if len(partial_path) > 0:
+                    path = convert_to_ndarray(partial_path)
+                    TestUtils.output_path_result_cpu(proc, path, f"output1.png")
             loop_count += 1       
         end_time = time.time()
         execution_time = end_time - start_time
@@ -152,9 +151,32 @@ class TestFastRRT(unittest.TestCase):
 
     def test_cpu_scenarios(self):
 
+        self.execute_scenario(TestScenario("map_cost_5",
+                                           custom_start=(489, 770, math.radians(-45)),
+                                           custom_goal=(428, 338, math.radians(45))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_8",
+                                           custom_start=(243, 790, math.radians(-10)),
+                                           custom_goal=(442, 450, math.radians(160))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_18",
+                                           custom_start=(327, 223, math.radians(180)),
+                                           custom_goal=(178, 534, math.radians(180))), smart=True)
+
         self.execute_scenario(TestScenario("map_cost_25",
                                            custom_start=(344, 428, math.radians(45)),
                                            custom_goal=(714, 528, math.radians(180))), smart=True)
+
+
+
+        self.execute_scenario(TestScenario("map_cost_31",
+                                           custom_start=(387, 416, math.radians(0)),
+                                           custom_goal=(146, 264, math.radians(-170))), smart=True)
+
+
+        self.execute_scenario(TestScenario("map_cost_39",
+                                           custom_start=(389, 473, math.radians(0)),
+                                           custom_goal=(781, 488, math.radians(180))), smart=True)
 
 
 

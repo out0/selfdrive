@@ -149,13 +149,12 @@ void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
 
     const int minDistance = TO_INT(sqrtf(minDistanceX * minDistanceX + minDistanceZ * minDistanceZ));
 
-
     __CUDA_compute_minimal_distance_boundaries<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frameData->getCudaPtr(),
         og,
         _classCosts,
         _searchSpaceParams,
-        TO_INT(minDistance / 2),
+        minDistance,
         copyIntrinsicCost);
 
     CUDA(cudaDeviceSynchronize());

@@ -82,9 +82,10 @@ class RRT:
         
     def set_plan_data(self, img: np.ndarray, start: Waypoint, goal: Waypoint, velocity_m_s: float) -> bool:
         self._img = img
-        self._start =  (start.x, start.z)
-        self._goal = (goal.x, goal.z)
+        self._start = (start.x, start.z, start.heading)
+        self._goal = (goal.x, goal.z, goal.heading)
         self._velocity_m_s = velocity_m_s
+
         
    
     def list_nodes(self) -> list[int2]:
@@ -109,6 +110,10 @@ class RRT:
             self._nodes.check_min_dist()
         elif cpu_min_dist == MIN_DIST_GPU:
             self._nodes.check_min_dist_gpu()
+            
+        self._nodes.set_heading(self._start[0], self._start[1], self._start[2])
+        self._nodes.set_heading(self._goal[0], self._goal[1], self._goal[2])
+            
     
     def __sample(self) -> int2:
         return (

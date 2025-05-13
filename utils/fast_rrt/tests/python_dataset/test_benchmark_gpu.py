@@ -5,6 +5,7 @@ sys.path.append("../../../../")
 sys.path.append("../")
 import unittest
 from utils.fast_rrt.fastrrt import FastRRT
+from utils.cudac.cuda_frame import CudaFrame
 from test_utils import TestFrame, TestData, TestUtils
 import time, math
 from curve_quality import CurveAssessment
@@ -94,6 +95,10 @@ class TestFastRRT(unittest.TestCase):
         start_time = time.time()
         rrt.search_init(True)
         loop_count = 0
+        
+        # cuda_fr: CudaFrame = data.frame
+        # cuda_fr.invalidate_cpu_frame()
+        # fr = data.frame.get_frame()
 
         while not rrt.goal_reached() and rrt.loop(smart):
             loop_count += 1
@@ -158,10 +163,33 @@ class TestFastRRT(unittest.TestCase):
         
 
     def test_gpu_scenarios(self):
+
+        self.execute_scenario(TestScenario("map_cost_5",
+                                           custom_start=(489, 770, math.radians(-45)),
+                                           custom_goal=(428, 338, math.radians(45))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_8",
+                                           custom_start=(243, 790, math.radians(-10)),
+                                           custom_goal=(442, 450, math.radians(160))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_18",
+                                           custom_start=(327, 223, math.radians(180)),
+                                           custom_goal=(178, 534, math.radians(180))), smart=True)
+
         self.execute_scenario(TestScenario("map_cost_25",
                                            custom_start=(344, 428, math.radians(45)),
                                            custom_goal=(714, 528, math.radians(180))), smart=True)
 
+
+
+        self.execute_scenario(TestScenario("map_cost_31",
+                                           custom_start=(387, 416, math.radians(0)),
+                                           custom_goal=(146, 264, math.radians(-170))), smart=True)
+
+
+        self.execute_scenario(TestScenario("map_cost_39",
+                                           custom_start=(389, 473, math.radians(0)),
+                                           custom_goal=(781, 488, math.radians(180))), smart=True)
 
 
 if __name__ == "__main__":

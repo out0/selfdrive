@@ -66,7 +66,7 @@ class TestFastRRT(unittest.TestCase):
         
         data = TestUtils.timed_exec(lambda  :TestFrame(f"scenarios/{scenario.file}.pfm").get_data_cuda(cost_map=True, start=scenario.custom_start, goal=scenario.custom_goal))
 
-        proc = TestUtils.pre_process_gpu(data, data.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M)
+        proc = TestUtils.pre_process_gpu(data, data.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M, copy_intrinsic_costs_from_frame=True)
 
         rrt = RRT(
             width=data.width(),
@@ -109,7 +109,7 @@ class TestFastRRT(unittest.TestCase):
         start_time = time.time()
         rrt.search_init(MIN_DIST_GPU)
         loop_count = 0
-        while not rrt.goal_reached() and rrt.loop_rrt_star(False):
+        while not rrt.goal_reached() and rrt.loop_rrt_star(True):
             # partial_path = rrt.list_nodes()
             # if len(partial_path) > 0:
             #     path = convert_to_ndarray(partial_path)
@@ -180,9 +180,32 @@ class TestFastRRT(unittest.TestCase):
 
     def test_cpu_scenarios(self):
 
-         self.execute_scenario(TestScenario("map_cost_25",
+        self.execute_scenario(TestScenario("map_cost_5",
+                                           custom_start=(489, 770, math.radians(-45)),
+                                           custom_goal=(428, 338, math.radians(45))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_8",
+                                           custom_start=(243, 790, math.radians(-10)),
+                                           custom_goal=(442, 450, math.radians(160))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_18",
+                                           custom_start=(327, 223, math.radians(180)),
+                                           custom_goal=(178, 534, math.radians(180))), smart=True)
+
+        self.execute_scenario(TestScenario("map_cost_25",
                                            custom_start=(344, 428, math.radians(45)),
                                            custom_goal=(714, 528, math.radians(180))), smart=True)
+
+
+
+        self.execute_scenario(TestScenario("map_cost_31",
+                                           custom_start=(387, 416, math.radians(0)),
+                                           custom_goal=(146, 264, math.radians(-170))), smart=True)
+
+
+        self.execute_scenario(TestScenario("map_cost_39",
+                                           custom_start=(389, 473, math.radians(0)),
+                                           custom_goal=(781, 488, math.radians(180))), smart=True)
 
 
 if __name__ == "__main__":

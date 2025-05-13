@@ -183,7 +183,7 @@ class TestFrame:
 
 class TestUtils:
     
-    def pre_process_gpu(data: TestData, gpu_frame: CudaFrame, max_steering_deg: int, vehicle_length_m: float) -> np.ndarray:
+    def pre_process_gpu(data: TestData, gpu_frame: CudaFrame, max_steering_deg: int, vehicle_length_m: float, copy_intrinsic_costs_from_frame: bool = False) -> np.ndarray:
         graph = CudaGraph(
             width=data.width(),
             height=data.height(),
@@ -191,14 +191,14 @@ class TestUtils:
             perception_width_m=data.real_width(),
             max_steering_angle_deg=max_steering_deg,
             vehicle_length_m=vehicle_length_m,
-            min_dist_x=22,
-            min_dist_z=40,
-            lower_bound_x=-1,
-            lower_bound_z=-1,
-            upper_bound_x=-1,
-            upper_bound_z=-1
+            min_dist_x=10,
+            min_dist_z=10,
+            lower_bound_x=data.lower_bound.x,
+            lower_bound_z=data.lower_bound.z,
+            upper_bound_x=data.upper_bound.x,
+            upper_bound_z=data.upper_bound.z,
         )
-        TestUtils.timed_exec(graph.compute_boundaries, gpu_frame)
+        TestUtils.timed_exec(graph.compute_boundaries, gpu_frame, copy_intrinsic_costs_from_frame)
         gpu_frame.invalidate_cpu_frame()
         return gpu_frame.get_frame()
     
