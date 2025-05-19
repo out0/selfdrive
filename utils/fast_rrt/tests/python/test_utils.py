@@ -174,6 +174,10 @@ class TestUtils:
             if x < 0 or x >= f.shape[1]: continue
             if z < 0 or z >= f.shape[0]: continue
             f[z, x, :] = [255, 0 , 0]
+            if x-1 > 0:
+                f[z, x-1, :] = [255, 0 , 0]
+            if x+1 < fo.shape[1]:
+                f[z, x+1, :] = [255, 0 , 0]            
         
         cv2.imwrite(output, f)
         
@@ -224,9 +228,41 @@ class TestUtils:
             for p in path:
                 x = int(p[0])
                 z = int(p[1])
+                if x < 0 or x >= frame.shape[1]: continue
+                if z < 0 or z >= frame.shape[0]: continue
                 f[z, x, :] = [255, 0 , 0]
+                if x-1 > 0:
+                    f[z, x-1, :] = [255, 0 , 0]
+                if x+1 < frame.shape[1]:
+                    f[z, x+1, :] = [255, 0 , 0]
         
         cv2.imwrite(output, f)
+
+    def output_2_path_result_cpu(frame: np.ndarray, path1: list, path2: list, output: str) -> None:
+        
+        f = np.zeros((frame.shape[0], frame.shape[1], 3), dtype=np.uint8)
+        
+        for i in range(frame.shape[0]):
+            for j in range(frame.shape[1]):
+                if (frame[i, j, 0] == 1.0):
+                    f[i, j, :] = [255, 255, 255]
+                else:
+                    f[i, j, :] = [0, 0, 0]
+        
+        if path1 is not None:
+            for p in path1:
+                x = int(p[0])
+                z = int(p[1])
+                f[z, x, :] = [255, 0 , 0]
+
+        if path2 is not None:
+            for p in path2:
+                x = int(p[0])
+                z = int(p[1])
+                f[z, x, :] = [0, 0, 255]                
+        
+        cv2.imwrite(output, f)
+
     
     def output_obstacle_graph(frame: CudaFrame, output: str) -> None:
         shape = frame.get_shape()

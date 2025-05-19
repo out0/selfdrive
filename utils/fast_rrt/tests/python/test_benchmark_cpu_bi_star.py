@@ -2,9 +2,8 @@ import sys, os
 sys.path.append("../../")
 sys.path.append("../../../")
 import unittest
-from fast_rrt.cpu_rrt import *
+from fast_rrt.cpu_rrt_bidirectional_apf import *
 from test_utils import TestFrame, TestData, TestUtils
-from fast_rrt.graph import CudaFrame, CudaGraph
 import time
 import numpy as np
 from curve_quality import CurveAssessment
@@ -59,6 +58,12 @@ def convert_to_ndarray(path: list[tuple[int, int, float]]) -> np.ndarray:
 class TestFastRRT(unittest.TestCase):
 
 
+    def euclidean_dist(p1: tuple[int, int, float], p2: tuple[int, int, float]) -> float:
+        dx = p2[0] - p1[0]
+        dz = p2[1] - p1[1]
+        return math.sqrt(dx ** 2 + dz ** 2)
+
+
     
     def execute_scenario(self, scenario: TestScenario, smart: bool = True, path_step_size: float = 50.0, dist_to_goal_tolerance: float = 15.0, optim_loop_count: int = 20):
         
@@ -69,7 +74,7 @@ class TestFastRRT(unittest.TestCase):
         data_gpu: TestData = TestUtils.timed_exec(f.get_data_cuda)
         proc = TestUtils.pre_process_gpu(data, data_gpu.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M)
 
-        rrt = RRT(
+        rrt = BiDirectionalRRT(
             width=data.width(),
             height=data.height(),
             perception_height_m=data.real_height(),
@@ -110,11 +115,13 @@ class TestFastRRT(unittest.TestCase):
         start_time = time.time()
         rrt.search_init(MIN_DIST_GPU)
         loop_count = 0
-        while not rrt.goal_reached() and rrt.loop_rrt_star(True):
-            # partial_path = rrt.list_nodes()
-            # if len(partial_path) > 0:
-            #     path = convert_to_ndarray(partial_path)
-            #     TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")
+        while not rrt.goal_reached() and rrt.loop_rrt_star(False):
+            # partial_path_start = rrt.list_nodes()
+            # partial_path_goal = rrt.list_goal_nodes()
+            # if max(len(partial_path_start), len(partial_path_goal)) > 0:
+            #     p1 = convert_to_ndarray(partial_path_start)
+            #     p2 = convert_to_ndarray(partial_path_goal)
+            #     TestUtils.output_2_path_result_cpu(data.frame, p1, p2, f"output1.png")
             loop_count += 1       
         end_time = time.time()
         execution_time = end_time - start_time
@@ -132,35 +139,37 @@ class TestFastRRT(unittest.TestCase):
         coarse_data.timeout = TIMEOUT > 0 and coarse_data.proc_time_ms >= TIMEOUT
         coarse_data.goal_reached = rrt.goal_reached()
         coarse_data.coarse = True
-        coarse_data.name = f"cpu_{scenario.file}"
+        coarse_data.name = f"cpu_bi_dwa_{scenario.file}"
         coarse_data.curve = convert_to_ndarray(rrt.get_planned_path(interpolate=False))
   
         print(f"[{scenario.file}] coarse path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
         TestUtils.output_path_result_cpu(data.frame, path, f"test_result/coarse_{coarse_data.name}.png")       
         
-        optim_data = None
+       
+        # loaded_path = np.loadtxt("temp.dat")
+        # if loaded_path.ndim == 1:
+        #     loaded_path = loaded_path.reshape(1, -1)
+            
+        #TestUtils.output_path_result_cpu(data.frame, loaded_path, f"output1.png")
+        # start_time = time.time()
+        # loop_count = 0
+        # optim = rrt.optimize(True)
+        # end_time = time.time()
+        # execution_time = end_time - start_time
+        # TestUtils.output_path_result_cpu(proc, optim, f"output1.png")
         
-        if optim_loop_count > 0 and not rrt.timeout():
-            start_time = time.time()
-            loop_count = 0
-            while loop_count < optim_loop_count and rrt.loop_rrt_star(False):
-                loop_count += 1
-            end_time = time.time()
-            execution_time = end_time - start_time
-            print(f"[{scenario.file}] optim path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
-            
-            path = convert_to_ndarray(rrt.get_planned_path(interpolate=True))
-            
-            optim_data = CurveAssessment(data.width(), data.height()).assess_curve(path, start_heading=start[2], compute_heading=False)
-            optim_data.num_loops = loop_count
-            optim_data.proc_time_ms = execution_time * 1000
-            optim_data.timeout = TIMEOUT > 0 and optim_data.proc_time_ms >= TIMEOUT
-            optim_data.goal_reached = rrt.goal_reached()
-            optim_data.coarse = False
-            optim_data.name = f"cpu_{scenario.file}"
-            
-            TestUtils.output_path_result_cpu(data.frame, path, f"test_result/optim_{coarse_data.name}.png")
-            optim_data.curve = convert_to_ndarray(rrt.get_planned_path(interpolate=False))
+        #print(f"[{scenario.file}] optim path total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
+        return     
+        optim_data = CurveAssessment(data.width(), data.height()).assess_curve(optim, start_heading=start[2], compute_heading=False)
+        optim_data.num_loops = loop_count
+        optim_data.proc_time_ms = execution_time * 1000
+        optim_data.timeout = TIMEOUT > 0 and optim_data.proc_time_ms >= TIMEOUT
+        optim_data.goal_reached = TestFastRRT.euclidean_dist(optim[-1], goal) < dist_to_goal_tolerance
+        optim_data.coarse = False
+        optim_data.name = f"cpu_bi_dwa_{scenario.file}"
+        
+        TestUtils.output_path_result(data.frame, optim, f"test_result/optim_{coarse_data.name}.png")
+        optim_data.curve = optim
         
         result_file = f"test_result/results.csv"
         data_result_file = f"test_result/data_results.csv"
@@ -170,34 +179,59 @@ class TestFastRRT(unittest.TestCase):
                 
         with open(result_file, "a") as f:
             f.write(coarse_data.to_csv())
-            if optim_data is not None:
-                f.write(optim_data.to_csv())
+            f.write(optim_data.to_csv())
             
         with open(data_result_file, "a") as f:
             f.write(coarse_data.to_json())
-            if optim_data is not None:
-                f.write(optim_data.to_json())
+            f.write(optim_data.to_json())
         
+    def test_dwa_scenarios(self):
+        return
+        f = TestFrame(f"test_scenarios/small_2.png")
+        data: TestData = TestUtils.timed_exec(f.get_data_cpu)
+        data_gpu: TestData = TestUtils.timed_exec(f.get_data_cuda)
+        proc = TestUtils.pre_process_gpu(data, data_gpu.frame, MAX_STEERING_ANGLE, VEHICLE_LENGTH_M)
+        
+         # Load the optimized path from temp.dat
+        loaded_path = np.loadtxt("temp.dat")
+        if loaded_path.ndim == 1:
+            loaded_path = loaded_path.reshape(1, -1)
+            
+        TestUtils.output_path_result_cpu(data.frame, loaded_path, f"output1.png")
+        
+        
+        dwa = DWAInterpolation(
+                frame=proc,
+                dist_to_goal_tolerance=5,
+                class_costs=SEGMENTATION_COST,
+                global_path=loaded_path,  
+                real_height_size_m=data.real_height(),
+                real_width_size_m=data.real_width()
+                )
+            
+        path = dwa.interpolate()
+        TestUtils.output_path_result_cpu(data.frame, path, f"output1.png")
+        j = 2
 
     def test_cpu_scenarios(self):
-
         self.execute_scenario(TestScenario("large_1",
                                            custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), path_step_size=100.0, optim_loop_count=100)
+                                           custom_goal_heading=math.radians(45)), path_step_size=100.0, optim_loop_count=1000)
 
         self.execute_scenario(TestScenario("large_2",
                                            custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), optim_loop_count=100)
+                                           custom_goal_heading=math.radians(45)), optim_loop_count=1000)
 
         self.execute_scenario(TestScenario("large_3",
                                            custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)), optim_loop_count=100)
+                                           custom_goal_heading=math.radians(45)), optim_loop_count=1000)
 
-        self.execute_scenario(TestScenario("small_1"), smart=False, optim_loop_count=200)
+        self.execute_scenario(TestScenario("small_1"), smart=False, optim_loop_count=0)
 
-        self.execute_scenario(TestScenario("small_2"), smart=False, optim_loop_count=200)
+
+        self.execute_scenario(TestScenario("small_2"), smart=False, optim_loop_count=0)
         
-        self.execute_scenario(TestScenario("small_3"), smart=False, optim_loop_count=200)
+        self.execute_scenario(TestScenario("small_3"), smart=False, optim_loop_count=0)
 
 
 if __name__ == "__main__":
