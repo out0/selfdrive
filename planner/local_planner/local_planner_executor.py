@@ -26,6 +26,9 @@ class LocalPathPlannerExecutor:
 
     def is_planning(self) -> bool:
         pass
+    
+    def is_optimizing(self) -> bool:
+        return False
 
     def get_result(self) -> PlanningResult:
         pass

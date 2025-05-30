@@ -11,6 +11,7 @@ from testing.test_utils import PlannerTestOutput
 from planner.goal_point_discover import GoalPointDiscover
 from vision.occupancy_grid_cuda import OccupancyGrid
 from model.physical_parameters import PhysicalParameters
+import cv2
 
 COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09, 
                       lon=-1.5848012769283334e-08,
@@ -79,6 +80,9 @@ def execute_plan (seq: int) -> bool:
                 lower_bound=PhysicalParameters.EGO_LOWER_BOUND,
                 upper_bound=PhysicalParameters.EGO_UPPER_BOUND
             )
+    
+    f = og.get_color_frame()
+    cv2.imwrite("output1.png", cv2.cvtColor(f, cv2.COLOR_BGR2GRAY))
     
     res = local_goal_discover.find_goal(
         og=og,

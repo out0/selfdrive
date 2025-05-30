@@ -85,8 +85,8 @@ class TestFastRRT(unittest.TestCase):
         rrt.search_init()
         loop_count = 0
         while not rrt.goal_reached() and rrt.loop(smart):
-            partial_path = rrt.export_graph_nodes()
-            TestUtils.output_path_result(data.frame, partial_path, f"output1.png")
+            #partial_path = rrt.export_graph_nodes()
+            #TestUtils.output_path_result(data.frame, partial_path, f"output1.png")
             loop_count += 1       
         end_time = time.time()
         execution_time = end_time - start_time
@@ -163,7 +163,7 @@ class TestFastRRT(unittest.TestCase):
         # self.execute_scenario(TestScenario("small_1"), smart=False)
 
         while True:
-            self.execute_scenario(TestScenario("large_1",
+            self.execute_scenario(TestScenario("large_3",
                                             custom_start_heading=math.radians(90), 
                                             custom_goal_heading=math.radians(45)), path_step_size=100.0)
         

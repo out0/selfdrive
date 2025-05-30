@@ -12,9 +12,10 @@ from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 # from planner.local_planner.executors.vectorial_astar import VectorialAStarPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
-from planner.local_planner.executors.rrtStar_cpu import RRTPlanner
+from planner.local_planner.executors.rrtStar2 import RRTPlanner
 #from planner.local_planner.executors.rrtStar2 import RRTPlanner
 from planner.local_planner.executors.ensemble import EnsemblePlanner
+from planner.local_planner.executors.parallel_group import ParallelGroupPlanner
 
 
 class LocalPlannerType(Enum):
@@ -24,6 +25,7 @@ class LocalPlannerType(Enum):
     Overtaker = 3
     HybridAStar = 4
     RRTStar = 5
+    ParallelEnsemble = 7
     # AStar = 999
     # VectorialAStar = 999
     
@@ -104,7 +106,9 @@ class LocalPlanner:
                 )
             case LocalPlannerType.RRTStar:
                 return RRTPlanner(self.__plan_timeout_ms)
-                
+            
+            case LocalPlannerType.ParallelEnsemble:
+                return ParallelGroupPlanner(self.__map_coordinate_converter, self.__plan_timeout_ms)
                 
                 
     def plan (self, planning_data: PlanningData):

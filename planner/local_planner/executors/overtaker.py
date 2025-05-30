@@ -68,6 +68,11 @@ class OvertakerPlanner(LocalPathPlannerExecutor):
     def is_planning(self) -> bool:
         return self._search
 
+
+    def is_optimizing(self) -> bool:
+        return False
+
+
     def get_result(self) -> PlanningResult:
         return self._result
 

@@ -218,7 +218,9 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
 
     def is_planning(self) -> bool:
         return self._search
-       
+    
+    def is_optimizing(self) -> bool:
+        return False
 
     def cancel(self) -> None:
         self._search = False

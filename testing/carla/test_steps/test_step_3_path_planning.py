@@ -23,7 +23,9 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
 
 #PLAN_TIMEOUT = 500
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.RRTStar
+PLANNER_TYPE = LocalPlannerType.ParallelEnsemble
+#PLANNER_TYPE = LocalPlannerType.Overtaker
+
 
 def execute_plan (seq: int) -> None:
     coord = CoordinateConverter(COORD_ORIGIN)
@@ -39,10 +41,14 @@ def execute_plan (seq: int) -> None:
         print (f"no log found for plan #{seq}")
         return False
     
+    unseg_bev = Telemetry.read_pre_planning_bev(seq)
+    
     bev = Telemetry.read_planning_bev(seq)
 
     data = PlanningData(
-        bev = bev, 
+        unseg_bev=unseg_bev,
+        bev = bev,
+        ego_location_ubev=result.ego_location,
         ego_location=result.ego_location,
         goal=result.map_goal,
         next_goal=result.map_next_goal,
@@ -62,14 +68,14 @@ def execute_plan (seq: int) -> None:
     )
     
     if res.result_type == PlannerResultType.VALID:
-        print (f"Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
+        print (f"[{seq}] Valid plan for the selected local planner {res.planner_name} with {len(res.path)} points")
     elif res.result_type == PlannerResultType.TOO_CLOSE:
-        print (f"Ignoring path #{seq} because its too close")
+        print (f"[{seq}] Ignoring path because its too close")
         outp.add_point(res.local_goal, color=[0,0,255])
         outp.write(f"test_output_{seq}.png")
         return True
     else:
-        print (f"invalid plan for the selected local planner {res.planner_name}")
+        print (f"[{seq}] invalid plan for the selected local planner {res.planner_name}")
         outp.add_point(res.local_goal, color=[0,0,255])
         outp.write(f"test_output_{seq}.png")
         return True
@@ -82,7 +88,7 @@ def execute_plan (seq: int) -> None:
     return True
 
 RUN_ALL = True
-RUN_ALL = False
+#RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
     
@@ -92,7 +98,7 @@ def main(argc: int, argv: List[str]) -> int:
         return
     
     while True:
-        execute_plan(11)
+        execute_plan(25)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
