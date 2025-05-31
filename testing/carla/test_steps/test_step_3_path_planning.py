@@ -23,7 +23,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
 
 #PLAN_TIMEOUT = 500
 PLAN_TIMEOUT = -1
-PLANNER_TYPE = LocalPlannerType.ParallelEnsemble
+PLANNER_TYPE = LocalPlannerType.BiRRTStar
 #PLANNER_TYPE = LocalPlannerType.Overtaker
 
 
@@ -88,7 +88,7 @@ def execute_plan (seq: int) -> None:
     return True
 
 RUN_ALL = True
-#RUN_ALL = False
+RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
     
@@ -98,7 +98,7 @@ def main(argc: int, argv: List[str]) -> int:
         return
     
     while True:
-        execute_plan(25)
+        execute_plan(1)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)

@@ -16,6 +16,7 @@ from planner.local_planner.executors.rrtStar2 import RRTPlanner
 #from planner.local_planner.executors.rrtStar2 import RRTPlanner
 from planner.local_planner.executors.ensemble import EnsemblePlanner
 from planner.local_planner.executors.parallel_group import ParallelGroupPlanner
+from planner.local_planner.executors.bidirectional_rrt import BiDirectionalRRTPlanner
 
 
 class LocalPlannerType(Enum):
@@ -26,6 +27,7 @@ class LocalPlannerType(Enum):
     HybridAStar = 4
     RRTStar = 5
     ParallelEnsemble = 7
+    BiRRTStar = 8
     # AStar = 999
     # VectorialAStar = 999
     
@@ -109,6 +111,9 @@ class LocalPlanner:
             
             case LocalPlannerType.ParallelEnsemble:
                 return ParallelGroupPlanner(self.__map_coordinate_converter, self.__plan_timeout_ms)
+            
+            case LocalPlannerType.BiRRTStar:
+                return BiDirectionalRRTPlanner(self.__plan_timeout_ms)
                 
                 
     def plan (self, planning_data: PlanningData):

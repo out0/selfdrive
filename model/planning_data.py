@@ -166,6 +166,10 @@ class PlanningResult:
     def result_type (self) -> PlannerResultType:
         return self.__result_type
     
+    def set_result_type (self, val: PlannerResultType) -> PlannerResultType:
+        self.__result_type = val
+
+
     @property
     def path (self) -> list[Waypoint]:
         return self.__path
@@ -174,6 +178,9 @@ class PlanningResult:
     def timeout (self) -> bool:
         return self.__timeout
     
+    def set_timeout(self, val: bool) -> None:
+        self.__timeout = val
+    
     @property
     def planner_name (self) -> str:
         return self.__planner_name
@@ -181,6 +188,10 @@ class PlanningResult:
     @property
     def total_exec_time_ms (self) -> int:
         return self.__total_exec_time_ms
+    
+    def set_total_exec_time_ms(self, val: int) -> None:
+        self.__total_exec_time_ms = val
+
     
     @property
     def local_start (self) -> Waypoint:
@@ -211,7 +222,7 @@ class PlanningResult:
         return self.__total_exec_time_ms
 
     def update_path(self, smooth_path: list[Waypoint]) -> None:
-        self.path = smooth_path
+        self.__path = smooth_path
     
     def update_planner_name(self, name: str) -> None:
         self.planner_name = name
