@@ -267,6 +267,8 @@ class SelfDriveController(DiscreteComponent):
     
     def __execute_mission(self) -> ControllerState:
         res = self.__local_planner.get_result()
+        if res is None:
+            return
         
         Telemetry.log_planning_data(self._last_planning_data, res)
         

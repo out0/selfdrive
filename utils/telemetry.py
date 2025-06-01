@@ -189,8 +189,8 @@ class Telemetry:
     
     
     @classmethod
-    def read_planning_result(cls, seq: int) -> PlanningResult:
-        file = f"{PLANNING_DATA_PATH}/planning_result_{seq}.json"
+    def read_planning_result(cls, seq: int, base_path: str = PLANNING_DATA_PATH) -> PlanningResult:
+        file = f"{base_path}/planning_result_{seq}.json"
 
         if not os.path.exists (file):
             return None

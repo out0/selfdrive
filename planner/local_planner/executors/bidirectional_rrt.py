@@ -3,7 +3,8 @@ from planner.local_planner.local_planner_executor import LocalPathPlannerExecuto
 from planner.local_planner.local_planner import PlanningData, PlanningResult, PlannerResultType
 from threading import Thread
 from model.physical_parameters import PhysicalParameters
-from planner.local_planner.executors.cpu_rrt import RRT
+#from planner.local_planner.executors.cpu_rrt import RRT
+from planner.local_planner.executors.cpu_rrt_bidirectional import BiDirectionalRRT
 # from planner.local_planner.executors.dubins_path import DubinsPathPlanner
 from planner.goal_point_discover import GoalPointDiscoverResult
 
@@ -11,13 +12,13 @@ MIN_DIST_NONE = 0
 MIN_DIST_CPU = 1
 MIN_DIST_GPU = 2
 
-MAX_PATH_SIZE=30
+MAX_PATH_SIZE=40
 DIST_TO_GOAL_TOLERANCE=15
 SEGMENTATION_COST = [-1, 0, -1, -1, -1, -1, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 0, 0, 0, 0, -1]
    
 class BiDirectionalRRTPlanner(LocalPathPlannerExecutor): 
 
-    __rrt: RRT
+    __rrt: BiDirectionalRRT
     _search: bool
     _optimize: bool
     _plan_task: Thread
@@ -25,7 +26,7 @@ class BiDirectionalRRTPlanner(LocalPathPlannerExecutor):
 
     def __init__(self, max_exec_time_ms: int):
         super().__init__(max_exec_time_ms)
-        self.__rrt = RRT(
+        self.__rrt = BiDirectionalRRT(
             width=PhysicalParameters.OG_WIDTH,
             height=PhysicalParameters.OG_HEIGHT,
             perception_width_m=PhysicalParameters.OG_REAL_WIDTH,
@@ -63,7 +64,7 @@ class BiDirectionalRRTPlanner(LocalPathPlannerExecutor):
             total_exec_time_ms=0
         )
         self.__rrt.set_plan_data(
-            img=planner_data.bev,
+            img=planner_data.og.get_frame(),
             start=goal_result.start,
             goal=goal_result.goal,
             velocity_m_s=planner_data.velocity
@@ -84,16 +85,19 @@ class BiDirectionalRRTPlanner(LocalPathPlannerExecutor):
         self._og = None
         
     def __update_path(self, path: list[tuple[int, int, float]]) -> None:
+        if path is None:
+            return
         p = [ Waypoint(x, y, h) for x,y,h in path ]
         self._result.update_path(p)
+  
 
     def __perform_planning(self) -> None:
         
         self._search = True
         self._optimize = True
         self.set_exec_started()
-        #self.__rrt.search_init(MIN_DIST_GPU)
-        self.__rrt.search_init(MIN_DIST_NONE)
+        self.__rrt.search_init(MIN_DIST_GPU)
+        #self.__rrt.search_init(MIN_DIST_NONE)
         
         while self._search and \
                 not self.__rrt.goal_reached() and \
@@ -105,22 +109,21 @@ class BiDirectionalRRTPlanner(LocalPathPlannerExecutor):
         self._result.set_total_exec_time_ms(self.get_execution_time())
         
         if self.__rrt.goal_reached():
-            self.__update_path(self.__rrt.get_planned_path())
+            self.__update_path(self.__rrt.get_planned_path(True))
             self._result.set_result_type(PlannerResultType.VALID)
         
         self._search = False
+        self._optimize = True
+        
+        # optimize
+        while self._optimize and \
+                not self._check_timeout() and \
+                self.__rrt.loop_rrt_star(False):
+                    pass
+        
+        self._result.update_path(self.__rrt.get_planned_path())
+        self._result.set_total_exec_time_ms(self.get_execution_time())
         self._optimize = False
-        # self._optimize = True
-        
-        # # optimize
-        # while self._optimize and \
-        #         not self._check_timeout() and \
-        #         self.__rrt.loop_rrt_star(False):
-        #             pass
-        
-        # self._result.update_path(self.__rrt.get_planned_path())
-        # self._result.set_total_exec_time_ms(self.get_execution_time())
-        # self._optimize = False
 
     def is_planning(self) -> bool:
         return self._search

@@ -156,7 +156,7 @@ class LocalPlanner:
             self.__is_verifying_search_data = False
             return
         
-        planning_data.og.set_goal_vectorized(goal_result.goal)       
+        planning_data.og.set_goal_vectorized(goal_result.goal)  
                 
         self.__path_planner.plan(planning_data, goal_result)
         self.__is_verifying_search_data = False

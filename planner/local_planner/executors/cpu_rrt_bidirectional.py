@@ -272,8 +272,8 @@ class BiDirectionalRRT:
     def loop_rrt_star(self, kinematic: bool) -> bool: 
         x_rand: int2 = self.__sample() 
         x_new_start = self.__loop_rrt_star_graph(self._nodes_start, x_rand, kinematic)
-        x_new_goal = self.__loop_rrt_star_graph(self._nodes_goal, x_rand, kinematic)
-        self.__check_goal_reached(x_new_start, x_new_goal)
+        #x_new_goal = self.__loop_rrt_star_graph(self._nodes_goal, x_rand, kinematic)
+        self.__check_goal_reached(x_new_start, kinematic)
         return not self.__check_timeout()
        
     def goal_reached(self) -> bool:
@@ -285,7 +285,7 @@ class BiDirectionalRRT:
         d = Waypoint.distance_between(p1, p2)
         numPoints = int(round(d))
         if numPoints <= 2:
-            return [(p1.x, p1.z), (p2.x, p2.z)] 
+            return [(p1.x, p1.z, p1.heading), (p2.x, p2.z, p2.heading)] 
         a1 = p1.heading - (math.pi / 2)
         a2 = p2.heading - (math.pi / 2)
         

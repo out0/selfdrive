@@ -21,8 +21,8 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       alt=1.0149892568588257,
                       heading=0)
 
-#PLAN_TIMEOUT = 500
-PLAN_TIMEOUT = -1
+PLAN_TIMEOUT = 60000
+#PLAN_TIMEOUT = -1
 PLANNER_TYPE = LocalPlannerType.BiRRTStar
 #PLANNER_TYPE = LocalPlannerType.Overtaker
 
@@ -88,7 +88,7 @@ def execute_plan (seq: int) -> None:
     return True
 
 RUN_ALL = True
-RUN_ALL = False
+#RUN_ALL = False
 
 def main(argc: int, argv: List[str]) -> int:
     

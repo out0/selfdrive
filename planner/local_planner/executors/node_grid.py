@@ -167,7 +167,7 @@ class NodeGrid:
         segmentation_class = int(frame[z, x, 0])
         return self._class_costs[segmentation_class]
     
-    def check_feasible(self, frame: np.ndarray, p: int2) -> bool:
+    def check_feasible(self, frame: np.ndarray, p: int2, heading_deg: float) -> bool:
         
         if self._check_min_distances:      
             for z in range(p[1] - self._min_dist[1], p[1] + self._min_dist[1] + 1):
@@ -184,7 +184,31 @@ class NodeGrid:
             return True
         elif self._check_min_distances_gpu:
             x, z = p
-            return frame[z, x, 2] == 0
+
+            i = int(heading_deg/22.5) 
+            a = 22.5 * i
+            i += 3
+            left = -1
+            right = -1
+            
+            if heading_deg == a:
+                left = i
+            elif heading_deg > a:
+                left = i
+                right = i + 1
+            else:
+                left = i - 1
+                right = i
+            
+            l = int(frame[z, x, 2])
+            if left >= 0:
+                if not (l & (1 << left)):
+                    return False
+            if right >= 0:
+                if not (l & (1 << right)):
+                    return False
+            
+            return True
         else: # no checking
             return True
     
@@ -240,12 +264,33 @@ class NodeGrid:
         
         return result
     
+    def compute_heading(p1, p2) -> float:
+        dz = p2[1] - p1[1]
+        dx = p2[0] - p1[0]
+        
+        if dx == 0 and dz == 0: return 0
+        return math.degrees(math.pi/2 - math.atan2(-dz, dx))
+    
     def check_direct_connection(self, frame: np.ndarray, start: int2, end: int2) -> bool:
+        
         line = self.__interpolate_straight_line(start, end, frame.shape[0])
+        line_heading = NodeGrid.compute_heading(start, end)
+        
+        
+        while line_heading < -360:        
+            line_heading += 360
+        while line_heading >= 360:
+            line_heading -= 360
+            
+        if line_heading < -67.5:
+            line_heading += 180
+        if line_heading > 90.0:
+            line_heading -= 180
+        
         if len(line) == 0:
             return False
         for p in line:
-            if not self.check_feasible(frame, p):
+            if not self.check_feasible(frame, p, line_heading):
                 return False
         return True
     
@@ -273,8 +318,8 @@ class NodeGrid:
         #print(f"{start} -> {end} size: {DISTANCE}, path heading: {math.degrees(path_heading)}, curr heading in start: {math.degrees(heading)}, steering: {math.degrees(steering_angle_rad)}")
         
         nextp_m: float2 = (START_MAP[0], START_MAP[1])
-        nextp: int2 = (-1, -1)
-        lastp: int2 = (start[0], start[1])
+        nextp: int2 = (-1, -1, -1)
+        lastp: int2 = (start[0], start[1], heading)
         curr_cost = self.get_cost(start[0], start[1])
         
         curr_dist = 0
@@ -303,7 +348,7 @@ class NodeGrid:
             # if not self.check_feasible(frame, nextp):
             #     return GraphConnectionResult(heading, False, curr_cost)
             
-            lastp = (nextp[0], nextp[1])
+            lastp = (nextp[0], nextp[1], heading)
             points.append(nextp)
             curr_cost += self.get_intrinsic_cost(frame, nextp) + 1
             curr_dist += 1
@@ -313,7 +358,7 @@ class NodeGrid:
 
         if euclidean_distance(lastp, end) <= 2:
             for p in points:
-                if not self.check_feasible(frame, p):
+                if not self.check_feasible(frame, p, p[2]):
                     return GraphConnectionResult(heading, False, curr_cost)
 
             return GraphConnectionResult(heading, True, curr_cost)

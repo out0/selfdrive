@@ -42,7 +42,7 @@ def compute_statistics (seq: int) -> tuple[Statistics, bool]:
     coord = CoordinateConverter(COORD_ORIGIN)
     
 
-    result = Telemetry.read_planning_result(seq)
+    result = Telemetry.read_planning_result(seq, base_path="/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/results/scen1/ensemble")
     if result is None:
         return None, VALID
     
@@ -56,7 +56,7 @@ def compute_statistics (seq: int) -> tuple[Statistics, bool]:
     stats = Statistics()
     stats.cost = sm.get_cost()
        
-    stats.jerk = Jerk2D.compute_path_jerk(result.path, 2.0)
+    stats.jerk = Jerk2D.compute_path_jerk(result.path, 5.0)
     
     map_path = coord.convert_waypoint_path_to_map_pose(result.ego_location, result.path)
     last = map_path[0]

@@ -1200,7 +1200,7 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
     int dz = goal_z - z;
 
     frame[pos].y = (float)sqrtf(dx * dx + dz * dz);
-    frame[pos].z = 0x0F;
+    frame[pos].z = 0xFF;
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
     {
