@@ -7,12 +7,8 @@ from model.world_pose import WorldPose
 from planner.local_planner.local_planner import LocalPlannerType, PlannerResultType
 from data.coordinate_converter import CoordinateConverter
 from utils.telemetry import Telemetry
-from testing.test_utils import PlannerTestOutput
-from planner.goal_point_discover import GoalPointDiscover
-from vision.occupancy_grid_cuda import OccupancyGrid
+from utils.jerk import CurveAssessment, CurveData
 from model.physical_parameters import PhysicalParameters
-from utils.smoothness import Smoothness2D
-from utils.jerk import Jerk2D
 
 VALID = True
 NOT_VALID = False
@@ -38,71 +34,64 @@ class Statistics:
         self.exec_time = 0
         self.jerk = 0
 
-def compute_statistics (seq: int) -> tuple[Statistics, bool]:
-    coord = CoordinateConverter(COORD_ORIGIN)
-    
+def compute_statistics (seq: int, scenario: int, planner: str) -> CurveData:
+    #coord = CoordinateConverter(COORD_ORIGIN)
 
-    result = Telemetry.read_planning_result(seq, base_path="/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/results/scen1/ensemble")
+
+    result = Telemetry.read_planning_result(seq, base_path=f"/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/results/scen{scenario}/{planner}")
     if result is None:
         return None, VALID
     
     if result.result_type == PlannerResultType.TOO_CLOSE:
         return None, NOT_VALID
     
-    sm = Smoothness2D()    
-    for p in result.path:
-        sm.add_point(p.x, p.z)
-        
-    stats = Statistics()
-    stats.cost = sm.get_cost()
-       
-    stats.jerk = Jerk2D.compute_path_jerk(result.path, 5.0)
+    data: CurveData = CurveAssessment.assess_curve(
+        curve=result.path,
+        start_heading=result.local_start.heading,
+    )
     
-    map_path = coord.convert_waypoint_path_to_map_pose(result.ego_location, result.path)
-    last = map_path[0]
-    stats.path_size = 0
+    data.proc_time_ms = result.total_exec_time_ms
     
-    for i in range(1, len(map_path)):
-        curr = map_path[i]
-        stats.path_size += MapPose.distance_between(last, curr)
-        last = curr
+    return data, VALID
     
-    stats.exec_time = result.total_exec_time_ms
-    return stats, VALID
-
-
 
 def main(argc: int, argv: List[str]) -> int:
     
     full_stats = Statistics()
     count = 0
-
-    for i in range(1,1000):
-        stats, valid = compute_statistics(i)
-        
-        if not valid:
-            continue
-        
-        if stats is None:
-            break
-        full_stats.cost += stats.cost
-        full_stats.exec_time += stats.exec_time
-        full_stats.path_size += stats.path_size
-        full_stats.jerk += stats.jerk
-        count += 1
     
-    if count == 0:
-        print ("no data found")
-        return
-        
-    full_stats.cost = full_stats.cost / count
-    #full_stats.jerk = full_stats.jerk / count
-    full_stats.exec_time = full_stats.exec_time / count
+    planner = "h-ensemble"
 
-    print(f"avg cost: {full_stats.cost:.2f}")
-    print(f"total jerk: {full_stats.jerk:.2f}")
-    print(f"avg time: {full_stats.exec_time:.2f} ms")
-    print(f"path_size: {full_stats.path_size:.2f} m")
+    for s in range(1, 7):
+        for i in range(1,1000):
+            stats, t =  compute_statistics(i, s, planner)
+            
+            if t == NOT_VALID:
+                continue
+            
+            if stats is None:
+                break
+            
+            full_stats.cost += 0
+            full_stats.exec_time += stats.proc_time_ms
+            full_stats.path_size += stats.total_length
+            full_stats.jerk += stats.jerk
+            count += 1
+        
+        if count == 0:
+            print ("no data found")
+            return
+            
+        full_stats.cost = full_stats.cost / count
+        #full_stats.jerk = full_stats.jerk / count
+        full_stats.exec_time = full_stats.exec_time / count
+
+        #print(f"avg cost: {full_stats.cost:.2f}")
+        print(f"scenario: {s}")
+        print(f"total jerk: {full_stats.jerk:.2f} m/s³")
+        print(f"avg time: {full_stats.exec_time:.2f} ms")
+        print(f"path_size: {full_stats.path_size * PhysicalParameters.OG_HEIGHT_PX_TO_METERS_RATE:.2f} m")
+        print("\n")
     
     return 0
 

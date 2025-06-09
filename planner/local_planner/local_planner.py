@@ -14,7 +14,6 @@ from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.interpolator import InterpolatorPlanner
 from planner.local_planner.executors.rrtStar2 import RRTPlanner
 #from planner.local_planner.executors.rrtStar2 import RRTPlanner
-from planner.local_planner.executors.ensemble import EnsemblePlanner
 from planner.local_planner.executors.parallel_group import ParallelGroupPlanner
 from planner.local_planner.executors.bidirectional_rrt import BiDirectionalRRTPlanner
 
@@ -72,11 +71,11 @@ class LocalPlanner:
 
     def __get_local_planner_algorithm(self, type: LocalPlannerType) -> LocalPathPlannerExecutor:
         match type:
-            case LocalPlannerType.Ensemble:
-                return EnsemblePlanner(
-                    self.__map_coordinate_converter,
-                    self.__plan_timeout_ms,
-                )
+            # case LocalPlannerType.Ensemble:
+            #     return EnsemblePlanner(
+            #         self.__map_coordinate_converter,
+            #         self.__plan_timeout_ms,
+            #     )
             case LocalPlannerType.HierarchicalGroup:
                 return HierarchicalGroupPlanner(
                     self.__map_coordinate_converter,
