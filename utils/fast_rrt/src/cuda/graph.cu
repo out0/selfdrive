@@ -18,10 +18,32 @@ __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float hea
         atomicExch(&(graph[pos].z), type);
     }
     else if (!atomicCAS(&(graph[pos].z), 0, type) == GRAPH_TYPE_NULL)
+    {
+
+        if (graph[pos].z != GRAPH_TYPE_COLLISION &&
+            graph[pos].z != GRAPH_TYPE_NODE &&
+            graph[pos].z != GRAPH_TYPE_NULL &&
+            graph[pos].z != GRAPH_TYPE_PROCESSING &&
+            graph[pos].z != GRAPH_TYPE_TEMP)
+        {
+            printf("erro no set: para pos = %ld\n", pos);
+        }
+
         return false;
+    }
 #else
     if (!override && graph[pos].z != GRAPH_TYPE_NULL)
     {
+
+        if (graph[pos].z != GRAPH_TYPE_COLLISION &&
+            graph[pos].z != GRAPH_TYPE_NODE &&
+            graph[pos].z != GRAPH_TYPE_NULL &&
+            graph[pos].z != GRAPH_TYPE_PROCESSING &&
+            graph[pos].z != GRAPH_TYPE_TEMP)
+        {
+            printf("erro no set: para pos = %ld\n", pos);
+        }
+
         return false;
     }
     graph[pos].z = type;
@@ -32,9 +54,18 @@ __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float hea
     graph[pos].y = parent_z;
     graphData[pos].x = heading;
     graphData[pos].y = cost;
+
+    if (graph[pos].z != GRAPH_TYPE_COLLISION &&
+        graph[pos].z != GRAPH_TYPE_NODE &&
+        graph[pos].z != GRAPH_TYPE_NULL &&
+        graph[pos].z != GRAPH_TYPE_PROCESSING &&
+        graph[pos].z != GRAPH_TYPE_TEMP)
+    {
+        printf("erro no set: para pos = %ld\n", pos);
+    }
+
     return true;
 }
-
 
 __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z)
 {
@@ -67,7 +98,6 @@ __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count)
     graph[pos].w = count;
 }
 
-
 __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos)
 {
     return graph[pos].w;
@@ -93,7 +123,6 @@ __device__ __host__ inline void setCostCuda(float3 *graphData, long pos, float c
     graphData[pos].y = cost;
 }
 
-
 __device__ __host__ float getIntrinsicCostCuda(float3 *graphData, long pos)
 {
     return graphData[pos].z;
@@ -114,7 +143,7 @@ __device__ __host__ void setIntrinsicCost(float3 *graphData, int width, int x, i
     long pos = computePos(width, x, z);
     graphData[pos].z = cost;
 }
-__device__  void incIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
+__device__ void incIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
 {
     long pos = computePos(width, x, z);
     atomicAdd(&graphData[pos].z, cost);
@@ -125,14 +154,11 @@ __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos)
     return graph[pos].z == GRAPH_TYPE_NODE;
 }
 
-
-
 void CudaGraph::setType(int x, int z, int type)
 {
     long pos = computePos(_frame->width(), x, z);
     setTypeCuda(_frame->getCudaPtr(), pos, type);
 }
-
 
 CudaGraph::CudaGraph(int width, int height)
 {
@@ -149,9 +175,9 @@ CudaGraph::CudaGraph(int width, int height)
     _physicalParams = nullptr;
     //_searchSpaceParams = nullptr;
 
-    if (!cudaAllocMapped(&this->_searchSpaceParams, 10*sizeof(int)))
+    if (!cudaAllocMapped(&this->_searchSpaceParams, 10 * sizeof(int)))
     {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(11*sizeof(int)) + std::string(" bytes for search-space parameters\n");
+        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(11 * sizeof(int)) + std::string(" bytes for search-space parameters\n");
         throw msg;
     }
 
@@ -159,7 +185,6 @@ CudaGraph::CudaGraph(int width, int height)
     _searchSpaceParams[FRAME_PARAM_HEIGHT] = height;
     _searchSpaceParams[FRAME_PARAM_CENTER_X] = _gridCenter.x;
     _searchSpaceParams[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
-
 
     // TODO: make this method refresh randomness for each clear() in graph
     __initializeRandomGenerator();
@@ -175,13 +200,12 @@ CudaGraph::CudaGraph(int width, int height)
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for tree expansion check (new nodes)\n");
         throw msg;
     }
-    
+
     if (!cudaAllocMapped(&this->_nodeCollision, sizeof(bool)))
     {
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for tree node collision check\n");
         throw msg;
     }
-    
 
     __initializeRegionDensity();
     _directOptimPos = -1;
@@ -217,7 +241,8 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     this->_physicalParams[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
 }
 
-void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound) {
+void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound)
+{
     _searchSpaceParams[FRAME_PARAM_MIN_DIST_X] = TO_INT((float)minDistance.first / 2);
     _searchSpaceParams[FRAME_PARAM_MIN_DIST_Z] = TO_INT((float)minDistance.second / 2);
     _searchSpaceParams[FRAME_PARAM_LOWER_BOUND_X] = lowerBound.first;
@@ -226,15 +251,17 @@ void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, 
     _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
 }
 
-void CudaGraph::setClassCosts(const int *costs, int size) {
-    
+void CudaGraph::setClassCosts(const int *costs, int size)
+{
+
     if (!cudaAllocMapped(&this->_classCosts, sizeof(float) * size))
     {
         std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float) * size) + std::string(" bytes for class cost list\n");
         throw msg;
     }
 
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         this->_classCosts[i] = static_cast<float>(costs[i]);
     }
 }
@@ -283,6 +310,9 @@ __global__ static void __CUDA_KERNEL_clear(int4 *graph, int width, int height)
     if (pos >= width * height)
         return;
 
+    graph[pos].w = 0;
+    graph[pos].x = 0;
+    graph[pos].y = 0;
     graph[pos].z = GRAPH_TYPE_NULL;
 }
 
@@ -365,20 +395,24 @@ int CudaGraph::getType(int x, int z)
     return getTypeCuda(_frame->getCudaPtr(), pos);
 }
 
-void CudaGraph::dumpGraph(const char *filename) {
+void CudaGraph::dumpGraph(const char *filename)
+{
     FILE *fp = fopen(filename, "w");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Error opening file %s\n", filename);
         return;
     }
 
-    int4 * fptr = _frame->getCudaPtr();
-    float3 * fptrData = _frameData->getCudaPtr();
+    int4 *fptr = _frame->getCudaPtr();
+    float3 *fptrData = _frameData->getCudaPtr();
 
-    for (int z = 0; z < _frame->height(); z++) {
-        for (int x = 0; x < _frame->width(); x++) {
+    for (int z = 0; z < _frame->height(); z++)
+    {
+        for (int x = 0; x < _frame->width(); x++)
+        {
             long pos = z * _frame->width() + x;
-            fprintf(fp, "%d %d %d %f %f %f\n", fptr[pos].x, fptr[pos].y, fptr[pos].z, 
+            fprintf(fp, "%d %d %d %f %f %f\n", fptr[pos].x, fptr[pos].y, fptr[pos].z,
                     fptrData[pos].x, fptrData[pos].y, fptrData[pos].z);
         }
     }
@@ -387,21 +421,25 @@ void CudaGraph::dumpGraph(const char *filename) {
     printf("Graph dumped to %s\n", filename);
 }
 
-void CudaGraph::readfromDump(const char *filename) {
+void CudaGraph::readfromDump(const char *filename)
+{
     FILE *fp = fopen(filename, "r");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         printf("Error opening file %s\n", filename);
         return;
     }
 
-    int4 * fptr = _frame->getCudaPtr();
-    float3 * fptrData = _frameData->getCudaPtr();
+    int4 *fptr = _frame->getCudaPtr();
+    float3 *fptrData = _frameData->getCudaPtr();
 
-    for (int z = 0; z < _frame->height(); z++) {
-        for (int x = 0; x < _frame->width(); x++) {
+    for (int z = 0; z < _frame->height(); z++)
+    {
+        for (int x = 0; x < _frame->width(); x++)
+        {
             long pos = z * _frame->width() + x;
-            fscanf(fp, "%d %d %d %f %f %f\n", &fptr[pos].x, &fptr[pos].y, &fptr[pos].z, 
-                    &fptrData[pos].x, &fptrData[pos].y, &fptrData[pos].z);
+            fscanf(fp, "%d %d %d %f %f %f\n", &fptr[pos].x, &fptr[pos].y, &fptr[pos].z,
+                   &fptrData[pos].x, &fptrData[pos].y, &fptrData[pos].z);
         }
     }
 

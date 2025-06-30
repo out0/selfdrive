@@ -11,7 +11,7 @@ from planner.goal_point_discover import GoalPointDiscoverResult
 from planner.local_planner.local_planner_executor import LocalPathPlannerExecutor
 import cv2
 
-DIST_TO_GOAL_TOLERANCE = 5.0
+DIST_TO_GOAL_TOLERANCE = 15.0
 MAX_STEP_SIZE = 30.0
 
 class FastRRT(LocalPathPlannerExecutor):
@@ -215,42 +215,38 @@ class FastRRT(LocalPathPlannerExecutor):
 
      def __local_planning(self):
         
-        self.__plan = True
-        search_goal = True
+          while self.__plan and FastRRT.lib.loop(self.__ptr, False):
+               p = self.export_graph_nodes()
+               for node in p:
+                    self.__debug_og[node[1], node[0]] = [255, 255, 255]
+               cv2.imwrite("fast_rrt_debug.png", self.__debug_og)               
+               pass
+
+          if not FastRRT.lib.goal_reached(self.__ptr):
+               self.__result = PlanningResult(
+                    planner_name='FastRRT',
+                    ego_location=self.__planner_data.ego_location,
+                    goal=self.__planner_data.goal,
+                    next_goal=self.__planner_data.next_goal,
+                    local_start=self.__goal_result.start,
+                    local_goal=self.__goal_result.goal,
+                    direction=self.__goal_result.direction,
+                    path=None,
+                    result_type=PlannerResultType.INVALID_PATH,
+                    total_exec_time_ms=self.get_execution_time(),
+                    timeout=False
+               )
+               self.__plan = False
+               return
         
-        while self.__plan and search_goal:
-          FastRRT.lib.loop(self.__ptr, False)
-          # if not FastRRT.lib.loop(self.__ptr, False):
-          #       self.__result = PlanningResult(
-          #           planner_name='FastRRT',
-          #           ego_location=self.__planner_data.ego_location,
-          #           goal=self.__planner_data.goal,
-          #           next_goal=self.__planner_data.next_goal,
-          #           local_start=self.__goal_result.start,
-          #           local_goal=self.__goal_result.goal,
-          #           direction=self.__goal_result.direction,
-          #           path=None,
-          #           result_type=PlannerResultType.INVALID_PATH,
-          #           total_exec_time_ms=self.get_execution_time(),
-          #           timeout=False
-          #       )
-          #       self.__plan = False
-          #       continue
-            
-          # p = self.export_graph_nodes()
-          # for node in p:
-          #      self.__debug_og[node[1], node[0]] = [255, 255, 255]
-          # cv2.imwrite("fast_rrt_debug.png", self.__debug_og)
-            
-          search_goal = not FastRRT.lib.goal_reached(self.__ptr)
+          optim_loop_count = 20
+          
+          p = self.export_graph_nodes()
+          loop_count = 0
+          while  self.__plan and loop_count < optim_loop_count and FastRRT.lib.loop_optimize(self.__ptr):
+               loop_count += 1
         
-        optim_loop_count = 20
-        
-        loop_count = 0
-        while  self.__plan and loop_count < optim_loop_count and FastRRT.lib.loop_optimize(self.__ptr):
-            loop_count += 1
-        
-        self.__result = PlanningResult(
+          self.__result = PlanningResult(
                     planner_name='FastRRT',
                     ego_location=self.__planner_data.ego_location,
                     goal=self.__planner_data.goal,
@@ -264,7 +260,7 @@ class FastRRT(LocalPathPlannerExecutor):
                     timeout=False                  
                 )
         
-        self.__plan = False
+          self.__plan = False
 
      def cancel(self) -> None:
         self.__plan = False
@@ -320,11 +316,12 @@ class FastRRT(LocalPathPlannerExecutor):
           return res
 
      def is_planning(self) -> bool:
-        return self.__plan
+          return self.__plan
 
      def get_result(self) -> PlanningResult:
-        return self.__result
+          return self.__result
     
      def destroy(self) -> None:
-        pass
+          self.cancel()
+          pass
     

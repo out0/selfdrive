@@ -6,6 +6,7 @@ extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *pa
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, float heading);
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long *bestCost)
 {
@@ -82,7 +83,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
 
     // if (!__computeFeasibleForAngle(frame, params, classCost, x, z, targetHeading))
     //     return;
-    if (frame[computePos(width, x, z)].z == 1.0)
+    if (!checkFeasible(frame, width, x, z, targetHeading))
     {
         return;
     }

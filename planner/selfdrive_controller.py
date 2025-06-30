@@ -6,6 +6,7 @@ from data.coordinate_converter import CoordinateConverter
 from model.discrete_component import DiscreteComponent
 from model.map_pose import MapPose
 from model.waypoint import Waypoint
+from model.world_pose import WorldPose
 from slam.slam import SLAM
 from planner.planning_data_builder import PlanningDataBuilder, PlanningData
 import math
@@ -13,7 +14,6 @@ from planner.local_planner.local_planner import LocalPlanner, LocalPlannerType, 
 from planner.collision_detector import CollisionDetector
 from model.physical_parameters import PhysicalParameters
 from model.ego_car import EgoCar
-from slam.slam import SLAM
 import time
 from utils.telemetry import Telemetry
 
@@ -76,40 +76,18 @@ class SelfDriveController(DiscreteComponent):
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
-    #PLAN_TIMEOUT=2000
-    PLAN_TIMEOUT=-1
+    PLAN_TIMEOUT=2000
+    #PLAN_TIMEOUT=-1
     SPEED_MS = 2.0
 
-
-    def __init__(self, 
-                 ego: EgoCar, 
-                 planning_data_builder: PlanningDataBuilder,
-                 slam: SLAM,
-                 controller_response: callable,
-                 local_planner_type: LocalPlannerType) -> None:
-        
-        super().__init__(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS)
-        
-        Telemetry.initialize()
-        
-        self._NAME = "SelfdriveController"
-        
-        self._slam = slam
-        
+    def __callibrate_self_location(self) -> WorldPose:
         first_pose = None
         while first_pose is None:
             first_pose = self._slam.read_gps()
             time.sleep(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS/1000)
-                
-        self._coord = slam.get_coordinate_converter()
-        
-        self.__local_planner = LocalPlanner(
-            plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
-            local_planner_type=local_planner_type,
-            map_coordinate_converter=self._coord
-        )
-        
-        
+        return first_pose
+
+    def __initialize_motion_controller(self, ego: EgoCar):
         self._motion_controller = MotionController(
             period_ms=SelfDriveController.MOTION_CONTROLLER_PERIOD_MS,
             longitudinal_controller_period_ms=SelfDriveController.LONGITUDINAL_CONTROLLER_PERIOD_MS,
@@ -119,8 +97,14 @@ class SelfDriveController(DiscreteComponent):
         )
         self._motion_controller.start()
         
-        self._state = ControllerState.ON_HOLD
-        
+    def __initialize_local_planner(self, local_planner_type: LocalPlannerType):
+        self.__local_planner = LocalPlanner(
+            plan_timeout_ms=SelfDriveController.PLAN_TIMEOUT,
+            local_planner_type=local_planner_type,
+            map_coordinate_converter=self._coord
+        )
+    
+    def __initialize_collision_detector(self, planning_data_builder: PlanningDataBuilder):
         self._collision_detector = CollisionDetector(
             period_ms=SelfDriveController.COLLISION_DETECTOR_PERIOD_MS,
             coordinate_converter=self._coord,
@@ -128,17 +112,44 @@ class SelfDriveController(DiscreteComponent):
             on_collision_detected_cb=self.__on_collision_detected
         )
         self._collision_detector.start()
+
+    def __init__(self, 
+                 ego: EgoCar, 
+                 planning_data_builder: PlanningDataBuilder,
+                 slam: SLAM,
+                 controller_response: callable,
+                 local_planner_type: LocalPlannerType,
+                 enable_collision_detector: bool) -> None:
         
-        self._on_vehicle_controller_response = controller_response
+        super().__init__(SelfDriveController.SELF_DRIVE_CONTROLLER_PERIOD_MS)
+        
+        Telemetry.initialize()
+        
+        self._NAME = "SelfdriveController"       
+        self._slam = slam
+        self.__callibrate_self_location()
+        self._coord = slam.get_coordinate_converter()
+        self.__initialize_local_planner(local_planner_type)
+        self.__initialize_motion_controller(ego)
+        
+        if enable_collision_detector:
+            self.__initialize_collision_detector(planning_data_builder)
+        else:
+            self._collision_detector = None
+        
+        self._state = ControllerState.ON_HOLD
         self._driving_path = None
         self._driving_path_pos = 0
        
+        self._on_vehicle_controller_response = controller_response
         self._planning_data_builder = planning_data_builder
 
     
     def destroy(self) -> None:
         self._run = False
-        self._collision_detector.destroy()
+        if self._collision_detector is not None:
+            self._collision_detector.destroy()
+            
         self._motion_controller.destroy()
         self.__local_planner.destroy()
         
@@ -365,4 +376,5 @@ class SelfDriveController(DiscreteComponent):
     def __perform_motion(self, path: list[MapPose]) -> None:
         # TODO: must convert path
         self._motion_controller.set_path(path, velocity=4.0)
-        self._collision_detector.watch_path(path)
+        if self._collision_detector is not None:
+            self._collision_detector.watch_path(path)

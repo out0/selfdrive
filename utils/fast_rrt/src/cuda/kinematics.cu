@@ -18,6 +18,7 @@ extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCos
 extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
 extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, float heading);
 
+
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
 /// @param center
 /// @param rate_w
@@ -413,7 +414,7 @@ __device__ __host__ bool check_graph_connection(
             return bestEndDist <= 2;
         }
 
-        if (frame[computePos(width, nextp.x, nextp.y)].z == 1.0 )
+        if (!checkFeasible(frame, width, nextp.x, nextp.y, heading))
         {
             // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return false;
@@ -513,7 +514,7 @@ __device__ __host__ bool check_graph_connection_with_hermite(
         // Interpolated point
         /// curve.push_back({cx, cz, angle::rad(0)});
 
-        if (frame[computePos(width, cx, cz)].z == 1.0 )
+        if (!checkFeasible(frame, width, cx, cz, heading))
         {
             // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return false;

@@ -4,6 +4,8 @@
 #include "../../include/graph.h"
 #include <math_constants.h>
 
+extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
+
 __global__ static void __CUDA_KERNEL_count_elements_in_range(int4 *graph, int width, int height, int type, int xp, int zp, float radius_sqr, unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -22,7 +24,7 @@ __global__ static void __CUDA_KERNEL_count_elements_in_range(int4 *graph, int wi
     if (dx * dx + dz * dz > radius_sqr)
         return;
 
-    if (graph[pos].z == type)
+    if (getTypeCuda(graph, pos) == type)
     {
         // int z = pos / width;
         // int x = pos - z * width;
@@ -61,7 +63,7 @@ __global__ static void __CUDA_KERNEL_list_elements_in_range(int4 *graph, int wid
     if (dx * dx + dz * dz > radius_sqr)
         return;
 
-    if (graph[pos].z == type)
+    if (getTypeCuda(graph, pos) == type)
     {
         int store_pos = atomicInc(currentPos, width * height);
         res[store_pos].x = x;

@@ -34,9 +34,9 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int h
     if (pos >= width * height)
         return;
 
-    if (graph[pos].z == GRAPH_TYPE_TEMP)
+    if (getTypeCuda(graph, pos) == GRAPH_TYPE_TEMP)
     {
-        graph[pos].z = GRAPH_TYPE_NODE;
+        setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
     }
 
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);

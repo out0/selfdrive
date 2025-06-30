@@ -111,6 +111,7 @@ bool FastRRT::loop(bool smart)
 
     if (goalReached())
     {
+        //printf ("shrinking graph...\n");
         __shrink_search_graph();
         return false;
     }

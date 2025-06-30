@@ -3,6 +3,7 @@
 #include "../../include/graph.h"
 #include <math_constants.h>
 
+extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
 __global__ static void __CUDA_KERNEL_count_elements_in_graph(int4 *graph, int width, int height, int type, unsigned int *count)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -149,7 +150,7 @@ __global__ static void __CUDA_KERNEL_list_all_elements_in_graph(int4 *graph, int
         int store_pos = atomicInc(currentPos, width * height);
         res[store_pos].x = x;
         res[store_pos].y = z;
-        res[store_pos].z = graph[pos].z;
+        res[store_pos].z = getTypeCuda(graph, pos);
     }
 }
 
@@ -163,7 +164,7 @@ std::pair<int3 *, int> CudaGraph::__listAllNodes() {
 
     int3 *cudaResult = nullptr;
     
-    size_t nodeListSize = sizeof(int2) * (c + 1);
+    size_t nodeListSize = sizeof(int3) * (c + 1);
 
     if (!cudaAllocMapped(&cudaResult, nodeListSize))
     {
@@ -182,6 +183,7 @@ std::pair<int3 *, int> CudaGraph::__listAllNodes() {
 
     __CUDA_KERNEL_list_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), cudaResult, listPos);
     CUDA(cudaDeviceSynchronize());
+
 
     cudaFreeHost(listPos);
 

@@ -190,7 +190,6 @@ def drive_scenario (client: CarlaClient, file: str):
     print(f"Loading Scenario {file}")
     
     
-    
     sb = ScenarioBuilder(client)
     path, ego = sb.load_scenario(file, return_ego=True)
     ego.init_dual_bev_camera()
@@ -213,7 +212,8 @@ def drive_scenario (client: CarlaClient, file: str):
         planning_data_builder=data_builder,
         controller_response=controller_response,
         slam=data_builder.get_slam(),
-        local_planner_type=LocalPlannerType.FastRRT
+        local_planner_type=LocalPlannerType.FastRRT,
+        enable_collision_detector=False
     )
     
     time.sleep(2)
@@ -223,7 +223,7 @@ def drive_scenario (client: CarlaClient, file: str):
     return controller, follower, ego
 
 
-# BUG NO COLLISION DETECTOR!
+# BUG in COLLISION DETECTOR!
 #controller, follower, ego = drive_scenario(client=client, file="scenarios/turn_right_obstacle.sce")
 
 os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
