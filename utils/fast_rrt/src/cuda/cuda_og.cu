@@ -46,6 +46,7 @@ __device__ __host__ inline void setObstacle(float3 *frame, int width, int height
 {
     if (CHECK_OUT_BOUNDARIES(width, height, x, z))
         return;
+
     const int pos = COMPUTE_POS(width, x, z);
     frame[pos].z = 1.0f;
 }
@@ -115,6 +116,7 @@ __global__ void __CUDA_compute_minimal_distance_boundaries(float3 *graphData,  f
     int upper_bound_ego_x = _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_X];
     int upper_bound_ego_z = _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_Z];
 
+
     if (pos >= width * height)
         return;
 
@@ -122,21 +124,45 @@ __global__ void __CUDA_compute_minimal_distance_boundaries(float3 *graphData,  f
     int x = pos - z * width;
 
 
-    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
-        return;
-
     int nodeClass = TO_INT(frame[pos].x);
 
     if (copyIntrinsicCost) {
         setIntrinsicCostCuda(graphData, pos, frame[pos].y);
     } 
 
+    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z) {
+        return;
+    }
+
+    // if (x == 183 && z == 72) {
+    //     printf ("checking %d, %d: class = %d, cost: %.2f\n", x, z, nodeClass, classCosts[nodeClass]);
+    // }
+
     if (classCosts[nodeClass] < 0)
     {
         propagateMinDistance(frame, classCosts, width, height, minDistance, pos, x, z);
+        // if (x == 183 && z == 72) 
+        //     printf ("%d, %d is obstacle \n", x, z);
     }
+    // else if (x == 183 && z == 72) {
+    //     printf ("%d, %d not obstacle \n", x, z);
+    // }
+
     // frame[pos].z = 1.0f;
 }
+
+
+// __global__ void __CUDA_set_all_feasible(float3 *graphData,  float3 *frame, float *classCosts, int *_searchSpaceParams, const int minDistance, bool copyIntrinsicCost)
+// {
+//     int pos = blockIdx.x * blockDim.x + threadIdx.x;
+//     int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
+//     int height = _searchSpaceParams[FRAME_PARAM_HEIGHT];
+
+//     if (pos >= width * height)
+//         return;
+
+//     frame[pos].z = 0x0;
+// }
 
 void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
 {
@@ -148,6 +174,24 @@ void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
     int minDistanceZ = _searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
 
     const int minDistance = TO_INT(sqrtf(minDistanceX * minDistanceX + minDistanceZ * minDistanceZ));
+
+//    printf ("minDist = %d\n", minDistance);
+
+    // printf ("costs: ");
+    // for (int i = 0; i < 29; i++) {
+    //     printf (" %.2f", _classCosts[i]);
+    // }
+    // printf ("\n");
+
+    // __CUDA_set_all_feasible<<<numBlocks, THREADS_IN_BLOCK>>>(
+    //     _frameData->getCudaPtr(),
+    //     og,
+    //     _classCosts,
+    //     _searchSpaceParams,
+    //     minDistance,
+    //     copyIntrinsicCost);
+
+    // CUDA(cudaDeviceSynchronize());
 
     __CUDA_compute_minimal_distance_boundaries<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frameData->getCudaPtr(),

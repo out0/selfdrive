@@ -62,28 +62,7 @@ class ModelCurveGenerator:
             path.append(next_point)
             
         return path
-    
-    def gen_path_cg2(self, pos: MapPose, velocity_meters_per_s: float, steering_angle_deg: float, steps: int) -> list[MapPose]:
-        """ Generate path from the center of gravity
-        """
-        v = velocity_meters_per_s
-        dt = 0.5
-        steer = math.tan(math.radians(steering_angle_deg))
-        
-        x = pos.x
-        y = pos.y
-        heading = pos.heading
-        path = []
 
-        for _ in range (0, steps):
-            beta = math.degrees(math.atan(steer / self._lr))
-            x = x + v * math.cos(math.radians(heading + beta)) * dt
-            y = y + v * math.sin(math.radians(heading + beta)) * dt
-            heading = math.degrees(math.radians(heading) + v * math.cos(math.radians(beta)) * steer * dt / (2*self._lr))
-            next_point = MapPose(x, y, pos.z, heading=heading)
-            path.append(next_point)
-            
-        return path
     
     def __simple_change_coordinates_to_map_ref_on_zero_origin_zero_heading(self, pos: Waypoint) -> tuple[float, float]:
         x = (self._x_center - pos.z) / self._rw
@@ -210,8 +189,8 @@ class ModelCurveGenerator:
         return [p_top_left, p_top, p_top_right]
     
     def gen_possible_bottom_paths(self, pos: MapPose, velocity_meters_per_s: float, steps: int = 20) -> list[list[MapPose]]:
-        p = pos + 0
-        p.heading = 180 - pos.heading
+        p = pos.clone()
+        p.heading = pos.heading + 180
         p_bottom_left = self.gen_path_cg(p, velocity_meters_per_s, -PhysicalParameters.MAX_STEERING_ANGLE, steps)
         p_bottom = self.gen_path_cg(p, velocity_meters_per_s, 0, steps)
         p_bottom_right = self.gen_path_cg(p, velocity_meters_per_s, PhysicalParameters.MAX_STEERING_ANGLE, steps)

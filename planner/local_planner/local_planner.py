@@ -16,6 +16,7 @@ from planner.local_planner.executors.rrtStar2 import RRTPlanner
 #from planner.local_planner.executors.rrtStar2 import RRTPlanner
 from planner.local_planner.executors.parallel_group import ParallelGroupPlanner
 from planner.local_planner.executors.bidirectional_rrt import BiDirectionalRRTPlanner
+from planner.local_planner.executors.fast_rrt import FastRRT
 
 
 class LocalPlannerType(Enum):
@@ -27,6 +28,7 @@ class LocalPlannerType(Enum):
     RRTStar = 5
     ParallelEnsemble = 7
     BiRRTStar = 8
+    FastRRT = 9
     # AStar = 999
     # VectorialAStar = 999
     
@@ -113,6 +115,10 @@ class LocalPlanner:
             
             case LocalPlannerType.BiRRTStar:
                 return BiDirectionalRRTPlanner(self.__plan_timeout_ms)
+
+            case LocalPlannerType.FastRRT:
+                return FastRRT(self.__plan_timeout_ms)
+                
                 
                 
     def plan (self, planning_data: PlanningData):
@@ -155,7 +161,7 @@ class LocalPlanner:
             self.__is_verifying_search_data = False
             return
         
-        planning_data.og.set_goal_vectorized(goal_result.goal)  
+        #planning_data.og.set_goal_vectorized(goal_result.goal)  
                 
         self.__path_planner.plan(planning_data, goal_result)
         self.__is_verifying_search_data = False

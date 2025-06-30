@@ -319,5 +319,7 @@ class CudaFrame:
         return lib.get_cost(self._cuda_frame, x, z)
     
     
-    def invalidate_cpu_frame(self) -> None:
-        self._update_frame = True
+    def update_frame(self) -> None:
+        self.__flatten()
+        lib.copy_back(self._cuda_frame, self._cpu_frame)
+        self.__unflatten()

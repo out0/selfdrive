@@ -169,6 +169,9 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
     const float parentCost = getCostCuda(graphData, startPos);
     float nodeCost = parentCost;
 
+    // int2 debug[5000];
+    // int k = 0;
+
     while (size < maxSize)
     {
         x += ds * cosf(heading + beta);
@@ -191,12 +194,19 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
 
         if (!checkFeasible(frame, width, last_x, last_z))
         {
+            //printf("unfeasible path from %d, %d to %d, %d\n", start.x, start.y, lastp.x, lastp.y);
+
+            // printf ("unfeasible: (%d, %d) ", start.x, start.y);
+            // for (int r = 0; r < k; r++) {
+            //     printf (" --> (%d, %d)", debug[r].x, debug[r].y);
+            // }
+            // printf ("\n");
             return {-1.0, -1.0, 0.0, 0.0};
         }
 
         last_x = lastp.x;
         last_z = lastp.y;
-
+        // debug[k++] = { last_x, last_z};
     }
 
     return {(float)last_x, (float)last_z, nodeCost, heading};

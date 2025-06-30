@@ -9,8 +9,6 @@ from planner.physical_model import ModelCurveGenerator
 from queue import PriorityQueue
 from .debug_dump import dump_result
 from planner.goal_point_discover import GoalPointDiscoverResult
-import numpy as np
-import cv2
 
 MAX_FLOAT = 100000000
 
@@ -24,10 +22,9 @@ DIR_BOTTOM = 6
 DIR_BOTTOM_RIGHT = 7
 
 TURNING_COST = 5
-REVERSE_COST = 100
 
 
-DEBUG = True
+DEBUG_DUMP = False
 
 # SAFE_W = 10
 # SAFE_H = 20
@@ -53,7 +50,6 @@ class Node:
     local_pose: Waypoint
     global_pose: MapPose
     parent: 'Node'
-    reverse: bool
     
     def __init__(self,
                  parent: 'Node',
@@ -61,16 +57,16 @@ class Node:
                  global_pose: MapPose,
                  cost: float, 
                  dist: float,
-                 rel_dir: int,
-                 reverse: bool):
+                 #abs_dir: GridDirection, 
+                 rel_dir: int):
         
         self.parent = parent
         self.local_pose = local_pose
         self.cost = cost
         self.dist = dist
+        #self.absolute_dir = abs_dir
         self.relative_dir = rel_dir
         self.global_pose = global_pose
-        self.reverse = reverse
 
     def __gt__(self, other):
         return self.cost > other.dist
@@ -102,7 +98,6 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
     _planner_data: PlanningData
     _model_curve_gen: ModelCurveGenerator
     _expected_velocity_meters_s: float
-    _og_debug: np.ndarray
     
     def __init__(self, 
                  max_exec_time_ms: int,
@@ -119,7 +114,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         self._expected_velocity_meters_s = expected_velocity_meters_s
     
     
-    def __create_node(self, parent: Node, point: Waypoint, pose: MapPose, rel_dir: int, cost: float, reverse: bool) -> Node:
+    def __create_node(self, parent: Node, point: Waypoint, pose: MapPose, rel_dir: int, cost: float) -> Node:
         
         return Node(
             local_pose=point,
@@ -127,8 +122,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             rel_dir=rel_dir,
             cost=cost,
             dist = self._og.get_frame()[point.z, point.x, 1],
-            parent=parent,
-            reverse=reverse
+            parent=parent
         )
     
     def __find_first_unfeasible(self, path : list[Waypoint], chk: list[bool], start: int) -> int:
@@ -144,7 +138,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         return len(path)
             
    
-    def __build_child_nodes(self, parent: Node, path: list[MapPose], rel_dir: int, list_check_points: list[bool], start: int, reverse: bool) -> list[Node]:
+    def __build_child_nodes(self, parent: Node, path: list[MapPose], rel_dir: int, list_check_points: list[bool], start: int) -> list[Node]:
         path_w = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, path)
         
         # if DEBUG_OUTP:
@@ -160,6 +154,11 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         
         res = []
 
+        cost = parent.cost
+        if rel_dir != 0:
+            cost += TURNING_COST
+
+        local_cost = cost
         f = self._og.get_frame()
         point_parent = parent
         for i in range(first_unfeasible):
@@ -170,21 +169,14 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             
             if point.z < 0 or point.z >= self._og.height():
                 continue
-
-            direction_cost = 0
-            if reverse:
-                direction_cost += REVERSE_COST
-            elif rel_dir != 0:
-                direction_cost += TURNING_COST
-
-            local_cost = f[point.z, point.x, 1] + Waypoint.distance_between(parent.local_pose, point) + direction_cost
+            
+            local_cost += f[point.z, point.x, 1]
             n = self.__create_node(
                 parent=point_parent,
                 point=point,
                 pose= path[i],
                 rel_dir=-1, 
-                cost=local_cost,
-                reverse=reverse)
+                cost=cost)
 
             res.append(n)
             point_parent = n
@@ -199,50 +191,24 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         res = []
 
         tl, t, tr = self._model_curve_gen.gen_possible_top_paths(node.global_pose, self._expected_velocity_meters_s)
-        bl, b, br = self._model_curve_gen.gen_possible_bottom_paths(node.global_pose, self._expected_velocity_meters_s)
         
-             
         p1 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, tl)
         p2 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, t)
         p3 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, tr)
-        p4 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, bl)
-        p5 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, b)
-        p6 = self._map_converter.convert_map_path_to_waypoint(self._planner_data.ego_location, br)
         
         paths = []
         paths.extend(p1)
         paths.extend(p2)
         paths.extend(p3)
-        paths.extend(p4)
-        paths.extend(p5)
-        paths.extend(p6)
         
         block_fesible_result = self._og.check_path_feasible(paths)
         
-        start = 0
-        reverse = tl[0].heading > 90 or tl[0].heading < -90
-        res.extend(self.__build_child_nodes(node, tl, 0, block_fesible_result, 0, reverse=reverse))
+        n1 = len(p1)
+        n2 = n1 + len(p2)
         
-        start = len(p1)
-        reverse = t[0].heading > 90 or t[0].heading < -90
-        res.extend(self.__build_child_nodes(node, t, -1, block_fesible_result, start, reverse=reverse))
-        
-        start += len(p2)
-        reverse = tr[0].heading > 90 or tr[0].heading < -90
-        res.extend(self.__build_child_nodes(node, tr, 1, block_fesible_result, start, reverse=reverse))
-        
-        start += len(p3)
-        reverse = bl[0].heading > 90 or bl[0].heading < -90
-        res.extend(self.__build_child_nodes(node, bl, 1, block_fesible_result, start, reverse=reverse))
-        
-        start += len(p4)
-        reverse = b[0].heading > 90 or b[0].heading < -90
-        res.extend(self.__build_child_nodes(node, b, 1, block_fesible_result, start, reverse=reverse))
-        
-        start += len(p5)
-        reverse = br[0].heading > 90 or br[0].heading < -90
-        res.extend(self.__build_child_nodes(node, br, 1, block_fesible_result, start, reverse=reverse))
-        
+        res.extend(self.__build_child_nodes(node, t, 0, block_fesible_result, 0))        
+        res.extend(self.__build_child_nodes(node, tl, -1, block_fesible_result, n1))
+        res.extend(self.__build_child_nodes(node, tr, 1, block_fesible_result, n2))
         return res
         
 
@@ -284,11 +250,6 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             self._search = False
             return
         
-        if DEBUG:
-            gray = np.dot(self._og.get_color_frame()[..., :3], [0.2989, 0.5870, 0.1140])
-            gray = np.clip(gray, 0, 255).astype(np.uint8)
-            self._og_debug = np.stack((gray,) * 3, axis=-1)
-        
         self._plan_task = Thread(target=self.__perform_planning)
         self._plan_task.start()
     
@@ -308,8 +269,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
             parent=None, 
             pose=self._planner_data.ego_location, 
             rel_dir=0, 
-            cost=0,
-            reverse=False)
+            cost=0)
         
         open_list = PriorityQueue()
         open_list.put((root.dist, root))
@@ -365,29 +325,18 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
 
             closed[key] = curr_point
 
-            surroundings = self._compute_free_surroundings(
+            free_surroundings = self._compute_free_surroundings(
                 curr_point)
-            
-            if DEBUG:
-                img = np.copy(self._og_debug)
-                for p in surroundings:
-                    if p.reverse:
-                        img[p.local_pose.z, p.local_pose.x, :] = [0, 0, 255]
-                    else:
-                        img[p.local_pose.z, p.local_pose.x, :] = [255, 0, 0]
-                cv2.imwrite('test_output2.png', img)
-                
        
-            for node in surroundings:
+            for node in free_surroundings:
                 k = str(node.local_pose)
 
                 if k in closed:
                     if node.cost < closed[k].cost:
-                        closed[k] = node                    
+                        closed[k] = node
+                    
                 else:
-                    open_list.put((node.cost, node))
-                    if DEBUG:
-                        print (f"+({node.local_pose.x, node.local_pose.z}) = {node.cost}")
+                    open_list.put((node.dist, node))
                     
             
         if best_candidate is None:
@@ -404,9 +353,7 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         p = best_candidate
         
         while p is not None and p is not root:
-            q = p.local_pose
-            q.reverse = p.reverse
-            path.append(q)
+            path.append(p.local_pose)
             p = p.parent
     
         #path.append(self._result.local_start)
@@ -427,6 +374,6 @@ class HybridAStarPlanner (LocalPathPlannerExecutor):
         )
         self._search = False
         
-        if DEBUG:
+        if DEBUG_DUMP:
            dump_result(self._og, self._result)
 

@@ -74,7 +74,10 @@ void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
     _last_expanded_node_count = 0;
-    this->_graph.computeBoundaries(this->_ptr, copyIntrinsicCostsFromFrame);    
+    this->_graph.computeBoundaries(this->_ptr, copyIntrinsicCostsFromFrame);
+
+    // int x = 183, z = 72;
+    // printf ("result for %d,%d: z = %.2f\n", x, z, this->_ptr[z * 256 + x].z);
 }
 
 void FastRRT::__shrink_search_graph()

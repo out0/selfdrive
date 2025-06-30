@@ -83,9 +83,17 @@ class PlannerTestOutput:
         self._frame[point.z, point.x, :] = color
     
 
-    def add_path (self, path: list[Waypoint], color = [255, 255, 255]) -> None:
+    def add_path (self, path: list[Waypoint], color = [255, 255, 255], reverse_color = [0, 0, 255]) -> None:
         for p in path:
-            self.add_point(p, color)
+            x = int(p[0])
+            z = int(p[1])
+            self._frame[z, x, :] = color
+            # if p.reverse:
+            #     self._frame[p.z, p.x, :] = reverse_color
+            #     #self.add_point(p, reverse_color)
+            # #self.add_point(p, color)
+            # else:
+            #     self._frame[p.z, p.x, :] = color
        
     def write (self, file: str) -> None:
         cv2.imwrite(file, self._frame)

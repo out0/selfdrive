@@ -4,11 +4,13 @@ class Waypoint:
     x: int
     z: int
     heading: float
+    reverse: bool
 
-    def __init__(self, x: int, z: int, heading: float = 0):
+    def __init__(self, x: int, z: int, heading: float = 0, reverse: bool = False):
         self.x = int(x)
         self.z = int(z)
         self.heading = heading
+        self.reverse = reverse
 
     def __str__(self):
         return f"({self.x}, {self.z}, {self.heading})"
