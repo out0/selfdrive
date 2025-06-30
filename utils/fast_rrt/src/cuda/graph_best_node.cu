@@ -31,13 +31,14 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, floa
 
     if (dist > searchRadiusSq)
         return;
+        
+    
+    float heading = getHeadingCuda(graphData, pos);
 
-    if (frame[computePos(width, x, z)].z == 1.0)
+    if (!checkFeasible(frame, width, x, z, heading))
     {
         return;
     }
-
-    float heading = getHeadingCuda(graphData, pos);
 
     if (abs(heading - targetHeading) > 0.035)
         return;
@@ -83,12 +84,12 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
 
     // if (!__computeFeasibleForAngle(frame, params, classCost, x, z, targetHeading))
     //     return;
-    if (!checkFeasible(frame, width, x, z, targetHeading))
+    float heading = getHeadingCuda(graphData, pos);
+    if (!checkFeasible(frame, width, x, z, heading))
     {
         return;
     }
 
-    float heading = getHeadingCuda(graphData, pos);
     if (abs(heading - targetHeading) > 0.035)
         return;
 
