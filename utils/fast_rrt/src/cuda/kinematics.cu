@@ -16,7 +16,7 @@ extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
 extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
-extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z);
+extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, float heading);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
 /// @param center
@@ -192,7 +192,7 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
         size += 1;
         nodeCost += getIntrinsicCost(graphData, width, lastp.x, lastp.y) + 1;
 
-        if (!checkFeasible(frame, width, last_x, last_z))
+        if (!checkFeasible(frame, width, last_x, last_z, heading))
         {
             //printf("unfeasible path from %d, %d to %d, %d\n", start.x, start.y, lastp.x, lastp.y);
 
@@ -287,7 +287,7 @@ __device__ __host__ bool checkKinematicPath(
             return bestEndDist <= 2;
         }
 
-        if (!checkFeasible(frame, width, nextp.x, nextp.y))
+        if (!checkFeasible(frame, width, nextp.x, nextp.y, heading))
         {
             // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
             return false;

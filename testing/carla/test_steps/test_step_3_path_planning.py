@@ -103,8 +103,8 @@ def main(argc: int, argv: List[str]) -> int:
     
     # cv2.imwrite('../planning_data/bev_1a.png', bev)
     
-    execute_plan(1)
-    return
+    #execute_plan(1)
+    #return
     if RUN_ALL:
         for i in range(1,1000):
             if not execute_plan(i): break

@@ -1,26 +1,8 @@
 #include "../../include/graph.h"
 #include "../../include/cuda_params.h"
+#include "../../include/math_utils.h"
 
-// CudaOccupancyGrid::CudaOccupancyGrid(
-//     float3 *ptr,
-//     float *classCosts,
-//     int width,
-//     int height,
-//     int minDistanceX_px,
-//     int minDistanceZ_px,
-//     int2 lowerBound,
-//     int2 upperBound) : frame(ptr),
-//                         _classCosts(classCosts),
-//                        _width(width),
-//                        _height(height),
-//                        _minDistanceX_px(minDistanceX_px),
-//                        _minDistanceZ_px(minDistanceZ_px),
-//                        _lowerBound(lowerBound),
-//                        _upperBound(upperBound) {}
-
-// CudaOccupancyGrid::~CudaOccupancyGrid()
-// {
-// }
+#define USE_ROUGH_ANGLES 1
 
 extern __device__ __host__ void setIntrinsicCostCuda(float3 *graphData, long pos, float cost);
 
@@ -105,7 +87,7 @@ __device__ __host__ inline void propagateMinDistance(float3 *frame, float *class
     }
 }
 
-__global__ void __CUDA_compute_minimal_distance_boundaries(float3 *graphData,  float3 *frame, float *classCosts, int *_searchSpaceParams, const int minDistance, bool copyIntrinsicCost)
+__global__ void __CUDA_compute_minimal_distance_boundaries(float3 *graphData, float3 *frame, float *classCosts, int *_searchSpaceParams, const int minDistance, bool copyIntrinsicCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -116,57 +98,35 @@ __global__ void __CUDA_compute_minimal_distance_boundaries(float3 *graphData,  f
     int upper_bound_ego_x = _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_X];
     int upper_bound_ego_z = _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_Z];
 
-
     if (pos >= width * height)
         return;
 
     int z = pos / width;
     int x = pos - z * width;
 
-
     int nodeClass = TO_INT(frame[pos].x);
 
-    if (copyIntrinsicCost) {
+    if (copyIntrinsicCost)
+    {
         setIntrinsicCostCuda(graphData, pos, frame[pos].y);
-    } 
-
-    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z) {
-        return;
     }
 
-    // if (x == 183 && z == 72) {
-    //     printf ("checking %d, %d: class = %d, cost: %.2f\n", x, z, nodeClass, classCosts[nodeClass]);
-    // }
+    if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
+    {
+        return;
+    }
 
     if (classCosts[nodeClass] < 0)
     {
         propagateMinDistance(frame, classCosts, width, height, minDistance, pos, x, z);
-        // if (x == 183 && z == 72) 
-        //     printf ("%d, %d is obstacle \n", x, z);
     }
-    // else if (x == 183 && z == 72) {
-    //     printf ("%d, %d not obstacle \n", x, z);
-    // }
-
-    // frame[pos].z = 1.0f;
 }
-
-
-// __global__ void __CUDA_set_all_feasible(float3 *graphData,  float3 *frame, float *classCosts, int *_searchSpaceParams, const int minDistance, bool copyIntrinsicCost)
-// {
-//     int pos = blockIdx.x * blockDim.x + threadIdx.x;
-//     int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
-//     int height = _searchSpaceParams[FRAME_PARAM_HEIGHT];
-
-//     if (pos >= width * height)
-//         return;
-
-//     frame[pos].z = 0x0;
-// }
 
 void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
 {
-
+#ifdef USE_ROUGH_ANGLES
+    return;
+#endif
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
@@ -174,24 +134,6 @@ void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
     int minDistanceZ = _searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
 
     const int minDistance = TO_INT(sqrtf(minDistanceX * minDistanceX + minDistanceZ * minDistanceZ));
-
-//    printf ("minDist = %d\n", minDistance);
-
-    // printf ("costs: ");
-    // for (int i = 0; i < 29; i++) {
-    //     printf (" %.2f", _classCosts[i]);
-    // }
-    // printf ("\n");
-
-    // __CUDA_set_all_feasible<<<numBlocks, THREADS_IN_BLOCK>>>(
-    //     _frameData->getCudaPtr(),
-    //     og,
-    //     _classCosts,
-    //     _searchSpaceParams,
-    //     minDistance,
-    //     copyIntrinsicCost);
-
-    // CUDA(cudaDeviceSynchronize());
 
     __CUDA_compute_minimal_distance_boundaries<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frameData->getCudaPtr(),
@@ -204,8 +146,48 @@ void CudaGraph::computeBoundaries(float3 *og, bool copyIntrinsicCost)
     CUDA(cudaDeviceSynchronize());
 }
 
-
-__device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z)
+__device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, float heading)
 {
+#ifdef USE_ROUGH_ANGLES
+    int l = TO_INT(og[COMPUTE_POS(width, x, z)].z);
+    
+    // all angles are feasible
+    if (l == 0xff) return true;
+
+    int i = TO_INT(heading * PI_OVER_8_inv) + 3;
+    float a = PI_OVER_8 * i;
+    int left = -1;
+    int right = -1;
+
+    if (heading == a)
+    {
+        left = i;
+    }
+    else if (heading > a)
+    {
+        left = i;
+        right = i + 1;
+    }
+    else
+    {
+        left = i - 1;
+        right = i;
+    }
+
+    
+    if (left >= 0)
+    {
+        if (!(l & (1 << left)))
+            return false;
+    }
+    if (right >= 0)
+    {
+        if (!(l & (1 << right)))
+            return false;
+    }
+    return true;
+
+#else
     return og[COMPUTE_POS(width, x, z)].z == 0.0;
+#endif
 }

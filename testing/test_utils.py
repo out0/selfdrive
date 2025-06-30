@@ -85,9 +85,7 @@ class PlannerTestOutput:
 
     def add_path (self, path: list[Waypoint], color = [255, 255, 255], reverse_color = [0, 0, 255]) -> None:
         for p in path:
-            x = int(p[0])
-            z = int(p[1])
-            self._frame[z, x, :] = color
+            self._frame[p.z, p.x, :] = color
             # if p.reverse:
             #     self._frame[p.z, p.x, :] = reverse_color
             #     #self.add_point(p, reverse_color)

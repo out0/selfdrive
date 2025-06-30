@@ -98,7 +98,7 @@ class OccupancyGrid:
         
         self._goal_point = goal
         self._frame.set_goal_vectorized(goal)
-        self._frame.invalidate_cpu_frame()
+        self._frame.update_frame()
         self._lock.release()
         
     
