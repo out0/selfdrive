@@ -310,9 +310,12 @@ __global__ static void __CUDA_KERNEL_clear(int4 *graph, int width, int height)
     if (pos >= width * height)
         return;
 
-    graph[pos].w = 0;
-    graph[pos].x = 0;
-    graph[pos].y = 0;
+        /*
+        Clear only sets the type because when we shrink the graph, we want it to preserve the
+        original connections, because the shrink simply clears the graph and reset the nodes
+        in the path to GRAPH_TYPE_NODE. Thats why the clear must not interfere with x, y values 
+        (parent values)
+        */
     graph[pos].z = GRAPH_TYPE_NULL;
 }
 

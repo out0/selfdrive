@@ -150,6 +150,7 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
+        
         // if (i >= 1000000)
         // {
         //     printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
@@ -159,6 +160,14 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
     }
 
     std::reverse(res.begin(), res.end());
+
+    
+    // for (auto p : res) {
+    //     printf("(%d, %d) - ", p.x(), p.z());
+    // }
+    // printf("\n");
+
+
     return res;
 }
 

@@ -188,10 +188,10 @@ class FastRRT(LocalPathPlannerExecutor):
             planner_data.og.get_cuda_frame().get_cuda_frame(),
             start.x,
             start.z,
-            start.heading,
+            math.radians(start.heading),
             goal.x,
             goal.z,
-            goal.heading,
+            math.radians(goal.heading),
             planner_data.velocity
           )
         
@@ -240,8 +240,6 @@ class FastRRT(LocalPathPlannerExecutor):
                return
         
           optim_loop_count = 20
-          
-          p = self.export_graph_nodes()
           loop_count = 0
           while  self.__plan and loop_count < optim_loop_count and FastRRT.lib.loop_optimize(self.__ptr):
                loop_count += 1
@@ -301,7 +299,7 @@ class FastRRT(LocalPathPlannerExecutor):
                res.append(Waypoint(
                     x=int(float(ptr[pos])),
                     z=int(float(ptr[pos + 1])),
-                    heading=float(ptr[pos + 2])
+                    heading=math.degrees(float(ptr[pos + 2]))
                ))
           return res
      
