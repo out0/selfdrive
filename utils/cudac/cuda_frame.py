@@ -147,7 +147,11 @@ class CudaFrame:
     def __unflatten(self) -> None:
         self._cpu_frame = self._cpu_frame.reshape(self._orig_shape)
     
-    def __init__ (self, frame: np.ndarray, min_dist_x: int,  min_dist_z: int, lower_bound: Waypoint, upper_bound: Waypoint) -> None:
+    def __init__ (self, frame: np.ndarray, 
+                  min_dist_x: int,  
+                  min_dist_z: int, 
+                  lower_bound: Waypoint, 
+                  upper_bound: Waypoint) -> None:
         self._cuda_frame = None
         self._cpu_frame = np.ascontiguousarray(frame, dtype=np.float32)
         self._flatten_size = self.__get_flatten_size(self._cpu_frame)

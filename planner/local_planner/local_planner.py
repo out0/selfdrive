@@ -131,6 +131,7 @@ class LocalPlanner:
                                                           goal_pose=planning_data.goal,
                                                           next_goal_pose=planning_data.next_goal)
     
+
         if goal_result.goal is None:
             self.__planner_result = PlanningResult.build_basic_response_data(
                 "-",
@@ -161,8 +162,7 @@ class LocalPlanner:
             self.__is_verifying_search_data = False
             return
         
-        planning_data.og.set_goal_vectorized(goal_result.goal)  
-                
+        planning_data.og.set_goal_vectorized(goal_result.goal)
         self.__path_planner.plan(planning_data, goal_result)
         self.__is_verifying_search_data = False
 

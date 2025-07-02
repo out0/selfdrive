@@ -154,8 +154,9 @@ __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, floa
     // all angles are feasible
     if (l == 0xff) return true;
 
-    int i = TO_INT(heading * PI_OVER_8_inv) + 3;
+    int i = TO_INT(heading * PI_OVER_8_inv);
     float a = PI_OVER_8 * i;
+    i += 3;
     int left = -1;
     int right = -1;
 

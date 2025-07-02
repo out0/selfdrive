@@ -213,7 +213,7 @@ def drive_scenario (client: CarlaClient, file: str):
         controller_response=controller_response,
         slam=data_builder.get_slam(),
         local_planner_type=LocalPlannerType.FastRRT,
-        enable_collision_detector=False
+        enable_collision_detector=False,
     )
     
     time.sleep(2)
@@ -228,7 +228,7 @@ def drive_scenario (client: CarlaClient, file: str):
 
 os.system("rm /home/cristiano/Documents/Projects/Mestrado/code/selfdrive/testing/carla/planning_data/* ")
 
-controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario1.sce")
+controller, follower, ego = drive_scenario(client=client, file="scenarios/scenario3.sce")
 
 
 print ("press enter to destroy")

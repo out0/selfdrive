@@ -8,10 +8,7 @@ class PhysicalParameters:
     
     OG_WIDTH_PX_TO_METERS_RATE: float = OG_REAL_WIDTH / OG_WIDTH
     OG_HEIGHT_PX_TO_METERS_RATE: float = OG_REAL_HEIGHT / OG_HEIGHT
-    
-    MIN_DISTANCE_WIDTH_M: float = 3
-    MIN_DISTANCE_HEIGHT_M: float = 6
-    
+       
     MIN_DISTANCE_WIDTH_PX: int = 22
     MIN_DISTANCE_HEIGHT_PX: int = 40
 

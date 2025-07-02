@@ -48,7 +48,11 @@ class OccupancyGrid:
 
 
     def __init__(self, frame: np.ndarray, minimal_distance_x: int, minimal_distance_z: int, lower_bound: Waypoint, upper_bound: Waypoint) -> None:
-        self._frame = CudaFrame(frame, minimal_distance_x, minimal_distance_z, lower_bound, upper_bound)
+        self._frame = CudaFrame(frame,
+                                minimal_distance_x, 
+                                minimal_distance_z, 
+                                lower_bound, 
+                                upper_bound)
         self._goal_point = None
         self._minimal_distance_x = minimal_distance_x
         self._minimal_distance_z = minimal_distance_z
@@ -216,3 +220,42 @@ class OccupancyGrid:
             return 999999999
         
         return self._frame.get_cost(x, z)
+    
+    
+    def export_free_areas(self, angle: float) -> np.ndarray:
+        S = self._frame.get_shape()
+        outp = np.full(S, 255, dtype=np.uint8)
+        f = self._frame.get_frame()
+        
+        ratio_inv = 8 / math.pi
+        ratio = math.pi / 8
+        angle_rad = math.radians(angle)
+        for z in range(S[0]):
+            for x in range(S[0]):
+                l = int(f[z, x, 2])
+                i = int(angle_rad * ratio_inv)
+                a = ratio * i
+                i += 3
+                
+                left = -1
+                right = -1
+                
+                if angle_rad == a:
+                    left = i
+                elif angle_rad > a:
+                    left = i
+                    right = i + 1
+                else:
+                    left = i - 1
+                    right = i
+                
+                if left >= 0:
+                    if not (l & (1 << left)):
+                        continue
+                if right >= 0:
+                    if not (l & (1 << right)):
+                        continue
+                outp[z, x] = [0, 0, 0]
+        return outp
+                
+        

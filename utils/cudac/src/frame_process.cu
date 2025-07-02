@@ -33,8 +33,8 @@ __device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
     float c = cosf(angle_radians);
     float s = sinf(angle_radians);
 
-    for (int i = -min_dist_z; i <= min_dist_z; i++)
-        for (int j = -min_dist_x; j <= min_dist_x; j++)
+    for (int j = -min_dist_z; j <= min_dist_z; j++)
+        for (int i = -min_dist_x; i <= min_dist_x; i++)
         {
             int xl = __float2int_rn(j * c - i * s + x);
             int zl = __float2int_rn(j * s + i * c + z);

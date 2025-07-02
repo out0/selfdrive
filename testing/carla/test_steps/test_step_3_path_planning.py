@@ -52,7 +52,7 @@ def execute_plan (seq: int) -> None:
         ego_location=result.ego_location,
         goal=result.map_goal,
         next_goal=result.map_next_goal,
-        velocity=5.0
+        velocity=1.0
     )
 
     local_planner.plan(data)
@@ -111,7 +111,7 @@ def main(argc: int, argv: List[str]) -> int:
         return
     
     while True:
-        execute_plan(3)
+        execute_plan(1)
     #execute_plan(17)
     # execute_plan(3)
     # execute_plan(4)
