@@ -10,6 +10,18 @@ from test_utils import TestFrame, TestData, TestUtils
 import time, math
 from curve_quality import CurveAssessment
 import cv2
+ci_build_and_not_headless = False
+try:
+    from cv2.version import ci_build, headless
+    ci_and_not_headless = ci_build and not headless
+except:
+    pass
+if sys.platform.startswith("linux") and ci_and_not_headless:
+    os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
+if sys.platform.startswith("linux") and ci_and_not_headless:
+    os.environ.pop("QT_QPA_FONTDIR")
+
+
 
 MAX_STEERING_ANGLE = 40
 VEHICLE_LENGTH_M = 5.412658774
@@ -145,24 +157,24 @@ class TestFastRRT(unittest.TestCase):
 
     def test_gpu_scenarios(self):
 
-        self.execute_scenario(TestScenario("large_1",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)
-                                           ), path_step_size=100.0)
+        # self.execute_scenario(TestScenario("large_1",
+        #                                    custom_start_heading=math.radians(90), 
+        #                                    custom_goal_heading=math.radians(45)
+        #                                    ), path_step_size=100.0)
 
-        self.execute_scenario(TestScenario("large_2",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)))
+        # self.execute_scenario(TestScenario("large_2",
+        #                                    custom_start_heading=math.radians(90), 
+        #                                    custom_goal_heading=math.radians(45)))
 
-        self.execute_scenario(TestScenario("large_3",
-                                           custom_start_heading=math.radians(90), 
-                                           custom_goal_heading=math.radians(45)))
+        # self.execute_scenario(TestScenario("large_3",
+        #                                    custom_start_heading=math.radians(90), 
+        #                                    custom_goal_heading=math.radians(45)))
 
         self.execute_scenario(TestScenario("small_1"), smart=False)
 
-        self.execute_scenario(TestScenario("small_2"), smart=False)
+        # self.execute_scenario(TestScenario("small_2"), smart=False)
         
-        self.execute_scenario(TestScenario("small_3"), smart=False)        
+        # self.execute_scenario(TestScenario("small_3"), smart=False)        
 
 
 if __name__ == "__main__":

@@ -162,12 +162,12 @@ class TestFastRRT(unittest.TestCase):
 
         # self.execute_scenario(TestScenario("small_1"), smart=False)
 
-        while True:
-            self.execute_scenario(TestScenario("large_3",
-                                            custom_start_heading=math.radians(90), 
-                                            custom_goal_heading=math.radians(45)), path_step_size=100.0)
+        # while True:
+        #     self.execute_scenario(TestScenario("large_3",
+        #                                     custom_start_heading=math.radians(90), 
+        #                                     custom_goal_heading=math.radians(45)), path_step_size=100.0)
         
-        # self.execute_scenario(TestScenario("small_3"), smart=False)        
+        self.execute_scenario(TestScenario("small_1"), smart=False)    
 
 
 if __name__ == "__main__":
