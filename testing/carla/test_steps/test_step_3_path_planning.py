@@ -54,6 +54,9 @@ def execute_plan (seq: int) -> None:
         next_goal=result.map_next_goal,
         velocity=1.0
     )
+    
+    # f = data.og.get_color_frame()
+    # cv2.imwrite("test_output.png", f)
 
     local_planner.plan(data)
 

@@ -29,7 +29,7 @@ COORD_ORIGIN = WorldPose(lat=-4.303359446566901e-09,
                       alt=1.0149892568588257,
                       heading=0)
 
-class FindGoalPoingDemo(QWidget):
+class FindGoalPointDemo(QWidget):
     
     L1: Waypoint
     L2: Waypoint
@@ -143,6 +143,7 @@ class FindGoalPoingDemo(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = FindGoalPoingDemo("bev_1.png")
+    #window = FindGoalPointDemo("bev_1.png")
+    window = FindGoalPointDemo("planning_data/bev_1.png")
     window.show()
     sys.exit(app.exec_())

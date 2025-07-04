@@ -9,8 +9,12 @@ class PhysicalParameters:
     OG_WIDTH_PX_TO_METERS_RATE: float = OG_REAL_WIDTH / OG_WIDTH
     OG_HEIGHT_PX_TO_METERS_RATE: float = OG_REAL_HEIGHT / OG_HEIGHT
        
-    MIN_DISTANCE_WIDTH_PX: int = 22
-    MIN_DISTANCE_HEIGHT_PX: int = 40
+    # MIN_DISTANCE_WIDTH_PX: int = 22
+    # MIN_DISTANCE_HEIGHT_PX: int = 40
+
+    MIN_DISTANCE_WIDTH_PX: int = 16
+    MIN_DISTANCE_HEIGHT_PX: int = 34
+
 
     EGO_LOWER_BOUND: Waypoint = Waypoint(119, 148) 
     EGO_UPPER_BOUND: Waypoint =  Waypoint(137, 108)
