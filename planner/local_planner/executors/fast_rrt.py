@@ -23,10 +23,13 @@ class FastRRT(LocalPathPlannerExecutor):
      __planner_data: PlanningData
      __debug_og: np.ndarray
     
+    
+    
      def __init__(self, 
                  timeout_ms: int):
         
         self.__result = None
+        self.__name__ = "FastRRT"
         FastRRT.setup_cpp_lib(None)
         
         self.__ptr = FastRRT.lib.fastrrt_initialize(
@@ -181,7 +184,7 @@ class FastRRT(LocalPathPlannerExecutor):
         start: Waypoint = goal_result.start
         goal: Waypoint = goal_result.goal
         
-        self.__debug_og = planner_data.og.get_color_frame()
+        #self.__debug_og = planner_data.og.get_color_frame()
         
         FastRRT.lib.set_plan_data(
             self.__ptr, 
@@ -198,7 +201,7 @@ class FastRRT(LocalPathPlannerExecutor):
         self.__plan = True
         self.set_exec_started()
         FastRRT.lib.search_init(self.__ptr, False)
-        planner_data.og.get_cuda_frame().update_frame()
+     #   planner_data.og.get_cuda_frame().update_frame()
      #    f = planner_data.og.get_cuda_frame().get_frame()
      #    n = np.full(f.shape, fill_value=0.0)
      #    for z in range(f.shape[0]):
@@ -216,10 +219,10 @@ class FastRRT(LocalPathPlannerExecutor):
      def __local_planning(self):
         
           while self.__plan and FastRRT.lib.loop(self.__ptr, False):
-               p = self.export_graph_nodes()
-               for node in p:
-                    self.__debug_og[node[1], node[0]] = [255, 255, 255]
-               cv2.imwrite("fast_rrt_debug.png", self.__debug_og)               
+               # p = self.export_graph_nodes()
+               # for node in p:
+               #      self.__debug_og[node[1], node[0]] = [255, 255, 255]
+               # cv2.imwrite("fast_rrt_debug.png", self.__debug_og)               
                pass
 
           if not FastRRT.lib.goal_reached(self.__ptr):

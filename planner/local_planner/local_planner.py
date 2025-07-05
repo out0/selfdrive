@@ -70,6 +70,9 @@ class LocalPlanner:
         if self.__planner_result is not None:
             return self.__planner_result
         return self.__path_planner.get_result()
+    
+    def get_path_version(self) -> int:
+        return self.__path_planner.get_path_version()
 
     def __get_local_planner_algorithm(self, type: LocalPlannerType) -> LocalPathPlannerExecutor:
         match type:

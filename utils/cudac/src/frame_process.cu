@@ -2,6 +2,15 @@
 #include "../include/class_def.h"
 #include <math_constants.h>
 
+#ifdef __CUDA_ARCH__
+    // On GPU, use CUDA-specific rounding
+    #define TO_INT(x) __double2int_rn(x)
+#else
+    // On CPU, use standard rounding
+    #include <cmath>
+    #define TO_INT(x) static_cast<int>(roundf(x))
+#endif
+
 // static void __DEBUG_print_params(int *params) {
 //     fprintf (stdout, "width: %d\n", params[0]);
 //     fprintf (stdout, "height: %d\n", params[1]);
@@ -15,98 +24,10 @@
 //     fprintf (stdout, "upper_bound_ego_z: %d\n", params[9]);
 // }
 
-__device__ static bool __CUDA_KERNEL_ComputeFeasibleForAngle(
-    float3 *frame,
-    int *classCost,
-    int x,
-    int z,
-    float angle_radians,
-    int width,
-    int height,
-    int min_dist_x,
-    int min_dist_z,
-    int lower_bound_ego_x,
-    int lower_bound_ego_z,
-    int upper_bound_ego_x,
-    int upper_bound_ego_z)
-{
-    float c = cosf(angle_radians);
-    float s = sinf(angle_radians);
+extern __device__ bool __CUDA_KERNEL_ComputeFeasibleForAngle(float3 *frame, int *classCost, int x, int z, float angle_radians, int width, int height, int min_dist_x, int min_dist_z, int lower_bound_ego_x, int lower_bound_ego_z, int upper_bound_ego_x, int upper_bound_ego_z);
+extern __device__ float __CUDA_KERNEL_ComputeHeading(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height);
+extern __device__ float __CUDA_KERNEL_ComputeHeading_Unbound_Values(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height);
 
-    for (int j = -min_dist_z; j <= min_dist_z; j++)
-        for (int i = -min_dist_x; i <= min_dist_x; i++)
-        {
-            int xl = __float2int_rn(j * c - i * s + x);
-            int zl = __float2int_rn(j * s + i * c + z);
-
-            if (xl < 0 || xl >= width)
-                continue;
-
-            if (zl < 0 || zl >= height)
-                continue;
-
-            if (xl >= lower_bound_ego_x && xl <= upper_bound_ego_x && zl >= upper_bound_ego_z && zl <= lower_bound_ego_z)
-                continue;
-
-            int segmentation_class = __float2int_rn(frame[zl * width + xl].x);
-
-            if (classCost[segmentation_class] < 0)
-            {
-                // if (x == 115 && z == 16)
-                // {
-                //     printf("(%d, %d) not feasible on angle %f because of position: (%d, %d)\n", x, z, angle_radians * 180 / CUDART_PI_F, xl, zl);
-                //     printf("(%d, %d) min distances: W: %d  H: %d\n",  x, z, min_dist_x, min_dist_z);
-                // }
-                return false;
-            }
-        }
-
-    // if (x == 115 && z == 16)
-    // {
-    //     printf("(%d, %d) feasible on angle %f\n", x, z, angle_radians * 180 / CUDART_PI_F);
-    // }
-    return true;
-}
-
-__device__ static float __CUDA_KERNEL_ComputeHeading(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height)
-{
-    *valid = false;
-    if (p1_x == p2_x && p1_y == p2_y)
-        return 0.0;
-
-    if (p1_x < 0 || p1_y < 0 || p2_x < 0 || p2_y < 0)
-        return 0.0;
-
-    if (p1_x >= width || p1_y >= height || p2_x >= width || p2_y >= height)
-        return 0.0;
-
-    float dx = p2_x - p1_x;
-    float dz = p2_y - p1_y;
-    *valid = true;
-    float heading = CUDART_PI_F / 2 - atan2f(-dz, dx);
-
-    if (heading > CUDART_PI_F) // greater than 180 deg
-        heading = heading - 2 * CUDART_PI_F;
-
-    return heading;
-}
-
-__device__ static float __CUDA_KERNEL_ComputeHeading_Unbound_Values(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height)
-{
-    *valid = false;
-    if (p1_x == p2_x && p1_y == p2_y)
-        return 0.0;
-
-    float dx = p2_x - p1_x;
-    float dz = p2_y - p1_y;
-    *valid = true;
-    float heading = CUDART_PI_F / 2 - atan2f(-dz, dx);
-
-    if (heading > CUDART_PI_F) // greater than 180 deg
-        heading = heading - 2 * CUDART_PI_F;
-
-    return heading;
-}
 
 #ifdef DEBUG_SET_GOAL_VECTOR
 __device__ static void __CUDA_KERNEL_FrameColor_Debug(float3 *frame, int width, int height, uchar3 *classColors)
@@ -129,6 +50,19 @@ __device__ static void __CUDA_KERNEL_FrameColor_Debug(float3 *frame, int width, 
 }
 #endif
 
+__device__ int compute_waypoint_cost(int x, int z, int goal_x, int goal_z) {
+    int dx = goal_x - x;
+    int dz = goal_z - z;
+
+    
+    int cost = TO_INT(sqrtf(dx * dx + dz * dz)) % 10000000;
+
+    if (goal_z < 0)
+        cost = (1 + z) * cost;
+
+    return cost;
+}
+
 __global__ static void __CUDA_KERNEL_bestWaypointCostForHeading(float3 *frame, int *params, int *classCost, float angle, int *bestCost)
 {
     int width = params[0];
@@ -149,28 +83,14 @@ __global__ static void __CUDA_KERNEL_bestWaypointCostForHeading(float3 *frame, i
 
     int goal_x = params[2];
     int goal_z = params[3];
-
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[5];
-#endif
-
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];
     int upper_bound_ego_z = params[9];
 
-    int dx = goal_x - x;
-    int dz = goal_z - z;
 
-    int cost = (dx * dx + dz * dz) % 10000000;
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
@@ -183,7 +103,7 @@ __global__ static void __CUDA_KERNEL_bestWaypointCostForHeading(float3 *frame, i
         return;
     }
 
-    atomicMin(bestCost, cost);
+    atomicMin(bestCost, compute_waypoint_cost(x, z, goal_x, goal_z));
 }
 
 __global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params, int *classCost, int *bestCost)
@@ -206,28 +126,12 @@ __global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params,
 
     int goal_x = params[2];
     int goal_z = params[3];
-
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[5];
-#endif
-
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];
     int upper_bound_ego_z = params[9];
-
-    int dx = goal_x - x;
-    int dz = goal_z - z;
-
-    int cost = (dx * dx + dz * dz) % 10000000;
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
@@ -252,7 +156,7 @@ __global__ static void __CUDA_KERNEL_bestWaypointPos(float3 *frame, int *params,
     // if (cost < 410)
     //     printf("[bestWaypointPos] (%d, %d) feasible angle = %f (%f degrees) with cost %d\n", x, z, angle, angle_d, cost);
 
-    atomicMin(bestCost, cost);
+    atomicMin(bestCost, compute_waypoint_cost(x, z, goal_x, goal_z));
 }
 
 __global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame, int *params, int *classCost, int *bestCost, float angle, int *waypoint)
@@ -275,28 +179,14 @@ __global__ static void __CUDA_KERNEL_findWaypointForCostAndHeading(float3 *frame
 
     int goal_x = params[2];
     int goal_z = params[3];
-
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[5];
-#endif
-
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];
     int upper_bound_ego_z = params[9];
 
-    int dx = goal_x - x;
-    int dz = goal_z - z;
-
-    int cost = (dx * dx + dz * dz) % 10000000;
+    int cost = compute_waypoint_cost(x, z, goal_x, goal_z);
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
@@ -336,28 +226,14 @@ __global__ static void __CUDA_KERNEL_findBestHeadingForCost(float3 *frame, int *
 
     int goal_x = params[2];
     int goal_z = params[3];
-
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[5];
-#endif
-
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];
     int upper_bound_ego_z = params[9];
 
-    int dx = goal_x - x;
-    int dz = goal_z - z;
-
-    int cost = (dx * dx + dz * dz) % 10000000;
+    int cost = compute_waypoint_cost(x, z, goal_x, goal_z);
 
     if (x >= lower_bound_ego_x && x <= upper_bound_ego_x && z >= upper_bound_ego_z && z <= lower_bound_ego_z)
         return;
@@ -697,19 +573,8 @@ __global__ static void __CUDA_KERNEL_WaypointInDirection_findWaypoint(float3 *fr
 
     int goal_x = params[2];
     int goal_z = params[3];
-
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[5];
-#endif
-
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];
@@ -928,18 +793,8 @@ __global__ static void __CUDA_KERNEL_checkFeasibleWaypoints(float3 *frame, int *
 
     waypoints[pos].w = 1;
 
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[2];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[3];
-#endif
-
     int lower_bound_ego_x = params[4];
     int lower_bound_ego_z = params[5];
     int upper_bound_ego_x = params[6];
@@ -1179,18 +1034,8 @@ __global__ static void __CUDA_KERNEL_SetGoalVectorized(float3 *frame, int *param
     int goal_x = params[2];
     int goal_z = params[3];
 
-#ifdef MINIMAL_DISTANCE_X
-    int min_dist_x = MINIMAL_DISTANCE_X;
-#else
     int min_dist_x = params[4];
-#endif
-
-#ifdef MINIMAL_DISTANCE_Z
-    int min_dist_z = MINIMAL_DISTANCE_Z;
-#else
     int min_dist_z = params[5];
-#endif
-
     int lower_bound_ego_x = params[6];
     int lower_bound_ego_z = params[7];
     int upper_bound_ego_x = params[8];

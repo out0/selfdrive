@@ -33,6 +33,9 @@ class LocalPathPlannerExecutor:
     def get_result(self) -> PlanningResult:
         pass
     
+    def get_path_version(self) -> int:
+        return 1
+    
     def destroy(self) -> None:
         pass
     

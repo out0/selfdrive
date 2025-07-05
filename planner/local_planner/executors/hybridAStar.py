@@ -27,7 +27,7 @@ TURNING_COST = 5
 REVERSE_COST = 100
 
 
-DEBUG = True
+DEBUG = False
 
 # SAFE_W = 10
 # SAFE_H = 20

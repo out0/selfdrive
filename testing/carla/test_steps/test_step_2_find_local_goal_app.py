@@ -50,6 +50,14 @@ class FindGoalPointDemo(QWidget):
                 lower_bound=PhysicalParameters.EGO_LOWER_BOUND,
                 upper_bound=PhysicalParameters.EGO_UPPER_BOUND
             )
+        
+        self.og = OccupancyGrid(
+                frame=bev_orig,
+                minimal_distance_x=14,
+                minimal_distance_z=30,
+                lower_bound=PhysicalParameters.EGO_LOWER_BOUND,
+                upper_bound=PhysicalParameters.EGO_UPPER_BOUND
+            )
     
         bev = self.og.get_color_frame()
 

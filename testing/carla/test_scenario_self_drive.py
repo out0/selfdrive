@@ -212,7 +212,7 @@ def drive_scenario (client: CarlaClient, file: str):
         planning_data_builder=data_builder,
         controller_response=controller_response,
         slam=data_builder.get_slam(),
-        local_planner_type=LocalPlannerType.FastRRT,
+        local_planner_type=LocalPlannerType.ParallelEnsemble,
         enable_collision_detector=False,
     )
     

@@ -39,10 +39,14 @@ SET(TARGET_H
 add_library( ${CMAKE_PROJECT_NAME} SHARED
     src/frame_color.cu
     src/frame_process.cu
+    src/frame_collision_check.cu
+    src/frame_heading.cu
     src/python_bind.cpp
     src/driveless_cuda_frame.cpp
     src/python_bind.cpp
 )
+
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 if(CUDA_LIB_JETSON)
     target_link_libraries( ${PROJECT_NAME}

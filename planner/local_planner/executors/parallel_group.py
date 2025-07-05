@@ -8,6 +8,7 @@ from planner.local_planner.executors.interpolator import InterpolatorPlanner
 from planner.local_planner.executors.overtaker import OvertakerPlanner
 from planner.local_planner.executors.hybridAStar import HybridAStarPlanner
 from planner.local_planner.executors.rrtStar2 import RRTPlanner
+from planner.local_planner.executors.fast_rrt import FastRRT
 from planner.goal_point_discover import GoalPointDiscoverResult
 from utils.jerk import CurveAssessment, CurveData
 
@@ -18,6 +19,7 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
     __overtaker: OvertakerPlanner
     __hybrid__astar: HybridAStarPlanner
     __rrt_star: RRTPlanner
+    __fast_rrt: FastRRT
     __max_exec_time_ms: int
     __planner_data: PlanningData
     __exec_plan: bool
@@ -35,7 +37,8 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
         self.__interpolator = InterpolatorPlanner(map_converter, max_exec_time_ms)
         self.__overtaker = OvertakerPlanner(max_exec_time_ms, map_converter)
         self.__hybrid__astar = HybridAStarPlanner(max_exec_time_ms, map_converter, 10)
-        self.__rrt_star = RRTPlanner(max_exec_time_ms, 500)
+        #self.__rrt_star = RRTPlanner(max_exec_time_ms, 500)
+        self.__fast_rrt = FastRRT(max_exec_time_ms)
         self.__exec_plan = False
         self.__max_exec_time_ms = max_exec_time_ms
         self.__planner_data = None
@@ -57,7 +60,8 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
         self.__interpolator.cancel()
         self.__hybrid__astar.cancel()
         self.__overtaker.cancel()
-        self.__rrt_star.cancel()
+        #self.__rrt_star.cancel()
+        self.__fast_rrt.cancel()
 
     def is_planning(self) -> bool:
         return self.__exec_plan
@@ -73,15 +77,9 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
     
     def __check_planner_coarse(self, planner: LocalPathPlannerExecutor) -> tuple[bool, bool, PlanningResult, CurveData]:
 
-        if planner.NAME == "Hybrid A*":
-            pass
-        
         if planner.is_planning():
             return [False, True, None, None]
-        
-        if planner.NAME == "Hybrid A*":
-            pass
-        
+       
         res = planner.get_result()
         if res == None:
             return [False, False, None, None]
@@ -124,7 +122,9 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
             return 2*cost
         return cost
         
-
+    def get_path_version(self) -> int:
+        return self.__path_version
+        
     
     def __execute_supervised_planning(self) -> None:
         self.__exec_plan = True
@@ -134,15 +134,16 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
         self.__interpolator.plan(self.__planner_data, self.__goal_result)
         self.__hybrid__astar.plan(self.__planner_data, self.__goal_result)
         self.__overtaker.plan(self.__planner_data, self.__goal_result)
+        self.__fast_rrt.plan(self.__planner_data, self.__goal_result)
         #self.__rrt_star.plan(self.__planner_data, self.__goal_result)
         self.__path_version = 0
 
         planning_set_exec = []
-        planning_set = [self.__interpolator, self.__overtaker, self.__hybrid__astar, self.__rrt_star]
+        planning_set = [self.__interpolator, self.__overtaker, self.__hybrid__astar, self.__fast_rrt]
         planning_set_size = len(planning_set)
         planning_set_exec = [True] * (2 * planning_set_size)
         
-        best_res = None
+        self.__plan_result = None
         best_path_quality_cost: float = float('inf')
         
         while (not self._check_timeout()):
@@ -161,17 +162,17 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
                         continue
                     cost = self.__curve_quality_cost(path_quality, self.__goal_result.goal)
                     
-                    if best_res is None:
-                        best_res = res
+                    if self.__plan_result is None:
+                        self.__plan_result = res
                         best_path_quality_cost = cost
                         self.__path_version = 1
-                        #self.__exec_plan = True
+                        self.__exec_plan = False
                         print("ready to exec plan")
                     elif cost < best_path_quality_cost:
-                        best_res = res
+                        self.__plan_result = res
                         best_path_quality_cost = cost
                         self.__path_version += 1
-                        #self.__exec_plan = True
+                        self.__exec_plan = False
                         print(f"a new path is ready")
                 
                 elif planning_set_exec[planning_set_size + i]:
@@ -184,21 +185,19 @@ class ParallelGroupPlanner(LocalPathPlannerExecutor):
 
                     cost = self.__curve_quality_cost(path_quality, self.__goal_result.goal)
                     
-                    if best_res is None:
-                        best_res = res
+                    if self.__plan_result is None:
+                        self.__plan_result = res
                         best_path_quality_cost = cost
                         self.__path_version = 1
-                        #self.__exec_plan = True
+                        self.__exec_plan = False
                         print("ready to exec plan")
                     elif cost < best_path_quality_cost:
-                        best_res = res
+                        self.__plan_result = res
                         best_path_quality_cost = cost
                         self.__path_version += 1
-                        #self.__exec_plan = True
+                        self.__exec_plan = False
                         print(f"a new path is ready, from (optim) planner {planning_set[i].__name__}")
-                    
-            
-        self.__plan_result = best_res
+                            
         self.__exec_plan = False
         #print("terminating planners")
         self.cancel()

@@ -20,7 +20,7 @@ from utils.telemetry import Telemetry
 
 PROXIMITY_RATE_TO_GET_NEXT_PATH_SEGMENT = 0.9
 MOTION_CONTROLLER_EXEC_PERIOD_MS = 5
-LONGITUDINAL_EXEC_PERIOD_MS = 100
+LONGITUDINAL_EXEC_PERIOD_MS = 20
 
 class ControllerState(Enum):
     ON_HOLD = 0
@@ -76,8 +76,8 @@ class SelfDriveController(DiscreteComponent):
     MOTION_CONTROLLER_PERIOD_MS = 2
     LONGITUDINAL_CONTROLLER_PERIOD_MS = 10
     COLLISION_DETECTOR_PERIOD_MS = 150
-    PLAN_TIMEOUT=2000
-    #PLAN_TIMEOUT=-1
+    #PLAN_TIMEOUT=300
+    PLAN_TIMEOUT=-1
     SPEED_MS = 2.0
 
     def __callibrate_self_location(self) -> WorldPose:
@@ -131,6 +131,7 @@ class SelfDriveController(DiscreteComponent):
         self._coord = slam.get_coordinate_converter()
         self.__initialize_local_planner(local_planner_type)
         self.__initialize_motion_controller(ego)
+        self.__path_being_tracked = None
         
         if enable_collision_detector:
             self.__initialize_collision_detector(planning_data_builder)
@@ -186,12 +187,26 @@ class SelfDriveController(DiscreteComponent):
         self.cancel()
         self._driving_path = path
         self._state = ControllerState.START_PLANNING
+        
+    def __check_path_track_changeable(self) -> bool:
+        # TO DO
+        return False
+        pass
+    
+    def __try_changing_tracking_path(self) -> None:
+        if not self.__check_path_track_changeable():
+            return False
+        self._state = ControllerState.EXECUTE_MISSION
+        return True
+        
 
     def _loop(self, dt: float) -> None:
+        last_path_version = 0
         match self._state:
             case ControllerState.ON_HOLD:
                 return
             case ControllerState.START_PLANNING:
+                last_path_version = 0
                 self._state = self.__plan_next()
                 return
             case ControllerState.WAIT_PLANNING:
@@ -205,6 +220,10 @@ class SelfDriveController(DiscreteComponent):
                 return
 
             case ControllerState.WAIT_MISSION_EXECUTION:
+                v = self.__local_planner.get_path_version()
+                if v != last_path_version:
+                    if self.__try_changing_tracking_path():
+                        last_path_version = v
                 time.sleep(0.001)
                 return
     
@@ -279,7 +298,10 @@ class SelfDriveController(DiscreteComponent):
     def __execute_mission(self) -> ControllerState:
         res = self.__local_planner.get_result()
         if res is None:
-            return
+            self._motion_controller.cancel()
+            self._motion_controller.brake()
+            self.__local_planner.cancel()
+            return ControllerState.START_PLANNING
         
         Telemetry.log_planning_data(self._last_planning_data, res)
         
@@ -300,8 +322,10 @@ class SelfDriveController(DiscreteComponent):
             
             case PlannerResultType.INVALID_PATH:
                 self.__report_invalid_path(res)
-                self.cancel()
-                return ControllerState.ON_HOLD
+                #self.cancel()
+                #return ControllerState.ON_HOLD
+                self._driving_path_pos += 1
+                return ControllerState.START_PLANNING
             
             case PlannerResultType.TOO_CLOSE:
                 if self._last_planning_data.next_goal is None:
@@ -315,6 +339,7 @@ class SelfDriveController(DiscreteComponent):
         
         self.__report_executing_mission(res, ideal_motion_path)
         self.__perform_motion(ideal_motion_path)
+        self.__path_being_tracked = res
         return ControllerState.WAIT_MISSION_EXECUTION
     
     def __report_invalid_start(self, res: PlanningResult) -> None:
@@ -375,6 +400,7 @@ class SelfDriveController(DiscreteComponent):
 
     def __perform_motion(self, path: list[MapPose]) -> None:
         # TODO: must convert path
+        #self._motion_controller.set_path(path, velocity=4.0)
         self._motion_controller.set_path(path, velocity=4.0)
         if self._collision_detector is not None:
             self._collision_detector.watch_path(path)

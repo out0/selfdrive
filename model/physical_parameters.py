@@ -12,8 +12,8 @@ class PhysicalParameters:
     # MIN_DISTANCE_WIDTH_PX: int = 22
     # MIN_DISTANCE_HEIGHT_PX: int = 40
 
-    MIN_DISTANCE_WIDTH_PX: int = 16
-    MIN_DISTANCE_HEIGHT_PX: int = 34
+    MIN_DISTANCE_WIDTH_PX: int = 14
+    MIN_DISTANCE_HEIGHT_PX: int = 30
 
 
     EGO_LOWER_BOUND: Waypoint = Waypoint(119, 148) 
