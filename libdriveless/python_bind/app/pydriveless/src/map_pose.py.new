@@ -1,0 +1,234 @@
+import math
+from .angle import angle
+import numpy as np
+import ctypes
+import os
+
+class MapPose:
+    x: float
+    y: float
+    z: float
+    heading: angle
+
+    def __init__(self, x: float, y: float, z: float, heading: angle = None):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.heading = heading
+        
+        if self.heading is None:
+            self.heading = angle.new_rad(0)
+            
+        if (isinstance(heading, int) or isinstance(heading, float)):
+            self.heading = angle.new_rad(heading)
+        
+    def __eq__(self, other: 'MapPose'):
+        return  self.x == other.x and\
+                self.y == other.y and\
+                self.z == other.z and\
+                self.heading == other.heading
+    
+    def __add__(self, other) -> 'MapPose':
+        if isinstance(other, MapPose):
+            return MapPose (
+                self.x + other.x,
+                self.y + other.y,
+                self.z + other.z,
+                self.heading + other.heading
+            )
+        else:
+            return MapPose (
+                self.x + other,
+                self.y + other,
+                self.z + other,
+                self.heading
+            )
+    def __sub__(self, other) -> 'MapPose':
+        if isinstance(other, MapPose):
+            return MapPose (
+                self.x - other.x,
+                self.y - other.y,
+                self.z - other.z,
+                self.heading - other.heading
+            )
+        else:
+            return MapPose (
+                self.x - other,
+                self.y - other,
+                self.z - other,
+                self.heading
+            )
+            
+    def clone(self) -> 'MapPose':
+        return MapPose(
+            self.x,
+            self.y,
+            self.z,
+            self.heading
+        )
+
+
+    @classmethod    
+    def are_close(cls, p1: 'MapPose', p2: 'MapPose') -> bool:
+        return  math.isclose(p1.x, p2.x, rel_tol=1e-2) and\
+                math.isclose(p1.y, p2.y, rel_tol=1e-2)
+    
+    @classmethod
+    def distance_between(cls, p1 : 'MapPose', p2 : 'MapPose') -> float:
+        dx = p2.x - p1.x
+        dy = p2.y - p1.y
+        return math.sqrt(dx**2 + dy**2)
+    
+    @classmethod
+    def dot(cls, p1 : 'MapPose', p2 : 'MapPose') -> float:
+        return p1.x * p2.x + p1.y * p2.y
+
+    @classmethod
+    def from_str(cls, payload: str) -> 'MapPose':
+        if payload == 'None':
+            return None
+        
+        p = payload.split("|")
+        return MapPose(
+            float(p[0]),
+            float(p[1]),
+            float(p[2]),
+            angle.new_deg(float(p[3]))
+        )
+
+
+    @classmethod
+    def distance_to_line(cls, line_p1: 'MapPose', line_p2: 'MapPose', p: 'MapPose') -> float:
+        dx = line_p2.x - line_p1.x
+        dy = line_p2.y - line_p1.y
+
+        if dx == 0 and dy == 0:
+            return 0
+       
+        num = dx*(line_p1.y - p.y) - (line_p1.x - p.x)*dy
+        den = math.sqrt((dx ** 2 + dy ** 2))
+        return num / den
+
+    @classmethod
+    def compute_path_heading(cls, p1: 'MapPose', p2: 'MapPose') -> float:
+        dy = p2.y - p1.y
+        dx = p2.x - p1.x
+
+        if dy >= 0 and dx > 0:                      # Q1
+            a = math.atan(dy/dx)
+            return angle.new_rad(a)
+        elif dy >= 0 and dx < 0:                    # Q2
+            a = math.pi - math.atan(dy/abs(dx))
+            return angle.new_rad(a)
+        elif dy < 0 and dx > 0:                     # Q3
+            a =  -math.atan(abs(dy)/dx)
+            return angle.new_rad(a)
+        elif dy < 0 and dx < 0:                     # Q4
+            a = math.atan(dy/dx) - math.pi
+            return angle.new_rad(a)
+        elif dx == 0 and dy > 0:
+            a =  math.pi / 2
+            return angle.new_rad(a)
+        elif dx == 0 and dy < 0:
+            a = -math.pi / 2
+            return angle.new_rad(a)
+        
+        return angle.new_rad(0)
+
+
+    @classmethod
+    def project_on_path(cls, p1: 'MapPose', p2: 'MapPose', p: 'MapPose') -> tuple['MapPose', float, float]:
+                
+        path_size = MapPose.distance_between(p1, p2)
+        
+        if path_size == 0:
+            return (None, 0, 0)
+        
+        l = MapPose(
+            (p2.x - p1.x) / path_size,
+            (p2.y - p1.y) / path_size,
+            0, 0
+        )
+        v = MapPose(
+            (p.x - p1.x),
+            (p.y - p1.y),
+            0, 0
+        )
+        distance_from_p1 = MapPose.dot(v, l)
+
+        return MapPose(
+            round(p1.x + l.x * distance_from_p1),
+            round(p1.y + l.y * distance_from_p1),
+            0, angle.new_rad(0)
+        ), distance_from_p1, path_size
+    
+   
+    def __str__(self) -> str:
+        return f"{self.x}|{self.y}|{self.z}|{self.heading.deg()}"
+    
+
+    @classmethod
+    def __get_reference(cls, poses: list['MapPose']):
+        if hasattr(MapPose, "last_poses"):
+            if MapPose.last_poses is poses:
+                return MapPose.poses_ref
+            else:
+                MapPose.lib.map_pose_free_pose_list(MapPose.poses_ref)
+        
+        MapPose.last_poses = poses
+        count = len(poses)
+        data = np.zeros((4 * count), np.float32)
+        i = 0
+        for p in poses:
+            data[i] = p.x
+            data[i+1] = p.y
+            data[i+2] = p.z
+            data[i+3] = p.heading.rad()
+            i += 4
+
+        data = np.ascontiguousarray(data, dtype=np.float32)
+        
+        MapPose.poses_ref = MapPose.lib.map_pose_store_pose_list(data, count)
+        return MapPose.poses_ref
+
+    @classmethod
+    def find_nearest_goal_pose(cls, location: 'MapPose', poses: list['MapPose'], start: int = 0, minDistance: float = 10, maxHopping: int = 5) -> int:
+        MapPose.setup_cpp_lib()
+        ref = MapPose.__get_reference(poses)
+        return MapPose.lib.find_best_next_pose_on_list(ref, location.x, location.y, start, minDistance, maxHopping)
+    
+
+    @classmethod
+    def setup_cpp_lib(cls) -> None:
+        if hasattr(MapPose, "lib"):
+            return
+        
+        lib_path = os.path.join(os.path.dirname(__file__), "../cpp", "libdriveless.so")
+
+        MapPose.lib = ctypes.CDLL(lib_path)     
+        
+        MapPose.lib.map_pose_project_on_path_free.restype = None
+        MapPose.lib.map_pose_project_on_path_free.argtypes = [
+            ctypes.c_void_p
+        ]
+
+        MapPose.lib.map_pose_free_pose_list.restype = None
+        MapPose.lib.map_pose_free_pose_list.argtypes = [
+            ctypes.c_void_p
+        ]
+        
+        MapPose.lib.map_pose_store_pose_list.restype = ctypes.c_void_p
+        MapPose.lib.map_pose_store_pose_list.argtypes = [
+            np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1),
+            ctypes.c_int # count
+        ]  
+
+        MapPose.lib.find_best_next_pose_on_list.restype = ctypes.c_int
+        MapPose.lib.find_best_next_pose_on_list.argtypes = [
+            ctypes.c_void_p, # list ptr
+            ctypes.c_double, # location_x
+            ctypes.c_double, # location_y
+            ctypes.c_int, # first position on list to check
+            ctypes.c_double, # min distance
+            ctypes.c_int  # max_hopping
+        ]

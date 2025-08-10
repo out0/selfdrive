@@ -1,5 +1,0 @@
-{
-    "pre_planning": "{\"result_type\": 0, \"path\": [], \"timeout\": false, \"planner_name\": \"-\", \"total_exec_time_ms\": 0, \"local_start\": \"None\", \"local_goal\": \"None\", \"goal_direction\": 0, \"ego_location\": \"-33.309349060058594|2.0529539585113525|0.02983865700662136|-0.012237547896802425\", \"map_goal\": \"-20.0|1.0|0|0.0\", \"map_next_goal\": \"None\"}",
-    "planning": "{\"result_type\": 5, \"path\": [], \"timeout\": 0, \"planner_name\": \"-\", \"total_exec_time_ms\": 0, \"local_start\": \"(128, 107, 0)\", \"local_goal\": \"(120, 29, 0.0)\", \"goal_direction\": 8, \"ego_location\": \"-33.309349060058594|2.0529539585113525|0.02983865700662136|-0.012237547896802425\", \"map_goal\": \"-20.0|1.0|0|0.0\", \"map_next_goal\": \"None\"}",
-    "collision_report": ""
-}

@@ -27,3 +27,4 @@ testing/carla/planning_data/
 venv/
 test_results/
 utils/fast_rrt/tests/HiDrive
+HiDrive

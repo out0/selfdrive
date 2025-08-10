@@ -1,0 +1,2 @@
+#! /bin/sh
+docker run -it --rm --runtime=nvidia --net=host --env=DISPLAY=$DISPLAY --env=NVIDIA_VISIBLE_DEVICES=all --env=NVIDIA_DRIVER_CAPABILITIES=all --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" carlasim/carla:0.10.0 bash CarlaUnreal.sh -nosound

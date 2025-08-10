@@ -4,23 +4,16 @@ Proof-of-concept of planning aproaches for running a car in a simulated environm
 
 This is a research repo for testing planning theories.
 
-The idea is to put this code into an already built vehicle called The Crawler, for field testing.
-
 Main features:
 
-- Vision: a BEV frame is simulated by putting a camera above the vehicle. This is a temporary resource for allowing the continuity of the research.
-          We're currently using the semantic segmentation feature from the simulation platform rather than using neural networks to predict classes, but
-          it will change very soon in order to reflect real world behavior. 
+- carla_driver: Implements a driver to the Carla Simulator. The simulator basic controls are abstracted as CarlaEgoVehicle, which implements EgoVehicle, an interface that represents any Autonomous Vehicle being controlled. This module also provides carla implementations to many sensors such as GPS, IMU and cameras.
 
-- Global planning: currently using a stub which provides a fixed global goal list
+- decision: The decision-making layer. Here we implement the vehicle motion control, local planning and behavior control state machine.
 
-- Local planning: a fully implemented controller, capable of deciding local goal waypoints, using a local planner approach such as A* (currently implemented) and self-location in the planned mission 
+- libdriveless - Implements the basic features used in this project: basic coordinate elements Waypoint, MapPose, WorldPose, Quaternion, State and CUDA frame for parallel GPU processing.
 
-- Motion execution: a ACC usind PID controller and a Stanley lateral controller were implemented.
+- libfastrrt - Implements our proposal for Fast RRT planning (article under review)
 
-- Behavior control: the AV is capable of planning and replanning and will do it's best to fulfill the mission. If it can't do it, it will
-  notify upper layers, which can perform a global replanning or warning the human operator to takeover the AV.
+- libgpd - Implements our proposal for Local goal planning discover, to allow continuous vehicle navigation in unknown environments  (article under review).
 
-- Manual control: a manual controller is implemented and integrated with an API service for using external tools such as an android app for controlling the
-virtual car, if needed. A small command-line tool can also be used to manually control the AV.
-
+- dev_container - Contains basic configuration to build a local dev environment

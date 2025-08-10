@@ -1,0 +1,190 @@
+#include "../include/interpolator.h"
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_interp.h>
+#include <stdexcept>
+#include <algorithm>
+
+std::vector<Waypoint> Interpolator::cubicSpline(std::vector<Waypoint> &points)
+{
+    size_t n = points.size();
+    if (n < 2)
+    {
+        throw std::invalid_argument("At least two points are required for interpolation.");
+    }
+
+    std::sort(points.begin(), points.end(), [](Waypoint &a, Waypoint &b)
+              { return a.z() < b.z(); });
+
+    points.erase(std::unique(points.begin(), points.end(), [](Waypoint &a, Waypoint &b)
+                             { return a == b; }),
+                 points.end());
+
+    // Extract x and y arrays
+    std::vector<double> x(n), z(n);
+    for (size_t i = 0; i < n; ++i)
+    {
+        x[i] = points[i].x();
+        z[i] = points[i].z();
+    }
+
+    // Initialize GSL spline and accelerator
+    gsl_interp_accel *accel = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, n);
+
+    // Initialize the spline with the data
+    gsl_spline_init(spline, z.data(), x.data(), n);
+
+    const int numInterpolatedPoints = points.size();
+    // Generate interpolated points
+    std::vector<Waypoint> interpolatedPoints;
+    double z_min = z.front();
+    double z_max = z.back();
+    double step = (z_max - z_min) / (numInterpolatedPoints - 1);
+
+    for (int i = 0; i < numInterpolatedPoints; ++i)
+    {
+        double xi = z_min + i * step;
+        double yi = gsl_spline_eval(spline, xi, accel); // Evaluate the spline at xi
+        interpolatedPoints.push_back(Waypoint(yi, xi, angle::deg(0)));
+    }
+
+    // Free GSL resources
+    gsl_spline_free(spline);
+    gsl_interp_accel_free(accel);
+
+    return interpolatedPoints;
+}
+
+typedef struct d2
+{
+    double x, y;
+} d2;
+
+std::vector<Waypoint> Interpolator::hermite(int width, int height, Waypoint p1, Waypoint p2)
+{
+    std::vector<Waypoint> curve;
+
+    // int numPoints = 2 * abs(max(int(p2.z() - p1.z()), int(p2.x() - p1.x()), 100));
+
+    double d = Waypoint::distanceBetween(p1, p2);
+    int numPoints = TO_INT(d);
+    // int numPoints = 100;
+    curve.reserve(numPoints);
+
+    float a1 = p1.heading().rad() - PI / 2;
+    float a2 = p2.heading().rad() - PI / 2;
+
+    // Tangent vectors
+    d2 tan1 = {d * cosf(a1), d * sinf(a1)};
+    d2 tan2 = {d * cosf(a2), d * sinf(a2)};
+
+    int last_x = -1;
+    int last_z = -1;
+
+    for (int i = 0; i < numPoints; ++i)
+    {
+        double t = static_cast<double>(i) / (numPoints - 1);
+
+        double t2 = t * t;
+        double t3 = t2 * t;
+
+        // Hermite basis functions
+        double h00 = 2 * t3 - 3 * t2 + 1;
+        double h10 = t3 - 2 * t2 + t;
+        double h01 = -2 * t3 + 3 * t2;
+        double h11 = t3 - t2;
+
+        double x = h00 * p1.x() + h10 * tan1.x + h01 * p2.x() + h11 * tan2.x;
+        double z = h00 * p1.z() + h10 * tan1.y + h01 * p2.z() + h11 * tan2.y;
+
+        if (x < 0 || x >= width)
+            continue;
+        if (z < 0 || z >= height)
+            continue;
+
+        int cx = static_cast<int>(round(x));
+        int cz = static_cast<int>(round(z));
+
+        if (cx == last_x && cz == last_z)
+            continue;
+        if (cx < 0 || cx >= width)
+            continue;
+        if (cz < 0 || cz >= height)
+            continue;
+
+        double t00 = 6 * t2 - 6 * t;
+        double t10 = 3 * t2 - 4 * t + 1;
+        double t01 = -6 * t2 + 6 * t;
+        double t11 = 3 * t2 - 2 * t;
+
+        double ddx = t00 * p1.x() + t10 * tan1.x + t01 * p2.x() + t11 * tan2.x;
+        double ddz = t00 * p1.z() + t10 * tan1.y + t01 * p2.z() + t11 * tan2.y;
+
+        float heading = static_cast<float>(atan2f(ddz, ddx) + HALF_PI);
+
+        // Interpolated point
+        curve.push_back({cx, cz, angle::rad(heading)});
+        last_x = cx;
+        last_z = cz;
+    }
+
+    return curve;
+}
+
+float *to_float_array(std::vector<Waypoint> res)
+{
+    const int size = res.size();
+//    printf("converting %d points to float array\n", size);
+    float *points = new float[3 * size + 1];
+    int i = 0;
+    points[0] = static_cast<float>(size);
+    for (auto p : res)
+    {
+        const int pos = (3 * i) + 1;
+        points[pos] = static_cast<float>(p.x());
+        points[pos + 1] = static_cast<float>(p.z());
+        points[pos + 2] = p.heading().rad();
+        i++;
+    }
+//    printf("ptr address %x\n", points);
+//    printf("last 3 values in ptr: address %f, %f, %f\n", points[3 * size - 2], points[3 * size - 1], points[3 * size]);
+    return points;
+}
+std::vector<Waypoint> from_float_array(float *arr)
+{
+    std::vector<Waypoint> res;
+    if (arr == nullptr)
+        return res;
+
+    int count = static_cast<int>(arr[0]);
+    res.reserve(count);
+
+    for (int i = 0; i < count; i++)
+    {
+        const int pos = 3 * i + 1;
+        res.push_back(Waypoint(static_cast<int>(arr[pos]), static_cast<int>(arr[pos + 1]), angle::rad(arr[pos + 2])));
+    }
+    return res;
+}
+
+extern "C"
+{
+
+    float *interpolate_hermite(int width, int height, int x1, int z1, float h1_rad, int x2, int z2, float h2_rad)
+    {
+        std::vector<Waypoint> res = Interpolator::hermite(width, height, Waypoint(x1, z1, angle::rad(h1_rad)), Waypoint(x2, z2, angle::rad(h2_rad)));
+        return to_float_array(res);
+    }
+
+    float *interpolate_cubic_spline(float *arr)
+    {
+        std::vector<Waypoint> points = from_float_array(arr);
+        auto interpol_points = Interpolator::cubicSpline(points);
+        return to_float_array(interpol_points);
+    }
+
+    void free_interpolation_arr(float *arr)
+    {
+        delete[] arr;
+    }
+}
