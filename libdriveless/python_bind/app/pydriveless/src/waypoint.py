@@ -10,14 +10,17 @@ class Waypoint:
     __z: int
     __heading: angle
     __checked_as_feasible: bool
+    __reversed: bool
     
     def __init__(self, 
                  x: int, 
                  z: int, 
-                 heading: angle = None):
+                 heading: angle = None,
+                 reversed: bool = False):
         self.__x = int(x)
         self.__z = int(z)
         self.__heading = heading
+        self.__reversed = reversed
         
         if self.__heading is None:
             self.__heading = angle.new_rad(0)
@@ -70,6 +73,10 @@ class Waypoint:
     @property
     def heading(self) -> angle:
         return self.__heading
+
+    @property
+    def reversed(self) -> bool:
+        return self.__reversed
 
     def __str__(self):
         return f"({self.__x}, {self.__z}, {self.__heading.deg()})"

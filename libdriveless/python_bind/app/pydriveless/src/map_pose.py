@@ -39,16 +39,19 @@ class MapPose:
     __y: float
     __z: float
     __heading: angle
+    __reversed: bool
 
     def __init__(self, 
                  x: float, 
                  y: float, 
                  z: float, 
-                 heading: angle = None):
+                 heading: angle = None,
+                 reversed: bool = False):
         self.__x = x
         self.__y = y
         self.__z = z
         self.__heading = heading
+        self.__reversed = reversed
         
         if self.__heading is None:
             self.__heading = angle.new_rad(0)
@@ -140,7 +143,11 @@ class MapPose:
     def heading(self) -> angle:
         return self.__heading
 
-    
+    @property
+    def reversed(self) -> bool:
+        return self.__reversed
+
+
     def __eq__(self, other: 'MapPose'):
         return  self.__x == other.x and\
                 self.__y == other.y and\

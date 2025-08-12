@@ -28,3 +28,4 @@ venv/
 test_results/
 utils/fast_rrt/tests/HiDrive
 HiDrive
+*.so

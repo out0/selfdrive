@@ -81,7 +81,7 @@ class CoordinateConverter:
         x = int(round(self.__center.x + p1))
         z = int(round(self.__center.z - p0))
 
-        return Waypoint(x, z, target.heading - location.heading)
+        return Waypoint(x, z, target.heading - location.heading, reversed=target.reversed)
     
     def __convertWaypointToMap(self, location: MapPose, target: Waypoint) -> MapPose:
         p0 = self.__center.z - target.z
@@ -96,7 +96,7 @@ class CoordinateConverter:
             x,
             y,
             location.z,
-            target.heading + location.heading)
+            target.heading + location.heading, reversed=target.reversed)
     
     def convert(self, location: MapPose, pose: Union[MapPose, Waypoint]) -> Union[MapPose, Waypoint]:
         if isinstance(pose, MapPose):
