@@ -11,10 +11,10 @@ import heapq
 import numpy as np
 import math
 from .reeds_shepp import ReedsShepp
-import cv2
+import cv2, time
 
-ORIGINAL_CPU_CHECK = False
-DEBUG = True
+ORIGINAL_CPU_CHECK = True
+DEBUG = False
 
 class Node:
     g_cost: float
@@ -47,6 +47,7 @@ class Node:
         self.global_pose = global_pose
         self.reverse = reverse
         self.delta_heading = delta_heading
+        self._segment_list = []
 
     def __gt__(self, other: 'Node'):
         return self.f_cost > other.f_cost
@@ -91,7 +92,8 @@ class IHASConfig:
         self.B_C = B_C
         self.SB_C = SB_C
 
-class InformedHybridA(LocalPlannerExecutor):
+
+class IHaS:
     MAX_COST = 999999999
 
     _map_coordinate_converter: CoordinateConverter
@@ -102,9 +104,9 @@ class InformedHybridA(LocalPlannerExecutor):
     _min_distance: tuple[int, int]
     _reed_shepp: ReedsShepp
     _goal: Waypoint
+    _result_path: list[Waypoint]
 
     def __init__(self, conv: CoordinateConverter, veh_dims: tuple[int, int], max_exec_time_ms: float = -1, ):
-        super().__init__("IHaS", max_exec_time_ms)
         self._map_coordinate_converter = conv
         self._cfg = IHASConfig(
             veh_dims = veh_dims,
@@ -123,16 +125,39 @@ class InformedHybridA(LocalPlannerExecutor):
             SB_C = 0
         )
         self._lr = PhysicalParameters.VEHICLE_LENGTH_M / 2
+        self._result_path = None
         
 
-    def __check_local_curves_cpu(self, curves: list[tuple[list[MapPose], list[Waypoint]]]) -> bool:
-        # TODO
-        feasible_curves = [False for _ in range(len(curves))]
-        return feasible_curves
+    def __check_local_curves_cpu(self,  curves: list[tuple[list[MapPose], list[Waypoint]]]) -> bool:
+        return [self.__check_local_curve_cpu(curve[1]) for curve in curves]
     
     def __check_local_curve_cpu(self, curve: list[Waypoint]) -> bool:
-        # TODO
-        return False
+        W = self._width
+        H = self._height
+
+        #f = self._og_debug.copy()
+        min_w, min_h = self._min_distance[0] // 2, self._min_distance[1] // 2 
+
+        for point in curve:
+            c = math.cos(point.heading.rad())
+            s = math.sin(point.heading.rad())
+            
+            #print (f"checking {point}")
+
+            for z in range(-min_h, min_h + 1):
+                for x in range(-min_w, min_w + 1):
+                    xp = int(c*x + s*z + point.x)
+                    zp = int(-s*x + c*z + point.z)
+                    if xp < 0 or xp >= W: continue
+                    if zp < 0 or zp >= H: continue
+                    if self._og.is_obstacle(xp, zp):
+                        #f[zp, xp, :] = [0, 0, 255]
+                        #cv2.imwrite("debug.png", f)
+                        return False
+                    
+                    #f[zp, xp, :] = [0, 255, 0]
+            #cv2.imwrite("debug.png", f)
+        return True
     
     def __check_local_curves_gpu(self, curves: list[tuple[list[MapPose], list[Waypoint]]]) -> bool:
         all_curves = []
@@ -220,8 +245,10 @@ class InformedHybridA(LocalPlannerExecutor):
         key = self.__to_dict_key(node.local_pose)       
         closed_set[key] = node
         
-        min_cost = 999999999999999
-        min_node = None
+        if DEBUG:
+            min_cost = 999999999999999
+            min_node = None
+        
         for c in valid_curves:
             last_heading = node.global_pose.heading
             prev_node = node
@@ -248,12 +275,14 @@ class InformedHybridA(LocalPlannerExecutor):
 
                 heapq.heappush(open_set, (n.f_cost, n))
                 # open_set.put()
-                if f < min_cost:
-                    min_cost = f
-                    min_node = n
+                if DEBUG:
+                    if f < min_cost:
+                        min_cost = f
+                        min_node = n
                 #print(f"({c[1][i].x}, {c[1][i].z}) cost: {node_cost}, dist: {node_dist}")
 
-        print(f"best node {min_node.local_pose.x}, {min_node.local_pose.z} with cost {min_node.f_cost} and distance {min_node.dist}")
+        if DEBUG:
+            print(f"best node {min_node.local_pose.x}, {min_node.local_pose.z} with cost {min_node.f_cost} and distance {min_node.dist}")
 
     def __RS_expansion(self, node: Node, goal: Waypoint, cfg: IHASConfig) -> list[Waypoint]:
         _, _, lx, lz, lh = self._reed_shepp.generation(
@@ -318,13 +347,14 @@ class InformedHybridA(LocalPlannerExecutor):
 
         return (path, local_path)
     
-    def _planning_init(self, planning_data: PlanningData) -> bool:
+    def planning_init(self, planning_data: PlanningData) -> bool:
         self._og = planning_data.og()
         self._width = self._og.width()
         self._height = self._og.height()
         self._min_distance = planning_data.min_distance()
         self._map_base_location = planning_data.base_map_conversion_location
-        self._goal = planning_data.local_goal
+        self._goal = planning_data.local_goal()
+        self._result_path = None
 
         self._reed_shepp = ReedsShepp(
             step=0.1,
@@ -355,19 +385,20 @@ class InformedHybridA(LocalPlannerExecutor):
         heapq.heappush(self._open_list, (0, self._root))
         #self._open_list.put((self._root.cost, self._root))
         self._best_candidate: Node = None
-        self._best_cost: float = InformedHybridA.MAX_COST
+        self._best_cost: float = IHaS.MAX_COST
         self._min_dist = planning_data.min_distance()
         self._closed_list: dict[int, Node] = {}
-        return super()._planning_init(planning_data)
+        return True
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
+    def loop_plan(self, planning_data: PlanningData) -> bool:
         if  len(self._open_list) <= 0:
             self._set_planning_result(PlannerResultType.INVALID_GOAL, path=[])
             return False
 
         c, node = heapq.heappop(self._open_list)
         self._best_candidate = node
-        print (f"processing node: {node.local_pose.x}, {node.local_pose.z} with cost {node.f_cost} heap cost {c}")
+        if DEBUG:
+            print (f"processing node: {node.local_pose.x}, {node.local_pose.z} with cost {node.f_cost} heap cost {c}")
 
         key = self.__to_dict_key(node.local_pose)
         if key in self._closed_list:
@@ -393,19 +424,82 @@ class InformedHybridA(LocalPlannerExecutor):
         
         path.reverse()
         path.extend(connecting_path)
-        self._set_planning_result(PlannerResultType.VALID, path)
+
+        f_path = []
+        for p in path:
+            if p.x < 0 or p.x >= self._width: continue
+            if p.z < 0 or p.z >= self._height: continue
+            f_path.append(p)
+
+        self._result_path = f_path
+
+    def get_result(self) -> list[Waypoint]:
+        return self._result_path
+    
+class InformedHybridAStar(LocalPlannerExecutor):
+
+    __conv: CoordinateConverter
+    __subplanner: IHaS
+    __sub_goal_list: list[Waypoint]
+    __goal_list: list[Waypoint]
+    __goal_list_pos: int
+    __path: list[Waypoint]
+
+    def __init__(self, conv: CoordinateConverter, veh_dims: tuple[int, int], max_exec_time_ms: float = -1):
+        super().__init__("Informed Hybrid A*", max_exec_time_ms)
+        self.__conv = conv
+        self.__subplanner = IHaS(conv, max_exec_time_ms=-1, veh_dims=veh_dims)
+        self.__sub_goal_list = []
         
+    def inform_sub_goals(self, subgoals: list[Waypoint]) -> None:
+        self.__sub_goal_list = subgoals
+
+    def _planning_init(self, planning_data: PlanningData) -> bool:
+        self.__goal_list = [planning_data.start()]
+        self.__goal_list.extend(self.__sub_goal_list)
+        self.__goal_list.append(planning_data.local_goal())
+        self.__goal_list_pos = 1
+        self.__path = []
+        self.__ego_location = planning_data.ego_location()
+        return True
+
+    def _loop_plan(self, planning_data: PlanningData) -> bool:
+
+        if self.__goal_list_pos >= len(self.__goal_list):
+            self._set_planning_result(PlannerResultType.VALID, self.__path)
+            return False
+        
+        start_location = self.__goal_list[self.__goal_list_pos - 1]
+        start_location_map = self.__conv.convert(planning_data.base_map_conversion_location, start_location)
+
+        data = PlanningData(
+            seq=planning_data.seq,
+            og=planning_data.og(),
+            ego_location=start_location_map,
+            g1=planning_data.g1(),
+            g2=planning_data.g2(),
+            start=start_location,
+            velocity=planning_data.velocity(),
+            min_distance=planning_data.min_distance(),
+            base_map_conversion_location=planning_data.base_map_conversion_location
+        )
+        data.set_local_goal(self.__goal_list[self.__goal_list_pos])
+
+        self.__subplanner.planning_init(data)
+        while self.__subplanner.get_result() == None:
+            self.__subplanner.loop_plan(data)
+            if self._check_timeout():
+                return False
+        
+        res = self.__subplanner.get_result()
+        if res is None:
+            self._set_planning_result(PlannerResultType.INVALID_PATH, self.__path)
+            return False
+        
+        self.__goal_list_pos += 1
+        self.__path.extend(res)
+        return True
 
     def _loop_optimize(self, planning_data: PlanningData) -> bool:
         return False
-
-
-    def draw_curve(self, ego_location: MapPose, velocity_m_s: float, steering_angle: angle, reverse: bool) -> None:
-        return self.__curve_model(
-            ego_location=ego_location,
-            velocity_m_s=velocity_m_s, 
-            steering_angle_rad=steering_angle.rad(), 
-            steps=20, 
-            reverse=reverse
-        )
     

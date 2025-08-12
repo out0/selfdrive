@@ -88,9 +88,6 @@ class LocalPlannerExecutor:
         self.__loop_thr = Thread(target=self._planning_exec)
         self.__loop_thr.start()
     
-    def _planning_init(self, planning_data: PlanningData) -> bool:
-        return True
-        
     def _planning_exec(self) -> None:
         timeout: bool = False
         self.__is_running = True
@@ -117,12 +114,6 @@ class LocalPlannerExecutor:
         self._planning_result.total_exec_time_ms = self.get_execution_time()
         self._planning_result.optimize_exec_time_ms = self._planning_result.total_exec_time_ms - self._planning_result.planning_exec_time_ms
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
-        pass
-    
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
-        pass
-    
     def _set_planning_result(self, result_type: PlannerResultType, path: list[Waypoint]):
         self._planning_result.path = path
         self._planning_result.result_type = result_type
@@ -135,3 +126,18 @@ class LocalPlannerExecutor:
     
     def get_max_exec_time_ms(self) -> int:
         return self.__max_exec_time_ms
+    
+    #----------------------------------------------------------
+    #
+    #               Extend and Implement These
+    #
+    #----------------------------------------------------------
+    def _planning_init(self, planning_data: PlanningData) -> bool:
+        return True
+
+    def _loop_plan(self, planning_data: PlanningData) -> bool:
+        pass
+    
+    def _loop_optimize(self, planning_data: PlanningData) -> bool:
+        pass
+    

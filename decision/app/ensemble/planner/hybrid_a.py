@@ -102,11 +102,11 @@ class HybridAStar(LocalPlannerExecutor):
     _reed_shepp: ReedsShepp
     _goal: Waypoint
 
-    def __init__(self, conv: CoordinateConverter, veh_dims: tuple[int, int], max_exec_time_ms: float = -1, ):
+    def __init__(self, conv: CoordinateConverter, max_exec_time_ms: float = -1, ):
         super().__init__("Hybrid A*", max_exec_time_ms)
         self._map_coordinate_converter = conv
         self._cfg = HybridConfig(
-            veh_dims = veh_dims,
+            veh_dims = None,
             mot_res = 2,
             n_steer = 5,
             max_steering_rad = math.radians(PhysicalParameters.MAX_STEERING_ANGLE),
@@ -305,7 +305,8 @@ class HybridAStar(LocalPlannerExecutor):
         self._height = self._og.height()
         self._min_distance = planning_data.min_distance()
         self._map_base_location = planning_data.base_map_conversion_location
-        self._goal = planning_data.local_goal
+        self._goal = planning_data.local_goal()
+        self._cfg.veh_dims = planning_data.min_distance()
 
         self._reed_shepp = ReedsShepp(
             step=0.1,
@@ -375,7 +376,14 @@ class HybridAStar(LocalPlannerExecutor):
         
         path.reverse()
         path.extend(connecting_path)
-        self._set_planning_result(PlannerResultType.VALID, path)
+
+        f_path = []
+        for p in path:
+            if p.x < 0 or p.x >= self._width: continue
+            if p.z < 0 or p.z >= self._height: continue
+            f_path.append(p)
+
+        self._set_planning_result(PlannerResultType.VALID, f_path)
         
 
     def _loop_optimize(self, planning_data: PlanningData) -> bool:

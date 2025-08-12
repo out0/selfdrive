@@ -41,8 +41,7 @@ class Ensemble(LocalPlannerExecutor):
         
         planner_hybrid = HybridAStar(
             self._map_coordinate_converter, 
-            max_exec_time_ms=self.get_max_exec_time_ms(),
-            dist_to_target_tolerance=20)
+            max_exec_time_ms=self.get_max_exec_time_ms())
         
         planner_bi_rrt = BiRRTStar(map_coordinate_converter=self._map_coordinate_converter, 
                             max_exec_time_ms=self.get_max_exec_time_ms(),

@@ -77,6 +77,8 @@ class Waypoint:
     @property
     def reversed(self) -> bool:
         return self.__reversed
+    
+
 
     def __str__(self):
         return f"({self.__x}, {self.__z}, {self.__heading.deg()})"

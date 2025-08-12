@@ -108,3 +108,4 @@ class PlanningData:
     @property
     def seq(self) -> int:
         return self.__seq
+    

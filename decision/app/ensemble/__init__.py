@@ -8,4 +8,4 @@ from .planner.bi_rrt import BiRRTStar
 from .motion.motion_controller import MotionController, LongitudinalController, LateralController
 from .planner.hybrid_a import HybridAStar
 from .planner.reeds_shepp import ReedsShepp
-from .planner.informed_hybrid_a import InformedHybridA
+from .planner.informed_hybrid_a import InformedHybridAStar

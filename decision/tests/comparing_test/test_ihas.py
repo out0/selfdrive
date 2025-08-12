@@ -1,7 +1,7 @@
 import math
 from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
 from pydriveless import SearchFrame, angle
-from ensemble import PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, HybridAStar
+from ensemble import PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, InformedHybridAStar
 import numpy as np
 import math
 import cv2
@@ -64,7 +64,10 @@ def exec_test():
     og.process_distance_to_goal(goal.x, goal.z)
     og.process_safe_distance_zone(EGO_DIMENSIONS_PX, True)
 
-    planner = HybridAStar(conv, max_exec_time_ms=-1, veh_dims=EGO_DIMENSIONS_PX)
+    planner = InformedHybridAStar(conv, max_exec_time_ms=-1, veh_dims=EGO_DIMENSIONS_PX)
+    planner.inform_sub_goals([
+        Waypoint(220, 98, angle.new_deg(-90))
+    ])
 
     start_time = time.time()
     planner.plan(planning_data)

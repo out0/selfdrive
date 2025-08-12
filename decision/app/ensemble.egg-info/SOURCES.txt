@@ -26,6 +26,7 @@ app/ensemble/planner/debug.py
 app/ensemble/planner/dubins_path.py
 app/ensemble/planner/ensemble.py
 app/ensemble/planner/hybrid_a.py
+app/ensemble/planner/informed_hybrid_a copy.py
 app/ensemble/planner/informed_hybrid_a.py
 app/ensemble/planner/interpolator.py
 app/ensemble/planner/overtaker.py

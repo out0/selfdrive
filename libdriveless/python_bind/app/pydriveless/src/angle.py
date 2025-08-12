@@ -1,4 +1,6 @@
 
+import math
+
 PI = 3.1415926535897931e+0
 HALF_PI = 1.5707963267948966e+0
 QUARTER_PI = 0.7853981633974483e+0
@@ -35,6 +37,14 @@ class angle:
     
     def deg(self) -> float:
         return TO_DEG * self.__val_rad
+    
+    @property
+    def cos(self) -> float:
+        return math.cos(self.__val_rad)
+
+    @property
+    def sin(self) -> float:
+        return math.sin(self.__val_rad)
        
     def __add__(self, value) -> 'angle':
         if not isinstance(value, angle):
