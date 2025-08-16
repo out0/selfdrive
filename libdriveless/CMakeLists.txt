@@ -1,106 +1,109 @@
-# require CMake 2.8 or greater
-cmake_minimum_required(VERSION 3.20)
-
-set(CMAKE_CUDA_ARCHITECTURES "native")
-SET(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
+cmake_minimum_required(VERSION 3.30)
 
 project(driveless LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless")
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CUDA_ARCHITECTURES all-major)
+
+# Optional: explicitly set NVCC if needed
+set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
+
 include(GNUInstallDirs)
 
-find_package(Threads REQUIRED) 
-option(CUDA_LIB_JETSON "true" OFF)
-
-set(CMAKE_CXX_STANDARD 20)
-
+find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
-
-include(FindCUDA/select_compute_arch)
-find_package(CUDA REQUIRED)
-
-if(CUDA_LIB_JETSON)
-find_package(jetson-utils REQUIRED)
-endif(CUDA_LIB_JETSON)
-
 find_package(GSL REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 
-include_directories(${PROJECT_SOURCE_DIR})
-include_directories("${CUDA_INCLUDE_DIRS}")
 
-include(FindPackageHandleStandardArgs)
+if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+    message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
 
-EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-message( STATUS "Architecture: ${ARCHITECTURE}" )
-
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
-pkg_search_module(GLIB REQUIRED glib-2.0) 
-
-if (CMAKE_CUDA_COMPILER)
-    message(STATUS "CUDA compiler found at: ${CMAKE_CUDA_COMPILER}")
-    # Additional CUDA-specific actions can be performed here
 else()
-    message(STATUS "CUDA compiler not found or CUDA not enabled.")
+    message(FATAL_ERROR "CUDA Toolkit must be >= 13.0 (found ${CUDAToolkit_VERSION})")
 endif()
 
+string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+list(GET CUDA_VER_LIST 0 CUDA_MAJOR)
+list(GET CUDA_VER_LIST 1 CUDA_MINOR)
 
-# find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+add_compile_definitions(CUDA_VERSION_MAJOR=${CUDA_MAJOR})
+add_compile_definitions(CUDA_VERSION_MINOR=${CUDA_MINOR})
 
 
-SET(TARGET_H
-  
-
-)
-
-add_library(
-  ${CMAKE_PROJECT_NAME} SHARED
-  src/angle.cpp
-  src/map_pose.cpp
-  src/waypoint.cpp
-  src/world_pose.cpp
-  src/async_component.cpp
-  src/coord_conversion.cpp
-  src/interpolator.cpp
-  src/cuda/cuda_frame.cu
-  src/cuda/quaternion.cu
-  src/cuda/search_frame.cu
-  src/cuda/search_frame_color.cu
-  src/cuda/search_frame_pre_process.cu
-  src/cuda/search_frame_path_feasible.cu
-  src/cuda/search_frame_python_bind.cpp
-)
-
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+option(CUDA_LIB_JETSON "true" OFF)
 
 if(CUDA_LIB_JETSON)
-    target_link_libraries( ${PROJECT_NAME}
-            ${CMAKE_THREAD_LIBS_INIT}
-            ${CUDA_LIBRARIES}
-            ${CUDA_FRAME}
-            GSL::gsl 
-            GSL::gslcblas
-            jetson-utils)
-else()
-    target_link_libraries( ${PROJECT_NAME} 
-            ${CMAKE_THREAD_LIBS_INIT}
-            ${CUDA_LIBRARIES}
-            ${CUDA_FRAME}
-            GSL::gsl 
-            GSL::gslcblas
-            cuda
-    )
-endif(CUDA_LIB_JETSON)
+    find_package(jetson-utils REQUIRED)
+endif()
 
-set_target_properties( ${PROJECT_NAME} PROPERTIES
+# Detect architecture
+execute_process(
+    COMMAND uname -m
+    COMMAND tr -d '\n'
+    OUTPUT_VARIABLE ARCHITECTURE
+)
+message(STATUS "Architecture: ${ARCHITECTURE}")
+
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
+pkg_search_module(GLIB REQUIRED glib-2.0)
+
+# Library sources
+add_library(${PROJECT_NAME} SHARED
+    src/angle.cpp
+    src/map_pose.cpp
+    src/waypoint.cpp
+    src/world_pose.cpp
+    src/async_component.cpp
+    src/coord_conversion.cpp
+    src/interpolator.cpp
+    src/cuda/cuda_frame.cu
+    src/cuda/quaternion.cu
+    src/cuda/search_frame.cu
+    src/cuda/search_frame_color.cu
+    src/cuda/search_frame_pre_process.cu
+    src/cuda/search_frame_path_feasible.cu
+    src/cuda/search_frame_python_bind.cpp
+)
+
+# Properties for CUDA shared lib
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
+    CUDA_RUNTIME_LIBRARY Shared
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+# Include paths
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        ${CUDAToolkit_INCLUDE_DIRS}
 )
 
+# Link dependencies
+if(CUDA_LIB_JETSON)
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            Threads::Threads
+            GSL::gsl
+            GSL::gslcblas
+            jetson-utils
+            #CUDA::cudart
+    )
+else()
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            Threads::Threads
+            GSL::gsl
+            GSL::gslcblas
+            #CUDA::cudart
+    )
+endif()
 
+# Install library
 install(TARGETS ${PROJECT_NAME}
     EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/driveless
@@ -108,23 +111,20 @@ install(TARGETS ${PROJECT_NAME}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless
 )
 
+# Install headers
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless
+)
 
-# install(TARGETS ${PROJECT_NAME}
-#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/driveless
-#     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-    
- install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless)
-
-include(CMakePackageConfigHelpers)
-
-# Install the export set for use by find_package()
+# Export set for find_package()
 install(EXPORT ${PROJECT_NAME}Targets
     FILE ${PROJECT_NAME}Targets.cmake
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
-# Generate and install the config and version files
+# Generate package config files
+include(CMakePackageConfigHelpers)
 configure_package_config_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake

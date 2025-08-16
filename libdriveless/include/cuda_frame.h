@@ -8,6 +8,11 @@
 // CODE:BEGIN
 
 #include <stdexcept>
+
+#if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
+#define double4 double4_16a
+#endif
+
 extern void CUDA_clear(double4 *frame, int width, int height);
 extern void CUDA_clear(float4 *frame, int width, int height);
 extern void CUDA_clear(int4 *frame, int width, int height);
@@ -123,6 +128,7 @@ inline void CudaFrame<double4>::copyData(float *ptr, double4 *dest, long pos)
     dest[pos].z = static_cast<double>(ptr[posPtr + 2]);
     dest[pos].w = static_cast<double>(ptr[posPtr + 3]);
 }
+
 template <>
 inline void CudaFrame<int4>::copyData(float *ptr, int4 *dest, long pos)
 {
@@ -178,85 +184,5 @@ inline void CudaFrame<int2>::copyData(float *ptr, int2 *dest, long pos)
     dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
 }
 
-// template <typename T>
-// void CudaFrame<T>::copyBackData(T *orig, float *dest, long pos)
-// {
-//     dest[pos] = static_cast<float>(orig[pos]);
-// }
-
-// template <>
-// inline void CudaFrame<float4>::copyBackData(float4 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-//     dest[posPtr + 2] = static_cast<float>(orig[pos].z);
-//     dest[posPtr + 3] = static_cast<float>(orig[pos].w);
-// }
-// template <>
-// inline void CudaFrame<double4>::copyBackData(double4 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-//     dest[posPtr + 2] = static_cast<float>(orig[pos].z);
-//     dest[posPtr + 3] = static_cast<float>(orig[pos].w);
-// }
-// template <>
-// inline void CudaFrame<int4>::copyBackData(int4 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-//     dest[posPtr + 2] = static_cast<float>(orig[pos].z);
-//     dest[posPtr + 3] = static_cast<float>(orig[pos].w);
-// }
-
-// template <>
-// inline void CudaFrame<float3>::copyBackData(float3 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-//     dest[posPtr + 2] = static_cast<float>(orig[pos].z);
-// }
-// template <>
-// inline void CudaFrame<double3>::copyBackData(double3 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-//     dest[posPtr + 2] = static_cast<float>(orig[pos].z);
-// }
-// template <>
-// inline void CudaFrame<int3>::copyBackData(int3 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-//     dest[posPtr + 2] = static_cast<float>(orig[pos].z);
-// }
-
-// template <>
-// inline void CudaFrame<float2>::copyBackData(float2 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-// }
-// template <>
-// inline void CudaFrame<double2>::copyBackData(double2 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-// }
-// template <>
-// inline void CudaFrame<int2>::copyBackData(int2 *orig, float *dest, long pos)
-// {
-//     long posPtr = 4 * pos;
-//     dest[posPtr] = static_cast<float>(orig[pos].x);
-//     dest[posPtr + 1] = static_cast<float>(orig[pos].y);
-// }
 
 #endif

@@ -8,21 +8,10 @@
 #include <string>
 #include <cuda_runtime.h>
 #include "cuda_ptr.h"
-// #ifdef __CUDA_ARCH__
-// 
-// #else
-// // On CPU, use standard rounding
 
-// typedef struct double4
-// {
-//     double w;
-//     double x;
-//     double y;
-//     double z;
-
-// } double4;
-
-// #endif
+#if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
+#define double4 double4_16a
+#endif
 
 __device__ __host__ double quaternion_size_sq(double4 *p);
 __device__ __host__ void quaternion_multiply(double4 *store, double4 *p, double4 *q);
