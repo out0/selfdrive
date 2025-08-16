@@ -1,8 +1,9 @@
-#include "../../../cudac/include/cuda_basic.h"
-#include "../../include/cuda_params.h"
+
+#include <driveless/cuda_basic.h>
+#include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
@@ -42,9 +43,12 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int h
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
 
-__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int width, int height, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision)
+__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float3 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
+    const int width = searchParams[FRAME_PARAM_WIDTH];
+    const int height = searchParams[FRAME_PARAM_HEIGHT];
+    
 
     if (pos >= width * height)
         return;
@@ -76,7 +80,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
     int2 start = {x, z};
-    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, frame, classCosts, width, height, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
+    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, searchParams, frame, classCosts, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;
@@ -138,9 +142,8 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         _frameData->getCudaPtr(),
         og,
         _classCosts,
-        _frame->width(),
-        _frame->height(),
         _physicalParams,
+        _searchSpaceParams,
         _gridCenter,
         maxPathSize,
         velocity_m_s,
@@ -161,7 +164,7 @@ int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle,
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, og, _classCosts, _frame->width(), _frame->height(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, _searchSpaceParams, og, _classCosts, _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
     if (p.x < 0 || p.y < 0)
         return int2{-1, -1};

@@ -1,5 +1,5 @@
 #include "../include/fastrrt.h"
-#include "../../cudac/include/cuda_frame.h"
+#include <driveless/search_frame.h>
 
 extern "C"
 {
@@ -15,7 +15,8 @@ extern "C"
         int lowerBound_x, int lowerBound_z,
         int upperBound_x, int upperBound_z,
         float maxPathSize,
-        float distToGoalTolerance)
+        float distToGoalTolerance,
+        int *classCosts)
     {
         return new FastRRT(
             width, height,
@@ -27,6 +28,7 @@ extern "C"
             {minDistance_x, minDistance_z},
             {lowerBound_x, lowerBound_z},
             {upperBound_x, upperBound_z},
+            classCosts,
             maxPathSize,
             distToGoalTolerance);
     }
@@ -44,8 +46,8 @@ extern "C"
         Waypoint p(goal_x, goal_z, angle::rad(goal_heading_rad));
         // printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
 
-        CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        rrt->setPlanData(frame->getFramePtr(), s, p, velocity_m_s);
+        SearchFrame *frame = (SearchFrame *)cudaFramePtr;
+        rrt->setPlanData(frame->getCudaPtr(), s, p, velocity_m_s);
     }
 
     bool goal_reached(void *ptr)

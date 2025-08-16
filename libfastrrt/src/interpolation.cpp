@@ -1,7 +1,7 @@
 #include "../include/fastrrt.h"
-#include "../include/cuda_params.h"
-#include "../include/math_utils.h"
-#include "../include/waypoint.h"
+#include <driveless/cuda_params.h>
+#include <driveless/math_utils.h>
+#include <driveless/waypoint.h>
 #include <bits/algorithmfwd.h>
 
 // extern std::vector<Waypoint> drawKinematicPath(double *physicalParams, int width,  int height, int2 center, int2 start, float start_heading, Waypoint end, float velocity_m_s);

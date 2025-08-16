@@ -3,9 +3,14 @@
 #ifndef __CUDA_GRID_DRIVELESS_H
 #define __CUDA_GRID_DRIVELESS_H
 
-#include "../../cudac/include/cuda_basic.h"
+
+#include <driveless/cuda_basic.h>
 
 // CODE:BEGIN
+
+#if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
+#define double4 double4_16a
+#endif
 
 #include <stdexcept>
 extern void CUDA_clear(double4 *frame, int width, int height);

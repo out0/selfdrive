@@ -2,21 +2,21 @@
 #include <math_constants.h>
 #include <string>
 #include <cuda_runtime.h>
-#include "../../include/cuda_params.h"
-#include "../../include/math_utils.h"
+#include <driveless/cuda_params.h>
+#include  <driveless/math_utils.h>
 #include "../../include/graph.h"
-#include "../../include/waypoint.h"
+
 
 extern __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
-extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
+extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
 extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
-extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, float heading);
+
 
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
@@ -123,7 +123,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
 }
 
 
-__device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, float3 *frame, float *classCosts, int width, int height, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+__device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -137,6 +137,10 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
+    const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
+    const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
+    const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
+    const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
     const double2 startPose = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
 
     // printf("rateW: %f, rateH: %f, invRateW: %f, invRateH: %f, maxSteering: %f, lr: %f, startPose: (%d, %d)==(%f, %f)\n",
@@ -193,7 +197,7 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
         size += 1;
         nodeCost += getIntrinsicCost(graphData, width, lastp.x, lastp.y) + 1;
 
-        if (!checkFeasible(frame, width, last_x, last_z, heading))
+        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, lastp.x, lastp.y, heading))
         {
             //printf("unfeasible path from %d, %d to %d, %d\n", start.x, start.y, lastp.x, lastp.y);
 
@@ -218,7 +222,7 @@ __device__ __host__ bool checkKinematicPath(
     float3 *graphData,
     float3 *frame,
     double *physicalParams,
-    int *params,
+    int *searchSpaceParams,
     float *classCost,
     int2 center,
     int2 start,
@@ -229,14 +233,16 @@ __device__ __host__ bool checkKinematicPath(
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
-    int width = params[FRAME_PARAM_WIDTH];
-
+    
     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
+    const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];   
+    const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
 
     double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
     double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, end);
@@ -288,22 +294,10 @@ __device__ __host__ bool checkKinematicPath(
             return bestEndDist <= 2;
         }
 
-        if (!checkFeasible(frame, width, nextp.x, nextp.y, heading))
-        {
-            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
+        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCost, minDistX, minDistZ, lastp.x, lastp.y, heading))
             return false;
-        }
 
-        // if (!__computeFeasibleForAngle(frame, params, classCost, nextp.x, nextp.y, heading))
-        // {
-        //     // if (DEBUG) {
-        //     //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
-        //     //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
-        //     // }
-        //     return false;
-        // }
-
-        lastp.x = nextp.x;
+            lastp.x = nextp.x;
         lastp.y = nextp.y;
 
         bestEndDist = dist;
@@ -337,7 +331,7 @@ __device__ __host__ bool check_graph_connection(
     float3 *graphData,
     float3 *frame,
     double *physicalParams,
-    int *params,
+    int *searchSpaceParams,
     float *classCost,
     int2 center,
     int2 start,
@@ -347,8 +341,11 @@ __device__ __host__ bool check_graph_connection(
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
-    const int width = params[FRAME_PARAM_WIDTH];
-    const int height = params[FRAME_PARAM_HEIGHT];
+    const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
+    const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
+    const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
+    const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];  
+
     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
@@ -414,11 +411,8 @@ __device__ __host__ bool check_graph_connection(
             return bestEndDist <= 2;
         }
 
-        if (!checkFeasible(frame, width, nextp.x, nextp.y, heading))
-        {
-            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
+        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCost, minDistX, minDistZ, lastp.x, lastp.y, heading))
             return false;
-        }
 
         // if (!__computeFeasibleForAngle(frame, params, classCost, nextp.x, nextp.y, heading))
         // {
@@ -443,7 +437,7 @@ __device__ __host__ bool check_graph_connection_with_hermite(
     float3 *graphData,
     float3 *frame,
     double *physicalParams,
-    int *params,
+    int *searchSpaceParams,
     float *classCost,
     int2 center,
     int2 start,
@@ -457,9 +451,11 @@ __device__ __host__ bool check_graph_connection_with_hermite(
     {
         return false;
     }
-    const int width = params[FRAME_PARAM_WIDTH];
-    const int height = params[FRAME_PARAM_HEIGHT];
-
+    const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
+    const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
+    const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
+    const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];  
+    
     // Distance between points (used to scale tangents)
     const float dx = end.x - start.x;
     const float dz = end.y - start.y;
@@ -511,23 +507,8 @@ __device__ __host__ bool check_graph_connection_with_hermite(
 
         float heading = atan2f(ddz, ddx) + HALF_PI;
 
-        // Interpolated point
-        /// curve.push_back({cx, cz, angle::rad(0)});
-
-        if (!checkFeasible(frame, width, cx, cz, heading))
-        {
-            // printf ("(%d, %d) path_cost = %f\n", nextp.x, nextp.y, path_cost);
+        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCost, minDistX, minDistZ, cx, cz, heading))
             return false;
-        }
-
-        // if (!__computeFeasibleForAngle(frame, params, classCost, cx, cz, heading))
-        // {
-        //     // if (DEBUG) {
-        //     //     //convert_to_waypoint_coord(_center, _rate_w, _rate_h, next_p);
-        //     //     //printf("Not feasible on x,y = %d, %d, %f\n", __double2int_rd(next_p.x), __double2int_rd(next_p.y), to_degrees(next_p.z));
-        //     // }
-        //     return false;
-        // }
 
         last_x = cx;
         last_z = cz;

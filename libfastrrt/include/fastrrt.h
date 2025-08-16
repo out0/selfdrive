@@ -5,11 +5,11 @@
 
 #include <cmath>
 #include <chrono>
-#include "graph.h"
-#include "waypoint.h"
-#include "../../cudac/include/cuda_frame.h"
-#include "../../cudac/include/class_def.h"
+#include <driveless/angle.h>
+#include <driveless/waypoint.h>
+#include <driveless/cuda_frame.h>
 #include <vector>
+#include "graph.h"
 
 typedef float3* cudaPtr;
 
@@ -42,7 +42,8 @@ public:
             int timeout_ms,
             std::pair<int, int> minDistance, 
             std::pair<int, int> lowerBound, 
-            std::pair<int, int> upperBound,        
+            std::pair<int, int> upperBound,
+            int *segmentationClassCost,       
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 

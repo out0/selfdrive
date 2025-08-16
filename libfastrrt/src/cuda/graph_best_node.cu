@@ -1,12 +1,12 @@
-#include "../../../cudac/include/cuda_basic.h"
-#include "../../include/cuda_params.h"
+
+#include <driveless/cuda_basic.h>
+#include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int x, int z, float angle_radians);
+extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
-extern __device__ __host__ bool checkFeasible(float3 *og, int width, int x, int z, float heading);
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long *bestCost)
 {
@@ -14,6 +14,8 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, floa
 
     int width = params[FRAME_PARAM_WIDTH];
     int height = params[FRAME_PARAM_HEIGHT];
+    int minDistX = params[FRAME_PARAM_MIN_DIST_X];
+    int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
 
     if (pos >= width * height)
         return;
@@ -35,7 +37,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, floa
     
     float heading = getHeadingCuda(graphData, pos);
 
-    if (!checkFeasible(frame, width, x, z, heading))
+    if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading))
     {
         return;
     }
@@ -64,7 +66,9 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
 
     int width = params[FRAME_PARAM_WIDTH];
     int height = params[FRAME_PARAM_HEIGHT];
-
+    int minDistX = params[FRAME_PARAM_MIN_DIST_X];
+    int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
+    
     if (pos >= width * height)
         return;
 
@@ -85,7 +89,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
     // if (!__computeFeasibleForAngle(frame, params, classCost, x, z, targetHeading))
     //     return;
     float heading = getHeadingCuda(graphData, pos);
-    if (!checkFeasible(frame, width, x, z, heading))
+    if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading))
     {
         return;
     }

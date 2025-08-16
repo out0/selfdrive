@@ -1,6 +1,7 @@
 
-#include "../../../cudac/include/cuda_basic.h"
-#include "../../include/cuda_params.h"
+
+#include <driveless/cuda_basic.h>
+#include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 #include <cstdlib>
 #include <ctime>

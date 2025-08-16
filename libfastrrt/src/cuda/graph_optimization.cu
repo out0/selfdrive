@@ -1,6 +1,6 @@
 
 #include "../../include/graph.h"
-#include "../../include/cuda_params.h"
+#include  <driveless/cuda_params.h>
 #include <bits/algorithmfwd.h>
 
 extern __device__ __host__ bool check_graph_connection_with_hermite(

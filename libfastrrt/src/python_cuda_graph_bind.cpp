@@ -1,5 +1,5 @@
 #include "../include/graph.h"
-#include "../../cudac/include/cuda_frame.h"
+#include <driveless/search_frame.h>
 #include "../include/fastrrt.h"
 extern "C"
 {
@@ -12,7 +12,8 @@ extern "C"
         float vehicleLength,
         int minDistance_x, int minDistance_z,
         int lowerBound_x, int lowerBound_z,
-        int upperBound_x, int upperBound_z)
+        int upperBound_x, int upperBound_z,
+        int *segmentationClassCost)
     {
         CudaGraph *g = new CudaGraph(width, height);
         g->setSearchParams({minDistance_x, minDistance_z},
@@ -31,14 +32,14 @@ extern "C"
 
     void compute_apf_repulsion(void *ptr, void *cudaFramePtr, float kr, int radius) {
         CudaGraph *graph = (CudaGraph *)ptr;
-        CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        graph->computeRepulsiveFieldAPF(frame->getFramePtr(), kr, radius);
+        SearchFrame *frame = (SearchFrame *)cudaFramePtr;
+        graph->computeRepulsiveFieldAPF(frame->getCudaPtr(), kr, radius);
     }
 
     void compute_apf_attraction(void *ptr, void *cudaFramePtr, float ka, int goal_x, int goal_z) {
         CudaGraph *graph = (CudaGraph *)ptr;
-        CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        graph->computeAttractiveFieldAPF(frame->getFramePtr(), ka, {goal_x, goal_z});
+        SearchFrame *frame = (SearchFrame *)cudaFramePtr;
+        graph->computeAttractiveFieldAPF(frame->getCudaPtr(), ka, {goal_x, goal_z});
     }
 
     float * get_intrinsic_costs (void *ptr) {
@@ -65,7 +66,7 @@ extern "C"
 
     void compute_boundaries(void *ptr, void *cudaFramePtr, bool copyIntrinsicCostsFromFrame) {
         CudaGraph *graph = (CudaGraph *)ptr;
-        CudaFrame *frame = (CudaFrame *)cudaFramePtr;
-        graph->computeBoundaries(frame->getFramePtr(), copyIntrinsicCostsFromFrame);
+        SearchFrame *frame = (SearchFrame *)cudaFramePtr;
+        graph->computeBoundaries(frame->getCudaPtr(), copyIntrinsicCostsFromFrame);
     }
 }

@@ -12,6 +12,7 @@ FastRRT::FastRRT(
     std::pair<int, int> minDistance,
     std::pair<int, int> lowerBound,
     std::pair<int, int> upperBound,
+    int *segmentationClassCost,
     float maxPathSize,
     float distToGoalTolerance) : 
         _graph(CudaGraph(width, height)), 

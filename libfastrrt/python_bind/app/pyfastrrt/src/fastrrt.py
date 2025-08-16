@@ -1,6 +1,7 @@
 import ctypes.util
 import ctypes
 import numpy as np
+import os
 
 class FastRRT:
      __ptr: ctypes.c_void_p
@@ -47,17 +48,12 @@ class FastRRT:
                FastRRT.lib.fastrrt_destroy(self.__ptr)
 
      @classmethod
-     def setup_cpp_lib(cls, lib_path: str) -> None:
+     def setup_cpp_lib(cls) -> None:
           if hasattr(FastRRT, "lib"):
                return
         
-          ctypes.CDLL("/usr/local/lib/libdriveless-cudac.so", mode = ctypes.RTLD_GLOBAL)
-          ctypes.CDLL("/usr/local/lib/driveless/libcuda_utils.so", mode = ctypes.RTLD_GLOBAL)
-          if lib_path is None:
-               FastRRT.lib = ctypes.CDLL("/usr/local/lib/driveless/libfastrrt.so", mode = ctypes.RTLD_GLOBAL)
-          else:
-               FastRRT.lib = ctypes.CDLL(lib_path, mode = ctypes.RTLD_GLOBAL)
-
+          lib_path = os.path.join(os.path.dirname(__file__), "../cpp", "libfastrrt.so")
+          FastRRT.lib = ctypes.CDLL(lib_path)
           FastRRT.lib.fastrrt_initialize.restype = ctypes.c_void_p
           FastRRT.lib.fastrrt_initialize.argtypes = [
             ctypes.c_int, # width

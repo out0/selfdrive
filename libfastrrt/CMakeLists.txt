@@ -1,57 +1,52 @@
-# require CMake 2.8 or greater
-cmake_minimum_required(VERSION 3.20)
-
-set(CMAKE_CUDA_ARCHITECTURES "native")
-SET(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
+cmake_minimum_required(VERSION 3.30)
 
 project(fastrrt LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libfastrrt")
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CUDA_ARCHITECTURES all-major)
+
+# Optional: explicitly set NVCC if needed
+set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
+
 include(GNUInstallDirs)
 
-find_package(Threads REQUIRED) 
+find_package(Threads REQUIRED)
+find_package(PkgConfig REQUIRED)
+find_package(GSL REQUIRED)
+find_package(CUDAToolkit REQUIRED)
+find_package(driveless REQUIRED)
+
+
+if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+    message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
+endif()
+
+string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+list(GET CUDA_VER_LIST 0 CUDA_MAJOR)
+list(GET CUDA_VER_LIST 1 CUDA_MINOR)
+
+add_compile_definitions(CUDA_VERSION_MAJOR=${CUDA_MAJOR})
+add_compile_definitions(CUDA_VERSION_MINOR=${CUDA_MINOR})
+
+
 option(CUDA_LIB_JETSON "true" OFF)
 
-set(CMAKE_CXX_STANDARD 20)
-
-find_package(PkgConfig REQUIRED)
-
-include(FindCUDA/select_compute_arch)
-find_package(CUDA REQUIRED)
-
 if(CUDA_LIB_JETSON)
-find_package(jetson-utils REQUIRED)
-endif(CUDA_LIB_JETSON)
+    find_package(jetson-utils REQUIRED)
+endif()
 
-find_library(LIB_CUDA_UTILS REQUIRED
-    NAMES cuda_utils
-    HINTS /usr/local/lib/driveless
+# Detect architecture
+execute_process(
+    COMMAND uname -m
+    COMMAND tr -d '\n'
+    OUTPUT_VARIABLE ARCHITECTURE
 )
-
-find_library(CUDA_FRAME REQUIRED
-    NAMES driveless-cudac
-    HINTS /usr/lib
-)
-
-
-include_directories(${PROJECT_SOURCE_DIR})
-include_directories("${CUDA_INCLUDE_DIRS}")
-
-include(FindPackageHandleStandardArgs)
-
-EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-message( STATUS "Architecture: ${ARCHITECTURE}" )
+message(STATUS "Architecture: ${ARCHITECTURE}")
 
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
-pkg_search_module(GLIB REQUIRED glib-2.0) 
+pkg_search_module(GLIB REQUIRED glib-2.0)
 
-
-# find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-
-
-SET(TARGET_H
-  
-
-)
+# Library sources
 
 add_library(
   ${CMAKE_PROJECT_NAME} SHARED
@@ -68,46 +63,90 @@ add_library(
   src/cuda/cuda_grid.cu
   src/cuda/apf.cu
   src/cuda/graph_smart_expansion.cu
-  src/cuda/cuda_og.cu
   src/cuda/graph_collision.cu
 #  src/cuda/graph_clear_except.cu
   src/fastrrt.cpp
-  src/angle.cpp
-  src/waypoint.cpp
-  src/python_bind.cpp
+    src/python_bind.cpp
   src/python_cuda_graph_bind.cpp
   src/interpolation.cpp
   #src/debug.cpp
 )
 
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-
-if(CUDA_LIB_JETSON)
-    target_link_libraries( ${PROJECT_NAME}
-            ${CMAKE_THREAD_LIBS_INIT}
-            ${CUDA_LIBRARIES}
-            ${CUDA_FRAME}
-            ${LIB_CUDA_UTILS}
-            jetson-utils)
-else()
-    target_link_libraries( ${PROJECT_NAME} 
-            ${CMAKE_THREAD_LIBS_INIT}
-            ${CUDA_LIBRARIES}
-            ${CUDA_FRAME}
-            ${LIB_CUDA_UTILS}
-            cuda
-    )
-endif(CUDA_LIB_JETSON)
-
-set_target_properties( ${PROJECT_NAME} PROPERTIES
+# Properties for CUDA shared lib
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
-    W no-deprecated-gpu-targets
+    CUDA_RUNTIME_LIBRARY Shared
+)
+
+# Include paths
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        ${CUDAToolkit_INCLUDE_DIRS}
+)
+
+# Link dependencies
+if(CUDA_LIB_JETSON)
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            Threads::Threads
+            GSL::gsl
+            GSL::gslcblas
+            jetson-utils
+            #CUDA::cudart
+    )
+else()
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            Threads::Threads
+            GSL::gsl
+            GSL::gslcblas
+            #CUDA::cudart
+    )
+endif()
+
+# Install library
+install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/driveless
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/driveless
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless
+)
+
+# Install headers
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless
+)
+
+# Export set for find_package()
+install(EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+# Generate package config files
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 
-install(TARGETS ${PROJECT_NAME}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/driveless
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless)
-    
- install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless)
+
+

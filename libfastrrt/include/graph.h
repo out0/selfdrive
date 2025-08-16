@@ -4,8 +4,9 @@
 #define __GRAPH_DRIVELESS_H
 
 #include "cuda_grid.h"
-#include "../../cudac/include/cuda_frame.h"
-#include "angle.h"
+
+#include <driveless/search_frame.h>
+#include <driveless/angle.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <vector>
