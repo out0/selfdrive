@@ -1,7 +1,7 @@
 import math
 from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
 from pydriveless import SearchFrame, angle
-from ensemble import PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, Ensemble
+from ensemble import PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, Ensemble, InformedHybridAStar
 import numpy as np
 import math
 import cv2
@@ -85,6 +85,17 @@ def frame_to_og(frame: np.ndarray, start: Waypoint) -> SearchFrame:
     og.set_frame_data(f)
     return og
 
+def exec_planner_test(planner, frame, planning_data, path_color) -> None:
+    start_time = time.time()
+    planner.plan(planning_data)
+    while not planner.new_path_available():
+        time.sleep(0.1)
+    execution_time = time.time() - start_time
+    res = planner.get_result()
+    print(f"{planner.get_planner_name()} execution time: {1000*execution_time:.6f} ms [choosen: {res.planner_name}]")
+    for p in res.path:
+        frame[p.z, p.x, :] = path_color
+
 def exec_test():
     
     start = Waypoint(455, 263, angle.new_deg(0))
@@ -118,23 +129,19 @@ def exec_test():
     og.process_safe_distance_zone(EGO_DIMENSIONS_PX, True)
 
     planner = Ensemble(conv, max_exec_time_ms=-1)
+    planner2 = InformedHybridAStar(conv, veh_dims=EGO_DIMENSIONS_PX, max_exec_time_ms=-1)   
+    planner3 = InformedHybridAStar(conv, veh_dims=EGO_DIMENSIONS_PX, max_exec_time_ms=-1)
+    planner3.inform_sub_goals([
+        Waypoint(220, 98, angle.new_deg(-90))
+    ])
 
-    start_time = time.time()
-    planner.plan(planning_data)
-    while not planner.new_path_available():
-        time.sleep(0.1)
-    execution_time = time.time() - start_time
-    res = planner.get_result()
-    print(f"planner execution time: {1000*execution_time:.6f} ms [choosen: {res.planner_name}]")
-
-    path_ensemble = res.path
-
-    for p in path_ensemble:
-        frame[p.z, p.x, :] = [255, 0, 0]
+    exec_planner_test(planner, frame, planning_data, path_color=[255, 0, 0])
+    exec_planner_test(planner2, frame, planning_data, path_color=[0, 255, 0])
+    exec_planner_test(planner3, frame, planning_data, path_color=[128, 0, 128])
 
     add_ego(frame, start)
 
-    draw_arrow(frame, path_ensemble[-1].x, path_ensemble[-1].z, path_ensemble[-1].heading.rad() + math.pi/2)
+    draw_arrow(frame, goal.x, goal.z, goal.heading.rad())
 
     cv2.imwrite("debug.png", frame) 
 
