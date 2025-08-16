@@ -18,9 +18,6 @@ find_package(CUDAToolkit REQUIRED)
 
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
     message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
-
-else()
-    message(FATAL_ERROR "CUDA Toolkit must be >= 13.0 (found ${CUDAToolkit_VERSION})")
 endif()
 
 string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
