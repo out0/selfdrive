@@ -1,57 +1,63 @@
-# require CMake 2.8 or greater
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.26)
 
-project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libfastrrt test")
-include(GNUInstallDirs)
-
-set(CMAKE_CUDA_ARCHITECTURES "native")
-SET(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
-
-find_package(Threads REQUIRED) 
-
-
-# libdriveless
-find_library(CUDA_FRAME REQUIRED
-    NAMES driveless-cudac
-    HINTS /usr/lib
-)
-
-find_library(LIB_CUDA_UTILS REQUIRED
-    NAMES cuda_utils
-    HINTS /usr/local/lib/driveless
-)
-
-message(STATUS "OpenCV_INCLUDE_DIRS = ${OpenCV_INCLUDE_DIRS}")
-message(STATUS "OpenCV_LIBS = ${OpenCV_LIBS}")
+project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless test")
 
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_CUDA_FLAGS_DEBUG 1)
-include_directories(${PROJECT_SOURCE_DIR})
+set(CMAKE_CUDA_ARCHITECTURES all-major)
 
+# Optional: explicitly set NVCC if needed
+set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
+
+include(GNUInstallDirs)
+
+find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
-find_package(OpenCV REQUIRED)
-include_directories("${CUDA_INCLUDE_DIRS}")
-include_directories(${OpenCV_INCLUDE_DIRS})
+find_package(GSL REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 
-EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-message( STATUS "Architecture: ${ARCHITECTURE}" )
+find_package(CUDA REQUIRED)
+find_package(OpenCV REQUIRED)
+
+if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+    message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
+endif()
+
+string(REPLACE "." ";" CUDA_VER_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+list(GET CUDA_VER_LIST 0 CUDA_MAJOR)
+list(GET CUDA_VER_LIST 1 CUDA_MINOR)
+
+add_compile_definitions(CUDA_VERSION_MAJOR=${CUDA_MAJOR})
+add_compile_definitions(CUDA_VERSION_MINOR=${CUDA_MINOR})
+
+option(CUDA_LIB_JETSON "true" OFF)
+
+if(CUDA_LIB_JETSON)
+    find_package(jetson-utils REQUIRED)
+endif()
+
+# Detect architecture
+execute_process(
+    COMMAND uname -m
+    COMMAND tr -d '\n'
+    OUTPUT_VARIABLE ARCHITECTURE
+)
+message(STATUS "Architecture: ${ARCHITECTURE}")
 
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
-pkg_search_module(GLIB REQUIRED glib-2.0) 
-
+pkg_search_module(GLIB REQUIRED glib-2.0)
 
 # Locate GTest
 find_package(GTest REQUIRED)
+find_package(driveless REQUIRED)
+
 include_directories(${GTEST_INCLUDE_DIRS})
-include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS})   # ✅ Now works
 
-# find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -lineinfo -W no-deprecated-gpu-targets")
+link_directories(/usr/local/lib/driveless)
 
 SET(TARGET_H
-  
-
+    # (headers if any)
 )
 
 add_executable(
@@ -69,12 +75,9 @@ add_executable(
   ../src/cuda/cuda_grid.cu
   ../src/cuda/apf.cu
   ../src/cuda/graph_smart_expansion.cu
-  ../src/cuda/cuda_og.cu
-  ../src/cuda/graph_collision.cu
+    ../src/cuda/graph_collision.cu
   #../src/cuda/graph_clear_except.cu
   ../src/fastrrt.cpp
-  ../src/angle.cpp
-  ../src/waypoint.cpp
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp
   ../src/interpolation.cpp
@@ -86,35 +89,44 @@ add_executable(
   src/test_graph_node_derivation.cpp
   src/test_graph_best_node.cpp
   src/test_rrt.cpp
-  src/test_optimize_path.cpp
   src/test_simple_apf.cpp
+  src/test_optimize_path.cpp
 )
 
-set_property(
-  TARGET ${CMAKE_PROJECT_NAME} 
-  PROPERTY CUDA_SEPARABLE_COMPILATION ON )
-
-target_include_directories( ${CMAKE_PROJECT_NAME}  PRIVATE ${Python3_INCLUDE_DIRS})
-
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 if(THREADS_HAVE_PTHREAD_ARG)
-  target_compile_options( ${CMAKE_PROJECT_NAME}  PUBLIC "-pthread")
+  target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC "-pthread")
 endif()
 if(CMAKE_THREAD_LIBS_INIT)
-  target_link_libraries( ${CMAKE_PROJECT_NAME}  "${CMAKE_THREAD_LIBS_INIT}" )
+  target_link_libraries(${CMAKE_PROJECT_NAME} "${CMAKE_THREAD_LIBS_INIT}")
 endif()
 
-# link my-recognition to jetson-inference library
 target_link_libraries( 
   ${CMAKE_PROJECT_NAME}  
   PkgConfig::deps 
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
   ${CUDA_FRAME}
-  ${OpenCV_LIBS}
-  ${CUDA_FRAME}
-  # ${Python3_LIBRARIES}
-  ${LIB_CUDA_UTILS}
-
+  ${OpenCV_LIBS}          # ✅ Now properly resolved
+  GSL::gsl 
+  GSL::gslcblas
+  driveless
 )
+
+
+
+# # link my-recognition to jetson-inference library
+# target_link_libraries( 
+#   ${CMAKE_PROJECT_NAME}  
+#   PkgConfig::deps 
+#   ${GTEST_LIBRARIES} 
+#   ${CUDA_LIBRARIES}
+#   ${CUDA_FRAME}
+#   ${OpenCV_LIBS}
+#   ${CUDA_FRAME}
+#   # ${Python3_LIBRARIES}
+#   ${LIB_CUDA_UTILS}
+
+# )
 

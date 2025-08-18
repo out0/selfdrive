@@ -1,11 +1,9 @@
-#include "../../../cudac/include/cuda_frame.h"
 #include <gtest/gtest.h>
 #include <cmath>
 #include <chrono>
 #include <thread>
 #include <cuda_runtime.h>
 #include "test_utils.h"
-
 
 extern double2 convert_waypoint_to_map_pose(int2 center, double inv_rate_w, double inv_rate_h, int2 coord);
 extern int2 convert_map_pose_to_waypoint(int2 center, float rate_w, float rate_h, double2 coord);
@@ -56,22 +54,20 @@ TEST(TestKinematics, TestCheckKinematicPath)
     CudaGraph g(256, 256);
     float3 *ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
-    int costs[] = {{0},
-                   {1},
-                   {2},
-                   {3},
-                   {4},
-                   {5}};
+    std::vector<float> costs = {
+        {0},
+        {1},
+        {2},
+        {3},
+        {4},
+        {5}};
     g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
-    g.setClassCosts(costs, 6);
+    g.setClassCosts(costs);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-
 
     g.add(128, 128, angle::rad(0), -1, -1, 0);
 
     int2 node = g.derivateNode(ptr, angle::rad(0), angle::deg(20), 50, 2, 128, 128);
 
     ASSERT_TRUE(g.checkFeasibleConnection(ptr, {128, 128}, node, 2));
-
-    
 }

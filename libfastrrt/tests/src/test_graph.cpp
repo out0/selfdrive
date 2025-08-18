@@ -1,4 +1,3 @@
-#include "../../../cudac/include/cuda_frame.h"
 #include <gtest/gtest.h>
 #include <cmath>
 #include <chrono>

@@ -22,7 +22,7 @@ bool _ASSERT_DEQ(double a, double b, int tolerance)
 std::vector<int2> get_planned_path(CudaGraph *graph, float3 *ptr, angle goal_heading, int goal_x, int goal_z, float distToGoalTolerance)
 {
     // res.push_back(*_goal);
-    int2 n = graph->findBestNode(ptr, goal_heading, distToGoalTolerance, goal_x, goal_z);
+    int2 n = graph->findBestNode(ptr, goal_heading, distToGoalTolerance, goal_x, goal_z, TO_RAD * 10);
     std::vector<int2> res;
 
     while (n.x != -1 && n.y != -1)

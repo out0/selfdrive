@@ -7,10 +7,10 @@
 #include <vector>
 #include "test_utils.h"
 #include "../../include/fastrrt.h"
-#include "../../../cudac/include/cuda_frame.h"
 #include "tst_class_def.h"
+#include <driveless/search_frame.h>
 // #include <driveless/cubic_interpolator.h>
-#include "../../include/waypoint.h"
+#include <driveless/waypoint.h>
 
 #define PHYS_SIZE 34.641016151377535
 
@@ -49,8 +49,12 @@ void exportPathTo(cudaPtr f, int width, int height, std::vector<Waypoint> &path,
 {
     uchar *dest = new uchar[3 * width * height];
 
-    CudaFrame frame(f, width, height, 0, 0, -1, -1, -1, -1);
-    frame.convertToColorFrame(dest);
+    SearchFrame frame(width, height, {-1, -1}, {-1, -1});
+    frame.setClassColors(classColors);
+    
+    frame.setClassCosts(classCosts);
+
+    frame.exportToColorFrame(dest);
 
     for (auto p : path)
     {
@@ -76,12 +80,12 @@ void exportPathTo(cudaPtr f, int width, int height, std::vector<Waypoint> &path,
     delete[] dest;
 }
 
-void logGraph(FastRRT *rrt, CudaFrame *frame, const char *file)
+void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
 {
-    int width = frame->getWidth();
-    int height = frame->getHeight();
+    int width = frame->width();
+    int height = frame->height();
     uchar *dest = new uchar[3 * width * height];
-    frame->convertToColorFrame(dest);
+    frame->exportToColorFrame(dest);
 
     cv::Mat cimg = cv::Mat(height, width, CV_8UC3, cv::Scalar(0));
 
@@ -134,26 +138,32 @@ void logGraph(FastRRT *rrt, CudaFrame *frame, const char *file)
 
 TEST(TestRRT, TestSearch)
 {
-    std::pair<cv::Mat, float *> res = readImg("/home/cristiano/Documents/Projects/Mestrado/code/driveless-new/libfastrrt/tests/bev_1.png");
+    std::pair<cv::Mat, float *> res = readImg("bev_1.png");
     cv::Mat img = res.first;
     float *ptr = res.second;
 
     // for (int i = 0; i < 10; i++)
     //     printf ("  %f, %f, %f", ptr[3*i], ptr[3*i+1], ptr[3*i+2]);
     // printf("\n");
+    int height = img.rows;
+    int width = img.cols;
 
-    CudaFrame frame(ptr, img.cols, img.rows, 22, 40, 119, 148, 137, 108);
+    SearchFrame frame(width, height, {119, 148}, {137, 108});
     // SearchFrame frame(img.cols, img.rows, {22, 40}, {119, 148}, {137, 108});
     // frame.copyFrom(ptr);
 
-    // frame.setClassCosts(classCosts);
-    // frame.setClassColors(classColors);
+    frame.setClassCosts(classCosts);
+    frame.setClassColors(classColors);
 
     float maxPathSize = 20.0;
     float distToGoal = 20.0;
 
-    FastRRT rrt(
-        img.cols, img.rows,
+    frame.copyFrom(res.second);
+    frame.processSafeDistanceZone({22, 40}, false);
+
+    std::vector<float> p = classCosts;
+
+    FastRRT rrt(width, height,
         OG_REAL_WIDTH, OG_REAL_HEIGHT,
         angle::deg(MAX_STEERING_ANGLE),
         VEHICLE_LENGTH_M,
@@ -161,8 +171,10 @@ TEST(TestRRT, TestSearch)
         {22, 40},
         {119, 148},
         {137, 108},
+        p,
         maxPathSize,
         distToGoal);
+    
 
     std::vector<Waypoint> path = rrt.getPlannedPath();
 
@@ -170,7 +182,7 @@ TEST(TestRRT, TestSearch)
 
     Waypoint goal(128, 0, angle::rad(0));
     Waypoint start(128, 128, angle::rad(0));
-    rrt.setPlanData(frame.getFramePtr(), start, goal, 1);
+    rrt.setPlanData(frame.getCudaPtr(), start, goal, 1);
 
     rrt.search_init();
 

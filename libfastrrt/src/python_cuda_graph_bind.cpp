@@ -20,7 +20,15 @@ extern "C"
             {lowerBound_x, lowerBound_z},
             {upperBound_x, upperBound_z});
         g->setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, angle::deg(maxSteeringAngle_deg), vehicleLength);
-        g->setClassCosts((int *)segmentationClassCost, 29);
+
+        std::vector<float> costs;
+        int count = segmentationClassCost[0];
+        costs.reserve(count);
+        
+        for (int i = 1; i <= count; i++)
+            costs.push_back(segmentationClassCost[i]);
+
+        g->setClassCosts(costs);
         return g;
     }
     void cudagraph_destroy(void *ptr)
@@ -64,9 +72,9 @@ extern "C"
         delete []ptr;
     }
 
-    void compute_boundaries(void *ptr, void *cudaFramePtr, bool copyIntrinsicCostsFromFrame) {
-        CudaGraph *graph = (CudaGraph *)ptr;
-        SearchFrame *frame = (SearchFrame *)cudaFramePtr;
-        graph->computeBoundaries(frame->getCudaPtr(), copyIntrinsicCostsFromFrame);
-    }
+    // void compute_boundaries(void *ptr, void *cudaFramePtr, bool copyIntrinsicCostsFromFrame) {
+    //     CudaGraph *graph = (CudaGraph *)ptr;
+    //     SearchFrame *frame = (SearchFrame *)cudaFramePtr;
+    //     graph->computeBoundaries(frame->getCudaPtr(), copyIntrinsicCostsFromFrame);
+    // }
 }

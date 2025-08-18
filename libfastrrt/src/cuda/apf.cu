@@ -128,7 +128,7 @@ void CudaGraph::computeRepulsiveFieldAPF(float3 *og, float Kr, int radius)
     __CUDA_KERNEL_repulsive_force<<<numBlocks, THREADS_IN_BLOCK>>>(
         og,
         _frameData->getCudaPtr(),
-        _classCosts,
+        _classCosts->get(),
         _searchSpaceParams,
         _frame->width(),
         _frame->height(),
@@ -144,7 +144,7 @@ void CudaGraph::computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, i
     __CUDA_KERNEL_attractive_force<<<numBlocks, THREADS_IN_BLOCK>>>(
         og,
         _frameData->getCudaPtr(),
-        _classCosts,
+        _classCosts->get(),
         _frame->width(),
         _frame->height(),
         Ka * 0.5,

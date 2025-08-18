@@ -122,7 +122,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
     return val;
 }
 
-
+#define MIN_PATH_SIZE 1
 __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
@@ -177,6 +177,7 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
     // int2 debug[5000];
     // int k = 0;
 
+    int pathNodeCount = 0;
     while (size < maxSize)
     {
         x += ds * cosf(heading + beta);
@@ -211,8 +212,13 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
 
         last_x = lastp.x;
         last_z = lastp.y;
+        pathNodeCount++;
         // debug[k++] = { last_x, last_z};
     }
+
+    if (pathNodeCount < MIN_PATH_SIZE) 
+        return {-1, -1};
+
 
     return {(float)last_x, (float)last_z, nodeCost, heading};
 }
@@ -317,7 +323,7 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int ve
         og,
         _physicalParams,
         _searchSpaceParams,
-        _classCosts,
+        _classCosts->get(),
         _gridCenter,
         start,
         end,

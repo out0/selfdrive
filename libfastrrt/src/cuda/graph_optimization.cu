@@ -49,7 +49,7 @@ int CudaGraph::__optimizePathDirectConnect(float3 *og, float distanceToGoalToler
                 og,
                 _physicalParams,
                 _searchSpaceParams,
-                _classCosts,
+                _classCosts->get(),
                 _gridCenter,
                 {static_cast<int>(res[i].x), static_cast<int>(res[i].y)},
                 goal,
@@ -88,7 +88,7 @@ std::vector<float4> CudaGraph::__getPlannedPath(float3 *og, int2 goal, angle goa
     std::vector<float4> res;
 
     // res.push_back(*_goal);
-    int2 n = findBestNode(og, goalHeading, distanceToGoalTolerance, goal.x, goal.y);
+    int2 n = findBestNode(og, goalHeading, distanceToGoalTolerance, goal.x, goal.y, TO_RAD * 10);
 
     while (n.x != -1 && n.y != -1)
     {
@@ -127,7 +127,7 @@ void CudaGraph::__optimizePath(float3 *og, int2 goal, angle goalHeading, float d
                 og,
                 _physicalParams,
                 _searchSpaceParams,
-                _classCosts,
+                _classCosts->get(),
                 _gridCenter,
                 start,
                 end,

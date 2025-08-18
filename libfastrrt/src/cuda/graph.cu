@@ -186,6 +186,7 @@ CudaGraph::CudaGraph(int width, int height)
     _searchSpaceParams[FRAME_PARAM_HEIGHT] = height;
     _searchSpaceParams[FRAME_PARAM_CENTER_X] = _gridCenter.x;
     _searchSpaceParams[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
+    _classCosts = nullptr;
 
     // TODO: make this method refresh randomness for each clear() in graph
     __initializeRandomGenerator();
@@ -252,18 +253,15 @@ void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, 
     _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
 }
 
-void CudaGraph::setClassCosts(const int *costs, int size)
+void CudaGraph::setClassCosts(std::vector<float> costs)
 {
+    _classCosts = std::make_unique<CudaPtr<float>>(costs.size());
 
-    if (!cudaAllocMapped(&this->_classCosts, sizeof(float) * size))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(float) * size) + std::string(" bytes for class cost list\n");
-        throw msg;
-    }
+    auto ptr = _classCosts->get();
 
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < costs.size(); i++)
     {
-        this->_classCosts[i] = static_cast<float>(costs[i]);
+        ptr[i] = static_cast<float>(costs[i]);
     }
 }
 

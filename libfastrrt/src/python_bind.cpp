@@ -18,6 +18,15 @@ extern "C"
         float distToGoalTolerance,
         int *classCosts)
     {
+
+        std::vector<float> costs;
+        int count = classCosts[0];
+        costs.reserve(count);
+        
+        for (int i = 1; i <= count; i++)
+            costs.push_back(classCosts[i]);
+
+
         return new FastRRT(
             width, height,
             perceptionWidthSize_m,
@@ -28,7 +37,7 @@ extern "C"
             {minDistance_x, minDistance_z},
             {lowerBound_x, lowerBound_z},
             {upperBound_x, upperBound_z},
-            classCosts,
+            costs,
             maxPathSize,
             distToGoalTolerance);
     }

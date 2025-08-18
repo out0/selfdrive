@@ -7,6 +7,7 @@
 
 #include <driveless/search_frame.h>
 #include <driveless/angle.h>
+#include <driveless/cuda_ptr.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <vector>
@@ -35,7 +36,9 @@ private:
     int2 _gridCenter;
     double *_physicalParams;
     int *_searchSpaceParams;
-    float *_classCosts;
+
+    
+    cptr<float> _classCosts;
     void __initializeRandomGenerator();
     curandState *_randState;
     std::pair<int2 *, int> __listNodes(int type);
@@ -70,7 +73,7 @@ public:
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
-    void setClassCosts(const int *costs, int size);
+    void setClassCosts(std::vector<float> costs);
     void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
     void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost);
     void addStart(int x, int z, angle heading);
@@ -151,7 +154,7 @@ public:
     /// @param z
     /// @param heading
     /// @return
-    int2 findBestNode(float3 *og, angle heading, float radius, int x, int z);
+    int2 findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError);
 
 
     /// @brief Checks if there is a feasible connection between start and end, at the given velocity and max steering angle
@@ -169,7 +172,7 @@ public:
     /// @param heading 
     /// @param distanceToGoalTolerance 
     /// @return 
-    bool checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance);
+    bool checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError);
 
 
     // /// @brief Optimizes the graph with the added new nodes, changing node parents for total cost reduction (RRT*)
@@ -179,15 +182,13 @@ public:
 
     void optimizeGraph(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s);
 
-    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
+//    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
 
     void dumpGraph(const char *filename);
 
     void readfromDump(const char *filename);
 
     bool checkNewNodesAddedOnTreeExpansion();
-    
-    void computeBoundaries(float3 *og, bool copyIntrinsicCost);
 
     void solveCollisions();
 };

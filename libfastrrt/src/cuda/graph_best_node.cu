@@ -1,6 +1,7 @@
 
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
+#include <driveless/cuda_ptr.h>
 #include "../../include/graph.h"
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
@@ -8,14 +9,34 @@ extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 
-__global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long *bestCost)
+#define K1 1
+#define K2 3
+#define K3 1
+
+__device__ long long __compute_cost_findBestNode(float dist, float heading_rad, float nodeCost) {
+    return __float2ll_rd(K1 * dist + K2 * TO_DEG * heading_rad + K3 * nodeCost);
+}
+
+
+__global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
+    int4 *graph,
+    float3 *graphData,
+    float3 *frame,
+    int *params,
+    float *classCost,
+    float searchRadius,
+    int targetX,
+    int targetZ,
+    float targetHeading_rad,
+    float maxHeadingError_rad,
+    long long *bestCost)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
     int width = params[FRAME_PARAM_WIDTH];
     int height = params[FRAME_PARAM_HEIGHT];
-    int minDistX = params[FRAME_PARAM_MIN_DIST_X];
-    int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
+    int minDistX = params[FRAME_PARAM_MIN_DIST_X] / 2;
+    int minDistZ = params[FRAME_PARAM_MIN_DIST_Z] / 2;
 
     if (pos >= width * height)
         return;
@@ -29,38 +50,37 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(int4 *graph, floa
     int dx = targetX - x;
     int dz = targetZ - z;
 
-    long long dist = __float2ll_rd(dx * dx + dz * dz);
+    const float dist = sqrtf(dx * dx + dz * dz);
 
-    if (dist > searchRadiusSq)
+    if (dist > searchRadius)
         return;
-        
-    
+
     float heading = getHeadingCuda(graphData, pos);
 
+    if (abs(heading - targetHeading_rad) > maxHeadingError_rad)
+        return;
+
     if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading))
-    {
-        return;
-    }
-
-    if (abs(heading - targetHeading) > 0.035)
         return;
 
-    // if (!__computeFeasibleForAngle(frame, params, classCost, x, z, targetHeading))
-    //     return;
-
-    // self cost + dist
-    long long cost = __float2ll_rd(sqrtf(dist) + getCostCuda(graphData, pos));
-    // printf("best node candidate: %d,%d: cost %f dist: %f, total cost: %ld\n",
-    //     x,z,
-    //     getCostCuda(graphData, pos),
-    //     sqrtf(dist),
-    //     cost
-    // );
+    long long cost = __compute_cost_findBestNode(dist, heading, getCostCuda(graphData, pos));
 
     atomicMin(bestCost, cost);
 }
 
-__global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *graph, float3 *graphData, float3 *frame, int *params, float *classCost, long long searchRadiusSq, int targetX, int targetZ, float targetHeading, long long bestCost, int2 *node)
+__global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(
+    int4 *graph, 
+    float3 *graphData, 
+    float3 *frame, 
+    int *params, 
+    float *classCost, 
+    float searchRadius, 
+    int targetX, 
+    int targetZ, 
+    float targetHeading_rad, 
+    float maxHeadingError_rad,
+    long long bestCost, 
+    int2 *node)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -68,7 +88,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
     int height = params[FRAME_PARAM_HEIGHT];
     int minDistX = params[FRAME_PARAM_MIN_DIST_X];
     int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
-    
+
     if (pos >= width * height)
         return;
 
@@ -81,24 +101,22 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
     int dx = targetX - x;
     int dz = targetZ - z;
 
-    long long dist = __float2ll_rd(dx * dx + dz * dz);
+    const float dist = sqrtf(dx * dx + dz * dz);
 
-    if (dist > searchRadiusSq)
+    if (dist > searchRadius)
         return;
 
-    // if (!__computeFeasibleForAngle(frame, params, classCost, x, z, targetHeading))
-    //     return;
     float heading = getHeadingCuda(graphData, pos);
+
+    if (abs(heading - targetHeading_rad) > maxHeadingError_rad)
+        return;
+
     if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading))
     {
         return;
     }
 
-    if (abs(heading - targetHeading) > 0.035)
-        return;
-
-    // self cost + dist
-    long long cost = __float2ll_rd(sqrtf(dist) + getCostCuda(graphData, pos));
+    long long cost = __compute_cost_findBestNode(dist, heading, getCostCuda(graphData, pos));
 
     if (cost == bestCost)
     {
@@ -107,68 +125,66 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(int4 *gr
     }
 }
 
-int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int z)
+int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    int2 *bestNode;
-    long long *cost;
+    CudaPtr<int2> bestNode(1);
+    CudaPtr<long long> cost(1);
 
-    if (!cudaAllocMapped(&bestNode, sizeof(int2)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(int2)) + std::string(" bytes for findBestNode\n");
-        throw msg;
-    }
-    if (!cudaAllocMapped(&cost, sizeof(long long)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(long long)) + std::string(" bytes for findBestNode\n");
-        throw msg;
-    }
-
-    bestNode->x = -1;
-    bestNode->y = -1;
-    *cost = 99999999999;
+    bestNode.get()->x = -1;
+    bestNode.get()->y = -1;
+    *cost.get() = 99999999999;
 
     __CUDA_KERNEL_findBestNodeWithHeading_bestCost<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
         _searchSpaceParams,
-        _classCosts,
-        static_cast<long long>(radius * radius),
-        x, z, heading.rad(), cost);
+        _classCosts->get(),
+        radius,
+        x, z, heading.rad(), 
+        maxHeadingError,
+        cost.get());
 
     CUDA(cudaDeviceSynchronize());
 
-    if (*cost >= 99999999999)
-    {
-        cudaFreeHost(bestNode);
-        cudaFreeHost(cost);
+    if (*cost.get() >= 99999999999)
         return {-1, -1};
-    }
 
     __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
         _searchSpaceParams,
-        _classCosts,
-        static_cast<long long>(radius * radius),
-        x, z, heading.rad(), *cost, bestNode);
+        _classCosts->get(),
+        radius,
+        x, z, 
+        heading.rad(),
+        maxHeadingError,
+        *cost.get(),         
+        bestNode.get());
 
     CUDA(cudaDeviceSynchronize());
 
-    int2 resp = {bestNode->x, bestNode->y};
-    cudaFreeHost(bestNode);
-    cudaFreeHost(cost);
-
-    return resp;
+    return { bestNode.get()->x,  bestNode.get()->y};
 }
 
 extern __device__ __host__ double compute_euclidean_2d_dist(const int2 &start, const int2 &end);
 
-__global__ void __CUDA_KERNEL_checkGoalReached(int4 *graph, float3 *graphData, float3 *frame, int *params, float *costs, int goalX, int goalZ, float goalHeading, float distToGoalTolerance, bool *goalReached)
+__global__ void __CUDA_KERNEL_checkGoalReached(
+    int4 *graph, 
+    float3 *graphData, 
+    float3 *frame, 
+    int *params, 
+    float *costs, 
+    int goalX, 
+    int goalZ, 
+    float goalHeading, 
+    float distToGoalTolerance, 
+    float maxHeadingError,
+    bool *goalReached)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -192,23 +208,11 @@ __global__ void __CUDA_KERNEL_checkGoalReached(int4 *graph, float3 *graphData, f
 
     float heading = getHeadingCuda(graphData, pos);
 
-    if (abs(heading - goalHeading) <= 0.035)
+    if (abs(heading - goalHeading) <= maxHeadingError)
         *goalReached = true;
-    // if (frame[computePos(width, x, z)].z == 0.0)
-    // {
-        
-    // }
-
-    // if (__computeFeasibleForAngle(frame, params, costs, x, z, heading_rad)) {
-    //     *goalReached = true;
-    // }
-
-    // printf ("%d, %d is not feasible for angle %f\n", x, z, 180 * heading_rad / PI);
-
-    // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
 
-bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance)
+bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -223,11 +227,12 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
         _frameData->getCudaPtr(),
         og,
         _searchSpaceParams,
-        _classCosts,
+        _classCosts->get(),
         goal.x,
         goal.y,
         heading.rad(),
         distanceToGoalTolerance,
+        maxHeadingError,
         _goalReached);
 
     CUDA(cudaDeviceSynchronize());

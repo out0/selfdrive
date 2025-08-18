@@ -43,7 +43,7 @@ public:
             std::pair<int, int> minDistance, 
             std::pair<int, int> lowerBound, 
             std::pair<int, int> upperBound,
-            int *segmentationClassCost,       
+            std::vector<float> segmentationClassCost,       
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 

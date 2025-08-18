@@ -1,6 +1,7 @@
 #include "../include/fastrrt.h"
 #include <bits/algorithmfwd.h>
 
+
 FastRRT::FastRRT(
     int width,
     int height,
@@ -12,7 +13,7 @@ FastRRT::FastRRT(
     std::pair<int, int> minDistance,
     std::pair<int, int> lowerBound,
     std::pair<int, int> upperBound,
-    int *segmentationClassCost,
+    std::vector<float> segmentationClassCost,
     float maxPathSize,
     float distToGoalTolerance) : 
         _graph(CudaGraph(width, height)), 
@@ -36,7 +37,7 @@ FastRRT::FastRRT(
 
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength);
     _graph.setSearchParams(minDistance, lowerBound, upperBound);
-    _graph.setClassCosts((int *)segmentationClassCost, 29);
+    _graph.setClassCosts(segmentationClassCost);
     _ptr = nullptr;
     
 }
@@ -75,7 +76,6 @@ void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
     _last_expanded_node_count = 0;
-    this->_graph.computeBoundaries(this->_ptr, copyIntrinsicCostsFromFrame);
 
     // int x = 183, z = 72;
     // printf ("result for %d,%d: z = %.2f\n", x, z, this->_ptr[z * 256 + x].z);
@@ -133,7 +133,7 @@ bool FastRRT::loop_optimize()
 bool FastRRT::goalReached()
 {
     int2 goal = {_goal.x(), _goal.z()};
-    return _graph.checkGoalReached(_ptr, goal, _goal.heading(), _distToGoalTolerance);
+    return _graph.checkGoalReached(_ptr, goal, _goal.heading(), _distToGoalTolerance, TO_RAD * 10);
 }
 
 std::vector<Waypoint> FastRRT::getPlannedPath()
@@ -144,7 +144,7 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
         return res;
 
     // res.push_back(*_goal);
-    int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z());
+    int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), TO_RAD * 10);
 
     // long i = 0;
     while (n.x != -1 && n.y != -1)

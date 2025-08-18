@@ -141,7 +141,7 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
-        _classCosts,
+        _classCosts->get(),
         _physicalParams,
         _searchSpaceParams,
         _gridCenter,
@@ -164,7 +164,7 @@ int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle,
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, _searchSpaceParams, og, _classCosts, _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, _searchSpaceParams, og, _classCosts->get(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
     if (p.x < 0 || p.y < 0)
         return int2{-1, -1};
@@ -179,9 +179,9 @@ int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle,
     long pos = computePos(width(), x, z);
     long pos_end = computePos(width(), end_x, end_z);
 
-    if (checkInGraphCuda(_frame->getCudaPtr(), pos))
+    if (checkInGraphCuda(_frame->getCudaPtr(), pos_end))
     {
-        return {-1, -1};
+        //return {-1, -1};
         // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
         set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
         setNodeDeriveCount(_frame->getCudaPtr(), pos, 1);
