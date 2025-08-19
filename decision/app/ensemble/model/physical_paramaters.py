@@ -13,11 +13,11 @@ class PhysicalParameters:
     MIN_DISTANCE_WIDTH_M: float = 3
     MIN_DISTANCE_HEIGHT_M: float = 6
     
-    # MIN_DISTANCE_WIDTH_PX: int = 22
-    # MIN_DISTANCE_HEIGHT_PX: int = 40
+    MIN_DISTANCE_WIDTH_PX: int = 22
+    MIN_DISTANCE_HEIGHT_PX: int = 40
     
-    MIN_DISTANCE_WIDTH_PX: int = 0
-    MIN_DISTANCE_HEIGHT_PX: int = 0
+    #MIN_DISTANCE_WIDTH_PX: int = 0
+    #MIN_DISTANCE_HEIGHT_PX: int = 0
 
     EGO_LOWER_BOUND: tuple[int, int] = (119, 148) 
     EGO_UPPER_BOUND: tuple[int, int] =  (137, 108)
