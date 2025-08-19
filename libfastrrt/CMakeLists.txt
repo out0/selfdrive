@@ -45,7 +45,7 @@ message(STATUS "Architecture: ${ARCHITECTURE}")
 
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
 pkg_search_module(GLIB REQUIRED glib-2.0)
-
+link_directories(/usr/local/lib/driveless)
 # Library sources
 
 add_library(
@@ -97,6 +97,7 @@ if(CUDA_LIB_JETSON)
             GSL::gsl
             GSL::gslcblas
             jetson-utils
+            driveless
             #CUDA::cudart
     )
 else()
@@ -105,6 +106,7 @@ else()
             Threads::Threads
             GSL::gsl
             GSL::gslcblas
+            driveless
             #CUDA::cudart
     )
 endif()

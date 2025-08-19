@@ -2,13 +2,13 @@ import ctypes.util
 import ctypes
 import numpy as np
 import os
+from pydriveless import SearchFrame
 
 class FastRRT:
      __ptr: ctypes.c_void_p
         
      def __init__(self, 
-                 width: int, 
-                 height: int,
+                 search_frame: SearchFrame,
                  perception_width_m: float,
                  perception_height_m: float,
                  max_steering_angle_deg : float,
@@ -16,19 +16,18 @@ class FastRRT:
                  timeout_ms: int,
                  min_dist_x: int,
                  min_dist_z: int,
-                 lower_bound_x: int,
-                 lower_bound_z: int,
-                 upper_bound_x: int,
-                 upper_bound_z: int,
+                 path_costs: np.ndarray,
                  max_path_size_px: float = 30.0,
-                 dist_to_goal_tolerance_px: float = 5.0,
-                 libdir = None
+                 dist_to_goal_tolerance_px: float = 5.0
                  ):
-          FastRRT.setup_cpp_lib(libdir)
+          
+          FastRRT.setup_cpp_lib()
         
+          costs = np.ascontiguousarray(np.concatenate(([path_costs.shape[0]], path_costs)), dtype=np.float32)
+
           self.__ptr = FastRRT.lib.fastrrt_initialize(
-                 width, 
-                 height,
+                 search_frame.width(), 
+                 search_frame.height(),
                  perception_width_m,
                  perception_height_m,
                  max_steering_angle_deg,
@@ -36,10 +35,11 @@ class FastRRT:
                  timeout_ms,
                  min_dist_x,
                  min_dist_z,
-                 lower_bound_x,
-                 lower_bound_z,
-                 upper_bound_x,
-                 upper_bound_z,
+                 search_frame.lower_bound()[0],
+                 search_frame.lower_bound()[1],
+                 search_frame.upper_bound()[0],
+                 search_frame.upper_bound()[1],
+                 costs,
                  max_path_size_px,
                  dist_to_goal_tolerance_px)
     
@@ -69,6 +69,7 @@ class FastRRT:
             ctypes.c_int, #lowerBound_z
             ctypes.c_int, #upperBound_x
             ctypes.c_int, #upperBound_z
+            np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1), # segmentationClassCost
             ctypes.c_float, # maxPathSize
             ctypes.c_float  # distToGoalTolerance
           ]
@@ -159,10 +160,10 @@ class FastRRT:
           ]
          
 
-     def set_plan_data(self, cuda_ptr: ctypes.c_void_p, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float) -> bool:
+     def set_plan_data(self, cuda_ptr: SearchFrame, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float) -> bool:
           return FastRRT.lib.set_plan_data(
             self.__ptr, 
-            cuda_ptr,
+            cuda_ptr.get_cuda_ptr(),
             start[0],
             start[1],
             start[2],
