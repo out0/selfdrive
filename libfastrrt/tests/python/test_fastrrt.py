@@ -45,15 +45,21 @@ class TestFastRRT(unittest.TestCase):
         )
 
         cframe.process_safe_distance_zone((MIN_DISTANCE_WIDTH_PX, MIN_DISTANCE_HEIGHT_PX), False)
-        cframe.get_distance_to_goal(128, 0)
+        cframe.process_distance_to_goal(128, 0)
         planner.search_init()
 
         while not planner.goal_reached():
             planner.loop(False)
 
+        planner.path_optimize()
+
         path = planner.get_planned_path(True)
-        print(path)
-        pass
+
+        f = cframe.get_color_frame()
+        for i in range(path.shape[0]):
+            f[int(path[i, 1]), int(path[i, 0]), :] = [255, 255, 255]
+
+        cv2.imwrite("output1.png", f)
 
 if __name__ == "__main__":
     unittest.main()

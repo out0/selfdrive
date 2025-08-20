@@ -119,14 +119,12 @@ bool FastRRT::loop(bool smart)
     return true;
 }
 
-bool FastRRT::loop_optimize()
+void FastRRT::path_optimize()
 {
     if (__check_timeout())
-        return false;
+        return;
 
     _graph.optimizeGraph(_ptr, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _planningVelocity_m_s);
-    //__shrink_search_graph();
-    return true;
 }
 
 

@@ -53,7 +53,7 @@ public:
     /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.
     void search_init(bool copyIntrinsicCostsFromFrame = false);
     bool loop(bool smartExpansion = false);
-    bool loop_optimize();
+    void path_optimize();
     bool goalReached();
     
     /// @brief Exports the current state of the graph as a vector

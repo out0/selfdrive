@@ -134,7 +134,7 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
     cv::imwrite(file, cimg);
 }
 
-#define TIMEOUT -1
+#define TIMEOUT 200
 
 TEST(TestRRT, TestSearch)
 {
@@ -147,6 +147,9 @@ TEST(TestRRT, TestSearch)
     // printf("\n");
     int height = img.rows;
     int width = img.cols;
+
+    ASSERT_EQ(256, width);
+    ASSERT_EQ(256, height);
 
     SearchFrame frame(width, height, {119, 148}, {137, 108});
     // SearchFrame frame(img.cols, img.rows, {22, 40}, {119, 148}, {137, 108});
@@ -194,13 +197,18 @@ TEST(TestRRT, TestSearch)
     ASSERT_TRUE(rrt.goalReached());
 
     path = rrt.getPlannedPath();
+    ASSERT_TRUE(path.size() > 5);
 
-    return;
-    logGraph(&rrt, &frame, "output1.png");
-    while (rrt.loop_optimize())
-    {
-        logGraph(&rrt, &frame, "output1.png");
-    }
+
+    auto last = path.back();
+    int dx = last.x() - goal.x();
+    int dz = last.z() - goal.z();
+
+    ASSERT_LE(dx * dx + dz * dz, 400);
+
+    //logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1.png");
+    rrt.path_optimize();
+    //logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1_optim.png");
 
     //exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output2.png");
     // auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
@@ -211,6 +219,11 @@ TEST(TestRRT, TestSearch)
     // //interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
     // exportPathTo(&frame, path, "output2.png");
 
+    auto last2 = path.back();
+    dx = last2.x() - goal.x();
+    dz = last2.z() - goal.z();
+
+    ASSERT_LE(dx * dx + dz * dz, 400);
     ASSERT_TRUE(rrt.goalReached());
 
     delete[] ptr;
