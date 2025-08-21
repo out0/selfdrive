@@ -66,11 +66,11 @@ void CudaGraph::solveCollisions()
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    __CUDA_solveGraphCollision_erase_trees<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _searchSpaceParams, numNodesInGraph);
+    __CUDA_solveGraphCollision_erase_trees<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _searchSpaceParams->get(), numNodesInGraph);
 
     cudaDeviceSynchronize();
 
-    __CUDA_solveGraphCollision_set_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _searchSpaceParams);
+    __CUDA_solveGraphCollision_set_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _searchSpaceParams->get());
 
     cudaDeviceSynchronize();
 }

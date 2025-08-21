@@ -27,11 +27,11 @@ unsigned int CudaGraph::count(int type)
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    *_parallelCount = 0;
-    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), type, _parallelCount);
+    *_parallelCount->get() = 0;
+    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), type, _parallelCount->get());
     cudaDeviceSynchronize();
 
-    return *_parallelCount;
+    return *_parallelCount->get();
 }
 
 __global__ static void __CUDA_KERNEL_count_all_elements_in_graph(int4 *graph, int width, int height,  unsigned int *count)
@@ -58,11 +58,11 @@ unsigned int CudaGraph::countAll()
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    *_parallelCount = 0;
-    __CUDA_KERNEL_count_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _parallelCount);
+    *_parallelCount->get() = 0;
+    __CUDA_KERNEL_count_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _parallelCount->get());
     cudaDeviceSynchronize();
 
-    return *_parallelCount;
+    return *_parallelCount->get();
 }
 
 __global__ static void __CUDA_KERNEL_list_elements_in_graph(int4 *graph, int width, int height, int type, int2 *res, unsigned int *currentPos)
@@ -226,10 +226,10 @@ bool CudaGraph::checkNewNodesAddedOnTreeExpansion()
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    *_newNodesAdded = false;
-    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _newNodesAdded);
+    *_newNodesAdded->get() = false;
+    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _newNodesAdded->get());
 
     CUDA(cudaDeviceSynchronize());
     
-    return *_newNodesAdded;
+    return *_newNodesAdded->get();
 }

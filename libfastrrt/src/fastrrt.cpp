@@ -59,7 +59,7 @@ bool FastRRT::__check_timeout()
     return (_timeout_ms > 0 && __get_exec_time_ms() > _timeout_ms);
 }
 
-void FastRRT::setPlanData(cudaPtr ptr, Waypoint start, Waypoint goal, float velocity_m_s)
+void FastRRT::setPlanData(float3* ptr, Waypoint start, Waypoint goal, float velocity_m_s)
 {
     this->_start = start;
     this->_goal = goal;

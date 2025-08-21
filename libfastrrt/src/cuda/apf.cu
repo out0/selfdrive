@@ -129,7 +129,7 @@ void CudaGraph::computeRepulsiveFieldAPF(float3 *og, float Kr, int radius)
         og,
         _frameData->getCudaPtr(),
         _classCosts->get(),
-        _searchSpaceParams,
+        _searchSpaceParams->get(),
         _frame->width(),
         _frame->height(),
         Kr * 0.5,

@@ -39,11 +39,11 @@ unsigned int CudaGraph::__countInRange(int xp, int zp, float radius_sqr)
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    *_parallelCount = 0;
-    __CUDA_KERNEL_count_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), GRAPH_TYPE_NODE, xp, zp, radius_sqr, _parallelCount);
+    *_parallelCount->get() = 0;
+    __CUDA_KERNEL_count_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), GRAPH_TYPE_NODE, xp, zp, radius_sqr, _parallelCount->get());
     cudaDeviceSynchronize();
 
-    return *_parallelCount;
+    return *_parallelCount->get();
 }
 
 __global__ static void __CUDA_KERNEL_list_elements_in_range(int4 *graph, int width, int height, int type, int xp, int zp, float radius_sqr, int2 *res, unsigned int *currentPos)

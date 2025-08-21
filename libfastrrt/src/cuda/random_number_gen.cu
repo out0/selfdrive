@@ -34,14 +34,10 @@ void CudaGraph::__initializeRandomGenerator()
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    if (cudaMalloc(&this->_randState, sizeof(curandState) * size) != cudaSuccess)
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(curandState) * size) + std::string(" bytes for random number generation\n");
-        throw msg;
-    }
+    _randState = std::make_unique<CudaPtr<curandState>>(_frame->width() * _frame->height());
 
     __CUDA_KERNEL_setupRandomGenKernel<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _randState, size, getCurrentTimeMillis());
+        _randState->get(), size, getCurrentTimeMillis());
 
     CUDA(cudaDeviceSynchronize());
 

@@ -165,92 +165,52 @@ CudaGraph::CudaGraph(int width, int height)
 {
     _frame = std::make_shared<CudaGrid<int4>>(width, height);
     _frameData = std::make_unique<CudaGrid<float3>>(width, height);
-    if (!cudaAllocMapped(&this->_parallelCount, sizeof(unsigned int)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(unsigned int)) + std::string(" bytes for counting\n");
-        throw msg;
-    }
-
+    _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _gridCenter.x = TO_INT(width / 2);
     _gridCenter.y = TO_INT(height / 2);
     _physicalParams = nullptr;
-    //_searchSpaceParams = nullptr;
-
-    if (!cudaAllocMapped(&this->_searchSpaceParams, 10 * sizeof(int)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(11 * sizeof(int)) + std::string(" bytes for search-space parameters\n");
-        throw msg;
-    }
-
-    _searchSpaceParams[FRAME_PARAM_WIDTH] = width;
-    _searchSpaceParams[FRAME_PARAM_HEIGHT] = height;
-    _searchSpaceParams[FRAME_PARAM_CENTER_X] = _gridCenter.x;
-    _searchSpaceParams[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
+    _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);
+    _searchSpaceParams->get()[FRAME_PARAM_WIDTH] = width;
+    _searchSpaceParams->get()[FRAME_PARAM_HEIGHT] = height;
+    _searchSpaceParams->get()[FRAME_PARAM_CENTER_X] = _gridCenter.x;
+    _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
     _classCosts = nullptr;
 
     // TODO: make this method refresh randomness for each clear() in graph
     __initializeRandomGenerator();
 
-    if (!cudaAllocMapped(&this->_goalReached, sizeof(bool)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for goal reached check\n");
-        throw msg;
-    }
-
-    if (!cudaAllocMapped(&this->_newNodesAdded, sizeof(bool)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for tree expansion check (new nodes)\n");
-        throw msg;
-    }
-
-    if (!cudaAllocMapped(&this->_nodeCollision, sizeof(bool)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(bool)) + std::string(" bytes for tree node collision check\n");
-        throw msg;
-    }
+    _goalReached = std::make_unique<CudaPtr<bool>>(1);
+    _newNodesAdded = std::make_unique<CudaPtr<bool>>(1);
+    _nodeCollision = std::make_unique<CudaPtr<bool>>(1);
 
     __initializeRegionDensity();
     _directOptimPos = -1;
 }
 CudaGraph::~CudaGraph()
 {
-    cudaFreeHost(_parallelCount);
-    cudaFreeHost(_newNodesAdded);
-    cudaFreeHost(_goalReached);
-    cudaFreeHost(_searchSpaceParams);
-
-    if (_physicalParams != nullptr)
-        cudaFreeHost(_physicalParams);
-
     __dealocRegionDensity();
 }
 
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)
 {
-
-    if (!cudaAllocMapped(&this->_physicalParams, sizeof(double) * 8))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(sizeof(double) * 5) + std::string(" bytes for physical params\n");
-        throw msg;
-    }
-
-    this->_physicalParams[PHYSICAL_PARAMS_RATE_W] = _frame->width() / perceptionWidthSize_m;
-    this->_physicalParams[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _frame->width();
-    this->_physicalParams[PHYSICAL_PARAMS_RATE_H] = _frame->height() / perceptionHeightSize_m;
-    this->_physicalParams[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _frame->height();
-    this->_physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
-    this->_physicalParams[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
-    this->_physicalParams[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
+    _physicalParams = std::make_unique<CudaPtr<double>>(8);
+    this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_W] = _frame->width() / perceptionWidthSize_m;
+    this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _frame->width();
+    this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_H] = _frame->height() / perceptionHeightSize_m;
+    this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _frame->height();
+    this->_physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
+    this->_physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
+    this->_physicalParams->get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
 }
 
 void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound)
 {
-    _searchSpaceParams[FRAME_PARAM_MIN_DIST_X] = TO_INT((float)minDistance.first / 2);
-    _searchSpaceParams[FRAME_PARAM_MIN_DIST_Z] = TO_INT((float)minDistance.second / 2);
-    _searchSpaceParams[FRAME_PARAM_LOWER_BOUND_X] = lowerBound.first;
-    _searchSpaceParams[FRAME_PARAM_LOWER_BOUND_Z] = lowerBound.second;
-    _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_X] = upperBound.first;
-    _searchSpaceParams[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
+    _searchSpaceParams->get()[FRAME_PARAM_MIN_DIST_X] = TO_INT((float)minDistance.first / 2);
+    _searchSpaceParams->get()[FRAME_PARAM_MIN_DIST_Z] = TO_INT((float)minDistance.second / 2);
+    _searchSpaceParams->get()[FRAME_PARAM_LOWER_BOUND_X] = lowerBound.first;
+    _searchSpaceParams->get()[FRAME_PARAM_LOWER_BOUND_Z] = lowerBound.second;
+    _searchSpaceParams->get()[FRAME_PARAM_UPPER_BOUND_X] = upperBound.first;
+    _searchSpaceParams->get()[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
 }
 
 void CudaGraph::setClassCosts(std::vector<float> costs)
@@ -327,7 +287,7 @@ void CudaGraph::clear()
     __CUDA_KERNEL_clear<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), width(), height());
 
     CUDA(cudaDeviceSynchronize());
-    *_goalReached = false;
+    *_goalReached->get() = false;
 }
 
 bool CudaGraph::checkInGraph(int x, int z)

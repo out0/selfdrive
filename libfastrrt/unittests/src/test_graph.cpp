@@ -231,7 +231,7 @@ TEST(TestGraph, TestList_LoadDump)
             parent_z = z;
         }
 
-    g.dumpGraph("tmp34534.dat");
+    g.dumpGraph("/tmp/tmp34534.dat");
 
     g.clear();
     for (int z = 0; z < 100; z++)
@@ -241,7 +241,7 @@ TEST(TestGraph, TestList_LoadDump)
                 FAIL();
         }
 
-    g.readfromDump("tmp34534.dat");
+    g.readfromDump("/tmp/tmp34534.dat");
 
     cost = 0;
     parent_x = -1;

@@ -3,8 +3,8 @@
 #ifndef __CUDA_GRID_DRIVELESS_H
 #define __CUDA_GRID_DRIVELESS_H
 
-
 #include <driveless/cuda_basic.h>
+#include <driveless/cuda_ptr.h>
 
 // CODE:BEGIN
 
@@ -30,7 +30,8 @@ template <typename T>
 class CudaGrid
 {
 private:
-    T *frame;
+
+    cptr<T> frame;
     const int _width;
     const int _height;
 
@@ -44,16 +45,15 @@ protected:
             throw std::out_of_range("Index out of bounds!");
         }
         long pos = indices.second * _width + indices.first;
-        return frame[pos];
+        return frame->get()[pos];
     }
 
 public:
     CudaGrid(int width, int height);
-    ~CudaGrid();
 
     virtual void copyFrom(float *ptr);
     virtual void clear();
-    inline T *getCudaPtr() { return frame; }
+    inline T *getCudaPtr() { return frame->get(); }
 
     constexpr int width()
     {
@@ -76,27 +76,14 @@ public:
         {
             throw std::out_of_range("Index out of bounds!");
         }
-        return frame[pos];
+        return frame->get()[pos];
     }
 };
 
 template <typename T>
 CudaGrid<T>::CudaGrid(int width, int height) : _width(width), _height(height)
 {
-    size_t size = sizeof(T) * (_width * _height);
-
-    if (!cudaAllocMapped(&this->frame, size))
-    {
-        fprintf(stderr, "[CUDA FRAME] unable to allocate frame memory with %ld bytes\n", size);
-        this->frame = nullptr;
-        return;
-    }
-}
-
-template <typename T>
-CudaGrid<T>::~CudaGrid()
-{
-    cudaFreeHost(frame);
+    this->frame = std::make_unique<CudaPtr<T>>(_width * _height);
 }
 
 template <typename T>
@@ -106,14 +93,14 @@ void CudaGrid<T>::copyFrom(float *ptr)
         for (int j = 0; j < _width; j++)
         {
             long pos = (_width * i + j);
-            CudaGrid<T>::copyData(ptr, frame, pos);
+            CudaGrid<T>::copyData(ptr, frame->get(), pos);
         }
 }
 
 template <typename T>
 void CudaGrid<T>::clear()
 {
-    CUDA_clear(frame, _width, _height);
+    CUDA_clear(frame->get(), _width, _height);
 }
 
 template <typename T>

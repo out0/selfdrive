@@ -134,25 +134,25 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    *_nodeCollision = false;
+    *_nodeCollision->get() = false;
 
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _randState,
+        _randState->get(),
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
         _classCosts->get(),
-        _physicalParams,
-        _searchSpaceParams,
+        _physicalParams->get(),
+        _searchSpaceParams->get(),
         _gridCenter,
         maxPathSize,
         velocity_m_s,
         frontierExpansion, 
-        _nodeCollision);
+        _nodeCollision->get());
 
     CUDA(cudaDeviceSynchronize());
 
-    if (*_nodeCollision)
+    if (*_nodeCollision->get())
     {
         //printf("Collision detected, solving...\n");
         solveCollisions();
@@ -164,7 +164,7 @@ int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle,
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams, _searchSpaceParams, og, _classCosts->get(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams->get(), _searchSpaceParams->get(), og, _classCosts->get(), _gridCenter, {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
     if (p.x < 0 || p.y < 0)
         return int2{-1, -1};

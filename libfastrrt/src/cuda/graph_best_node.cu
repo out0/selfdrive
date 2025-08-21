@@ -141,7 +141,7 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
-        _searchSpaceParams,
+        _searchSpaceParams->get(),
         _classCosts->get(),
         radius,
         x, z, heading.rad(), 
@@ -157,7 +157,7 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
-        _searchSpaceParams,
+        _searchSpaceParams->get(),
         _classCosts->get(),
         radius,
         x, z, 
@@ -217,7 +217,7 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    if (*_goalReached)
+    if (*_goalReached->get())
         return true;
 
     // printf("check goal: %d, %d\n", goal.x, goal.y);
@@ -226,15 +226,15 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
-        _searchSpaceParams,
+        _searchSpaceParams->get(),
         _classCosts->get(),
         goal.x,
         goal.y,
         heading.rad(),
         distanceToGoalTolerance,
         maxHeadingError,
-        _goalReached);
+        _goalReached->get());
 
     CUDA(cudaDeviceSynchronize());
-    return *_goalReached;
+    return *_goalReached->get();
 }

@@ -11,7 +11,7 @@
 #include <vector>
 #include "graph.h"
 
-typedef float3* cudaPtr;
+//typedef float3* cudaPtr;
 
 class FastRRT
 {
@@ -23,7 +23,7 @@ private:
     float _distToGoalTolerance;
     Waypoint _start;
     Waypoint _goal;
-    cudaPtr _ptr;
+    float3* _ptr;
     float _planningVelocity_m_s;
     int2 _bestNode;
     int _last_expanded_node_count;
@@ -47,7 +47,7 @@ public:
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 
-    void setPlanData(cudaPtr frame, Waypoint start, Waypoint goal, float velocity_m_s);
+    void setPlanData(float3* frame, Waypoint start, Waypoint goal, float velocity_m_s);
 
     /// @brief 
     /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.

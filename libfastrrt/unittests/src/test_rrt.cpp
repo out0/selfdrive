@@ -45,7 +45,7 @@ std::pair<cv::Mat, float *> readImg(const char *file)
 #define MAX_STEERING_ANGLE 40
 #define VEHICLE_LENGTH_M 5.412658774
 
-void exportPathTo(cudaPtr f, int width, int height, std::vector<Waypoint> &path, const char *file)
+void exportPathTo(float3* f, int width, int height, std::vector<Waypoint> &path, const char *file)
 {
     uchar *dest = new uchar[3 * width * height];
 

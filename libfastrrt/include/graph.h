@@ -29,25 +29,27 @@ class CudaGraph
 private:
     std::shared_ptr<CudaGrid<int4>> _frame;
     std::shared_ptr<CudaGrid<float3>> _frameData;
-    bool __checkLimits(int x, int z);
-    unsigned int *_parallelCount = 0;
-    bool *_newNodesAdded;
-    bool *_nodeCollision;
     int2 _gridCenter;
-    double *_physicalParams;
-    int *_searchSpaceParams;
+    bool __checkLimits(int x, int z);
 
-    
+    cptr<unsigned int> _parallelCount;
+    cptr<bool> _newNodesAdded;
+    cptr<bool> _nodeCollision;
+    cptr<bool> _goalReached;
+    cptr<double> _physicalParams;
+    cptr<int> _searchSpaceParams;
+    cptr<unsigned int> _region_node_count;
     cptr<float> _classCosts;
+    cptr<curandState> _randState;
+
+
     void __initializeRandomGenerator();
-    curandState *_randState;
     std::pair<int2 *, int> __listNodes(int type);
     std::pair<int3 *, int> __listAllNodes();
     
     void __initializeRegionDensity();
     void __dealocRegionDensity();
     
-    unsigned int *_region_node_count;
     float _node_mean;
     int _directOptimPos;
     
@@ -55,7 +57,7 @@ private:
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
     std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
 
-    bool *_goalReached;
+
    
     int __optimizePathDirectConnect(float3 *og, float distanceToGoalTolerance, float velocity_m_s, std::vector<float4> res);
     std::vector<float4> __getPlannedPath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance);
@@ -103,7 +105,7 @@ public:
     }
 
     double * getPhysicalParams() {
-        return _physicalParams;
+        return _physicalParams->get();
     }
 
     int2 getCenter() {

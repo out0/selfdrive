@@ -69,30 +69,25 @@ __device__ __host__ bool checkCanExpand(int4 *graph, unsigned int *region_count,
 
 void CudaGraph::__initializeRegionDensity()
 {
-    int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
-    int height = _searchSpaceParams[FRAME_PARAM_HEIGHT];
+    int width = _searchSpaceParams->get()[FRAME_PARAM_WIDTH];
+    int height = _searchSpaceParams->get()[FRAME_PARAM_HEIGHT];
 
     int density_width = TO_INT(width / BLOCK_SIZE) + 1;
     int density_height = TO_INT(height / BLOCK_SIZE) + 1;
     int density_size = density_width * density_height;
 
-    _searchSpaceParams[FRAME_DENSITY_WIDTH] = density_width;
-    _searchSpaceParams[FRAME_DENSITY_HEIGHT] = density_height;
-    _searchSpaceParams[FRAME_DENSITY_SIZE] = density_size;
+    _searchSpaceParams->get()[FRAME_DENSITY_WIDTH] = density_width;
+    _searchSpaceParams->get()[FRAME_DENSITY_HEIGHT] = density_height;
+    _searchSpaceParams->get()[FRAME_DENSITY_SIZE] = density_size;
 
     // printf("graph size: %d, %d\n", width, height);
     // printf("num of density regions: %d\n", density_size);
     // printf("density region size: %d x %d\n", density_width, density_height);
 
-    if (!cudaAllocMapped(&this->_region_node_count, density_size * sizeof(int)))
-    {
-        std::string msg = "[CUDA GRAPH] unable to allocate memory with " + std::to_string(density_size * sizeof(int)) + std::string(" bytes to count nodes for region density\n");
-        throw msg;
-    }
-
+    _region_node_count = std::make_unique<CudaPtr<unsigned int>>(density_size);
     for (int i = 0; i < density_size; i++)
     {
-        _region_node_count[i] = 0;
+        _region_node_count->get()[i] = 0;
     }
 
     _node_mean = 0;
@@ -100,28 +95,24 @@ void CudaGraph::__initializeRegionDensity()
 
 void CudaGraph::__dealocRegionDensity()
 {
-    if (_region_node_count)
-    {
-        cudaFreeHost(_region_node_count);
-        _region_node_count = nullptr;
-    }
+    _region_node_count = nullptr;
 }
 
 void CudaGraph::__computeGraphRegionDensity()
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-    int density_size = _searchSpaceParams[FRAME_DENSITY_SIZE];
+    int density_size = _searchSpaceParams->get()[FRAME_DENSITY_SIZE];
 
     for (int i = 0; i < density_size; i++)
     {
-        _region_node_count[i] = 0;
+        _region_node_count->get()[i] = 0;
     }
 
     __CUDA_count_nodes_in_density_region<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
-        _searchSpaceParams,
-        _region_node_count);
+        _searchSpaceParams->get(),
+        _region_node_count->get());
 
     CUDA(cudaDeviceSynchronize());
 
@@ -129,8 +120,8 @@ void CudaGraph::__computeGraphRegionDensity()
     int numRegionsWithNodes = 0;
     for (int i = 0; i < density_size; i++)
     {
-        _node_mean += _region_node_count[i];
-        if (_region_node_count[i] > 0) {
+        _node_mean += _region_node_count->get()[i];
+        if (_region_node_count->get()[i] > 0) {
             numRegionsWithNodes++;
             //printf("(+) region %i: %d\n", i, _region_node_count[i]);
         }
@@ -148,10 +139,10 @@ void CudaGraph::__computeGraphRegionDensity()
 
     for (int i = 0; i < density_size; i++)
     {
-        if (_region_node_count[i] == 0)
+        if (_region_node_count->get()[i] == 0)
             continue;
-        int density_x = TO_INT(i % _searchSpaceParams[FRAME_DENSITY_WIDTH]);
-        int density_z = TO_INT(i / _searchSpaceParams[FRAME_DENSITY_WIDTH]);
+        int density_x = TO_INT(i % _searchSpaceParams->get()[FRAME_DENSITY_WIDTH]);
+        int density_z = TO_INT(i / _searchSpaceParams->get()[FRAME_DENSITY_WIDTH]);
         //printf("density region (%d, %d): %d\n", density_x, density_z, _region_node_count[i]);        
     }
 }
@@ -230,30 +221,30 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    *_nodeCollision = false;
+    *_nodeCollision->get() = false;
     
     __CUDA_smart_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _randState,
+        _randState->get(),
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
-        _region_node_count,
+        _region_node_count->get(),
         _node_mean,
         _classCosts->get(),
-        _searchSpaceParams,
-        _physicalParams,
+        _searchSpaceParams->get(),
+        _physicalParams->get(),
         _gridCenter,
         maxPathSize,
         velocity_m_s,
         expandFrontier,
         forceExpand,
-        _nodeCollision);
+        _nodeCollision->get());
 
     CUDA(cudaDeviceSynchronize());
 
     __computeGraphRegionDensity();
 
-    if (*_nodeCollision) {
+    if (*_nodeCollision->get()) {
         solveCollisions();
     }
 }
