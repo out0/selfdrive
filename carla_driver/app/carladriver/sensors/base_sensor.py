@@ -53,3 +53,7 @@ class CarlaSensor:
         data = self._raw_data
         self._lock.release()
         return data, self._last_read_timestamp
+    
+    def destroy(self):
+        self._sensor.destroy()
+        self._sensor = None

@@ -15,7 +15,7 @@ def read_path (file: str) -> list[MapPose]:
 
 def export_planning_response(file: str, planner_data: PlanningData, res: PlanningResult):
     frame = planner_data.og().get_color_frame()
-    if res is not None:
+    if res is not None and res.path is not None:
         for p in res.path:
             frame[int(p.z), int(p.x)] = [255, 255, 255]
     

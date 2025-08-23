@@ -14,7 +14,7 @@ def read_path (file: str) -> list[MapPose]:
         path.append(MapPose(x=float(p[0]), y=float(p[1]), z=float(p[2]), heading=float(p[3])))
     return path
 
-def init_sim() -> tuple[CarlaSimulation, CarlaEgoVehicle]:
+def init_sim() -> tuple[CarlaSimulation, CarlaSLAM, CarlaEgoVehicle]:
     sim = CarlaSimulation(town_name='Town07')
     ego = sim.add_ego_vehicle(pos=[-90, 0, 3])
     ego.set_brake(1.0)

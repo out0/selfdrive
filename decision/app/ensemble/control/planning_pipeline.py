@@ -6,7 +6,7 @@ from .. model.planning_result import PlanningResult, PlannerResultType
 from .. model.planner_executor import LocalPlannerExecutor
 import numpy as np
 import math
-from pydriveless import Telemetry
+from pydriveless import Telemetry, angle
 
 LOCAL_GOAL_NEAR_THRESHOLD_PX = 250
 COMPUTE_EXCLUSION_ZONES = True
@@ -51,6 +51,7 @@ class PlanningPipeline:
 
         return PlanningData(
             seq=seq,
+            start=Waypoint(128, 107, angle.new_rad(0)),
             ego_location=ego_location,
             g1=g1,
             g2=g2,

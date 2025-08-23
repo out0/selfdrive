@@ -1,5 +1,5 @@
 import numpy as np
-from pydriveless import SearchFrame, MapPose, Waypoint
+from pydriveless import SearchFrame, MapPose, Waypoint, angle
 import json
 
 class PlanningData:
@@ -90,6 +90,7 @@ class PlanningData:
         ub = (int(data['og_upper_bound_x']), int(data['og_upper_bound_z']))
         res = PlanningData(
             seq=int(data['seq']),
+            start=Waypoint(128, 107, angle.new_rad(0)),
             velocity=float(data['velocity']),
             min_distance=tuple(data['min_distance_px']),
             ego_location=MapPose.from_str(data['ego_location']),

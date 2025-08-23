@@ -7,7 +7,7 @@ from pydriveless import SLAM
 from pydriveless import Telemetry
 import json
 
-SHOW_DEBUG_MESSAGES = True
+SHOW_DEBUG_MESSAGES = False
 TELEMETRY = False
 
 class MotionController (DiscreteComponent):
@@ -55,11 +55,11 @@ class MotionController (DiscreteComponent):
         # self._longitudinal_controller.start()
     
     def __set_break(self, val: float):
-        print (f"braking with {val}")
+        #print (f"braking with {val}")
         self._ego.set_brake(val)
         
     def __set_power(self, val: float):
-        print (f"set power {val}")
+        #print (f"set power {val}")
         self._ego.set_power(val)
         
     def __get_velocity(self) -> float:
@@ -70,6 +70,7 @@ class MotionController (DiscreteComponent):
 
     def set_path(self, path: List[MapPose], velocity: float):
         self._search_state = True
+        if (len(path) == 0): return
         self._path = MapPose.remove_repeated_seq_points_in_list(path)
         self._last_pos = 0
         self._desired_speed = velocity

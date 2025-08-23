@@ -121,4 +121,10 @@ class CarlaEgoVehicle(EgoVehicle):
         return self._bev_semantic
     
     def destroy(self) -> None:
+        if self._bev_semantic is not None:
+            self._bev_semantic.destroy()
+        if self._imu is not None:
+            self._imu.destroy()
+        if self._gps is not None:
+            self._gps.destroy()
         self._vehicle.destroy()

@@ -119,7 +119,7 @@ class LocalPlannerExecutor:
         self._planning_result.result_type = result_type
 
     def is_running(self) -> bool:
-        self.__is_running
+        return self.__is_running
     
     def get_result(self) -> PlanningResult:
         return self._planning_result

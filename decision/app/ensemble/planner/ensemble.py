@@ -14,7 +14,8 @@ import math, time
 from threading import Lock
 
 MAX_VALUE = 99999999
-PATH_CHANGE_VIABLE_MAX_DIST_PX = 10
+PATH_CHANGE_VIABLE_MAX_DIST_PX = 50
+DEBUG = False
 
 class Ensemble(LocalPlannerExecutor):
     _map_coordinate_converter: CoordinateConverter
@@ -90,14 +91,13 @@ class Ensemble(LocalPlannerExecutor):
         self.__terminate_local_planners()
         self.__assert_local_planners_termination()
         
-        planning_data.og().process_safe_distance_zone(planning_data.min_distance(), True)
-        planning_data.og().process_distance_to_goal(planning_data.local_goal().x, planning_data.local_goal().z)
+        # planning_data.og().process_safe_distance_zone(planning_data.min_distance(), True)
+        # planning_data.og().process_distance_to_goal(planning_data.local_goal().x, planning_data.local_goal().z)
 
         self._planning_set_exec_coarse = [True for _ in self._planning_set]
         self._planning_set_exec_optim = [True for _ in self._planning_set]
         self.__new_path_available = False
         self._best_cost = MAX_VALUE
-        self.__last_ego_location = planning_data.ego_location()
 
         for p in self._planning_set:
             p.plan(planning_data, run_in_main_thread=False)
@@ -111,6 +111,7 @@ class Ensemble(LocalPlannerExecutor):
         for i in range(len(self._planning_set)):
             p = self._planning_set[i]
 
+
             if self._planning_set_exec_coarse[i] and not p.is_planning():
                 # A new plan is available
                 self._planning_set_exec_coarse[i] = False
@@ -118,10 +119,17 @@ class Ensemble(LocalPlannerExecutor):
                 
                 if result.result_type == PlannerResultType.VALID and len(result.path) > 0:
                     cost, path_metrics = self.__assess_curve_quality_cost(result.path, planning_data.local_goal())                    
-                    if cost < self._best_cost and self.__assess_path_change_viability(planning_data.base_map_conversion_location, result.path):
+                    if cost < self._best_cost:
                         self._mtx_path.acquire()
+                        
+                        if DEBUG:
+                            if self.__new_path_available:
+                                print(f"changing path from {self._planning_result.planner_name} to {result.planner_name}")
+                            else:
+                                print(f"set new path from {result.planner_name}")
+                        
                         self._best_cost = cost
-                        result.planner_name = f"{self.get_planner_name()}: {p.get_planner_name()}"
+                        result.planner_name = f"{self.get_planner_name()}/{p.get_planner_name()}"
                         result.result_type = PlannerResultType.VALID
                         result.curve_cost = cost
                         result.path_metrics = path_metrics
@@ -146,7 +154,7 @@ class Ensemble(LocalPlannerExecutor):
                 
                 if result.result_type == PlannerResultType.VALID and len(result.path) > 0:
                     cost, path_metrics = self.__assess_curve_quality_cost(result.path, planning_data.local_goal())
-                    if cost < self._best_cost and self.__assess_path_change_viability(planning_data.ego_location(), result.path):
+                    if cost < self._best_cost:
                         self._mtx_path.acquire()
                         self._best_cost = cost
                         result.planner_name = f"{self.get_planner_name()}: {p.get_planner_name()}"
@@ -159,19 +167,22 @@ class Ensemble(LocalPlannerExecutor):
                         self._mtx_path.release()
         return True
 
-    def update_last_ego_location(self, val: MapPose) -> None:
-        self.__last_ego_location = val
-
     def new_path_available(self) -> bool:
         return self.__new_path_available
     
     def get_result(self) -> PlanningResult:
-        self._mtx_path.acquire(blocking=True)
-        res = self._planning_result
-        self.__new_path_available = False
-        self._mtx_path.release()
-        res.planner_name = f"{self.get_planner_name()}: {self._chosen_planner_name}"
-        return res
+        while not self.timeout() and self.is_running():
+            if not self._mtx_path.acquire(blocking=True):
+                return None
+            if not self.__new_path_available:
+                self._mtx_path.release()
+                continue
+            
+            res = self._planning_result
+            self.__new_path_available = False
+            self._mtx_path.release()
+            return res
+        return None
     
     K1 = 0.5
     K2 = 0.5
@@ -189,9 +200,17 @@ class Ensemble(LocalPlannerExecutor):
         return cost, curve_data
     
 
-    def __assess_path_change_viability(self, map_base_pose: MapPose, path: list[Waypoint]) -> bool:
-        curr_pos = self._map_coordinate_converter.convert(map_base_pose, self.__last_ego_location)
+    def assess_path_change_viability(self, 
+                                     planning_ego_location: MapPose, 
+                                     current_ego_location: MapPose, 
+                                     path: list[Waypoint],
+                                     max_distance_px: float) -> bool:
+        if not self.__new_path_available:
+            return True
+        
+        curr_pos = self._map_coordinate_converter.convert(planning_ego_location, current_ego_location)
         for p in path:
             d = Waypoint.distance_between(curr_pos, p)
-            if d <= PATH_CHANGE_VIABLE_MAX_DIST_PX:
+            if d <= max_distance_px:
                 return True
+        return False

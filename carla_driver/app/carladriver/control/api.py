@@ -111,7 +111,10 @@ class CarlaSimulation:
             
         self._session.blueprint_lib = self._session.world.get_blueprint_library()
 
-        pass
+    def destroy(self) -> None:
+        #tm = self._session.client.get_trafficmanager()
+        #tm.shut_down()
+        self._session.client = None
        
     def add_object(self, name: str, type: str, pos: tuple[float, float, float], rotation: tuple[float, float, float] = [0, 0, 0], color = None) -> None:
         self.remove_object(name)
@@ -151,7 +154,10 @@ class CarlaSimulation:
             
     def clear_objects(self) -> None:
         for o in self._objects.values():
-            o.destroy()
+            try:
+                o.destroy()
+            except:
+                pass
         self._objects.clear()
         
     def move_spectator (self, pos: tuple[float, float, float], rotation: tuple[float, float, float] = [0, 0, 0]) -> None:
@@ -166,8 +172,9 @@ class CarlaSimulation:
             return self._objects[name]
         return None
     
-    def show_coordinate(self, pose: tuple[float, float, float],  color = [0, 255, 0]) -> None:
+    def show_coordinate(self, pose: tuple[float, float, float],  color = [0, 255, 0]) -> int:
         self._poses.append(CarlaVirtualPose(self._session,  MapPose(pose[0], pose[1], pose[2]), color))
+        return len(self._poses)
         
 
     def show_path(self, path: list[MapPose], color = [255, 0, 0]) -> None:
@@ -179,10 +186,17 @@ class CarlaSimulation:
         self._paths.clear()
         
     def clear_path(self, pos: int) -> None:
+        if len(self._paths) == 0: return
         if pos < len(self._paths):
             self._paths[pos].__del__()
             self._paths[pos] = None
+            self._paths.pop(pos)
 
+    def count_paths(self) -> int:
+        return len(self._paths)
+
+    def clear_last_path(self) -> None:
+        self.clear_path(len(self._paths) - 1)
 
     def clear_coordinates(self) -> None:
         for p in self._poses:

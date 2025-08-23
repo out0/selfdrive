@@ -2,7 +2,7 @@ import sys, os
 sys.path.append("../../")
 from ensemble import PhysicalParameters,  Ensemble, PlanningData, Overtaker
 from ensemble import Interpolator, Overtaker, HybridAStar, BiRRTStar
-from ensemble import CoordinateConverter
+from pydriveless import CoordinateConverter
 import time
 from pydriveless import WorldPose, MapPose, Waypoint,  angle
 from test_utils import read_path, export_planning_response
@@ -21,12 +21,17 @@ IMU_PERIOD_MS=100
 ## Step by step tester: Planner
 ###
 
-file = "log/timeout_planning"
+#file = "log/timeout_planning"
+file = "log/invalid_planning"
 
 planner_data: SearchFrame = None
 with open(f"{file}.log", "r") as f:
     j = f.read()
     planner_data = PlanningData.from_str(j)
+
+
+print (f"driving to g1 = {planner_data.g1()}, g2 = {planner_data.g2()}")
+print (f"current pos: {planner_data.ego_location()}")
 
 frame = np.array(cv2.imread(f"{file}_bev.png"), dtype=np.float32)
 
@@ -52,18 +57,27 @@ conv = CoordinateConverter(
     perceptionWidthSize_m=PhysicalParameters.OG_REAL_WIDTH)
 
 export_planning_response("planning_response.png", planner_data, None)
+#planner = Interpolator(conv, -1)
 planner = Ensemble(conv, -1)
+
 #planner = Overtaker(-1)
 
 #planner = HybridAStar(conv, -1, dist_to_target_tolerance=20)
 
 start_time = time.time()
 planner.plan(planner_data)
-while not planner.new_path_available():
-    time.sleep(0.1)
-execution_time = time.time() - start_time
+# while not planner.new_path_available():
+#     time.sleep(0.1)
 res = planner.get_result()
+print (f"path acquired with planner: {res.planner_name}")
+
+execution_time = time.time() - start_time
 print(f"planner execution time: {1000*execution_time:.6f} ms [choosen: {res.planner_name}]")
+
+# res = planner.get_result()
+# print(f"another planner execution time: {1000*execution_time:.6f} ms [choosen: {res.planner_name}]")
+
+planner.cancel()
 #planner = Interpolator(conv, -1)
 
 #cProfile.run("planner.plan(planner_data, True)")

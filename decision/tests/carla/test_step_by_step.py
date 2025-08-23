@@ -1,14 +1,9 @@
-import sys, os
-sys.path.append("../../")
-from ensemble import VehicleController, LocalPlannerType, PhysicalParameters, PlanningPipeline, Interpolator, MotionController, PlannerResultType
+from ensemble import PlanningPipeline, Interpolator, Ensemble, MotionController, PlannerResultType
 import time
-from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, angle
+from pydriveless import WorldPose, MapPose, angle
 from carla_test_utils import read_path, init_sim
-import cv2
 from carladriver import CarlaEgoVehicle, CarlaSimulation, CarlaSLAM, BevCameraSemantic
 from pydriveless import Telemetry
-import json
-from ensemble import Ensemble
 
 GPS_PERIOD_MS=100
 IMU_PERIOD_MS=100
@@ -100,8 +95,8 @@ sim.show_path(path)
 cam = ego.init_semantic_bev_camera()
 
 planning_pipeline = step_calibrate(sim, ego, slam, cam)
-#local_planner = Ensemble(planning_pipeline.get_coord_converter(), max_exec_time_ms=8000)
-local_planner = Interpolator(planning_pipeline.get_coord_converter(), max_exec_time_ms=8000)
+local_planner = Ensemble(planning_pipeline.get_coord_converter(), max_exec_time_ms=8000)
+#local_planner = Interpolator(planning_pipeline.get_coord_converter(), max_exec_time_ms=8000)
 
 motion_controller = MotionController(
         period_ms=2,
@@ -123,6 +118,10 @@ while drive_path:
         continue
 
     print (f"driving to g1 = {g1}, g2 = {g2}")
+    print (f"current pos: {slam.estimate_ego_pose()}")
+
+    pos1 = sim.show_coordinate((g1.x, g1.y, g1.z), color=[0, 0, 255])
+    pos2 = sim.show_coordinate((g2.x, g2.y, g2.z), color=[128, 0, 128])
 
     
     planning_data = step_build_planning_data(path_pos + 1, slam, cam, planning_pipeline, g1, g2)
@@ -137,9 +136,15 @@ while drive_path:
     
     planning_pipeline.step5_perform_local_planning(planning_data, local_planner)
 
-    while local_planner.is_planning():
-        pass
-        
+    res = local_planner.get_result()
+
+    if res is None:
+        print ("unable to plan")
+        input()
+        continue
+
+    local_planner.cancel()
+       
     if local_planner.timeout():
         print ("timeout")
         Telemetry.log("log/timeout_planning.log", planning_data)
@@ -148,11 +153,9 @@ while drive_path:
         input()
         continue
 
-    res = local_planner.get_result()
-
     if res.result_type != PlannerResultType.VALID:
         print ("invalid path")
-        path_pos += 1
+        #path_pos += 1
         Telemetry.log("log/invalid_planning.log", planning_data)
         Telemetry.log("log/invalid_planning_bev.png", planning_data.og())
         Telemetry.log("log/invalid_planning_bevc.png", planning_data.og().get_color_frame())
@@ -187,6 +190,9 @@ while drive_path:
     #     pass
 
     print("vehicle stopped")
+    sim.clear_coordinate(pos1)
+    sim.clear_coordinate(pos2)
+
     input()
     #sim.clear_paths()
     path_pos += 1
