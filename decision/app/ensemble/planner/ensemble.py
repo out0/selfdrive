@@ -15,7 +15,7 @@ from threading import Lock
 
 MAX_VALUE = 99999999
 PATH_CHANGE_VIABLE_MAX_DIST_PX = 50
-DEBUG = False
+DEBUG = True
 
 class Ensemble(LocalPlannerExecutor):
     _map_coordinate_converter: CoordinateConverter
@@ -60,17 +60,24 @@ class Ensemble(LocalPlannerExecutor):
         
 
     def __terminate_local_planners(self) -> None:
+        if DEBUG:
+            print (f"[Ensemble] sending planning termination to {len(self._planning_set)} local planners")
         for p in self._planning_set:
             p.cancel()
 
     def __assert_local_planners_termination(self) -> None:
         v = True
+        if DEBUG:
+            print ("[Ensemble] check planning termination")
         while v:
             v = False
             for p in self._planning_set:
                 v = v or p.is_running()            
             
             if v: time.sleep(0.01)
+        if DEBUG:
+            print ("[Ensemble] all planners terminated")
+
 
     def __check_coarse_planning(self) -> bool:
         for p in self._planning_set_exec_coarse:
@@ -106,6 +113,8 @@ class Ensemble(LocalPlannerExecutor):
 
     def _loop_plan(self, planning_data: PlanningData) -> bool:
         if not self.__check_coarse_planning():
+            if DEBUG:
+                print ("[Ensemble] coarse planning terminated")
             return False
         
         for i in range(len(self._planning_set)):
@@ -120,28 +129,34 @@ class Ensemble(LocalPlannerExecutor):
                 if result.result_type == PlannerResultType.VALID and len(result.path) > 0:
                     cost, path_metrics = self.__assess_curve_quality_cost(result.path, planning_data.local_goal())                    
                     if cost < self._best_cost:
-                        self._mtx_path.acquire()
-                        
-                        if DEBUG:
-                            if self.__new_path_available:
-                                print(f"changing path from {self._planning_result.planner_name} to {result.planner_name}")
-                            else:
-                                print(f"set new path from {result.planner_name}")
-                        
                         self._best_cost = cost
                         result.planner_name = f"{self.get_planner_name()}/{p.get_planner_name()}"
                         result.result_type = PlannerResultType.VALID
                         result.curve_cost = cost
-                        result.path_metrics = path_metrics
-                        self._planning_result = result
-                        self.__new_path_available = True
-                        self._chosen_planner_name = result.planner_name
-                        self._mtx_path.release()
+                        result.path_metrics = path_metrics  
+                        self._set_result(result)
+                else:
+                    print (f"Non valid path for {self.get_planner_name()}/{p.get_planner_name()}")
+                    
 
         return True
+    
+    def _set_result(self, result: PlanningResult) -> None:
+        self._mtx_path.acquire()
+        if DEBUG:        
+            if self.__new_path_available:
+                print(f"[Ensemble] changing path from {self._planning_result.planner_name} to {result.planner_name}")
+            else:
+                print(f"[Ensemble] set new path from {result.planner_name}")                        
+        self._planning_result = result
+        self._chosen_planner_name = result.planner_name
+        self.__new_path_available = True
+        self._mtx_path.release()
 
     def _loop_optimize(self, planning_data: PlanningData) -> bool:
         if not self.__check_optim_planning():
+            if DEBUG:
+                print ("[Ensemble] optimize planning terminated")            
             return False
         
         for i in range(len(self._planning_set)):
@@ -155,34 +170,25 @@ class Ensemble(LocalPlannerExecutor):
                 if result.result_type == PlannerResultType.VALID and len(result.path) > 0:
                     cost, path_metrics = self.__assess_curve_quality_cost(result.path, planning_data.local_goal())
                     if cost < self._best_cost:
-                        self._mtx_path.acquire()
-                        self._best_cost = cost
                         result.planner_name = f"{self.get_planner_name()}: {p.get_planner_name()}"
                         result.result_type = PlannerResultType.VALID
                         result.curve_cost = cost
                         result.path_metrics = path_metrics
-                        self._planning_result = result
-                        self.__new_path_available = True
-                        self._chosen_planner_name = result.planner_name
-                        self._mtx_path.release()
+                        self._set_result(result)
         return True
 
-    def new_path_available(self) -> bool:
+    def new_path(self) -> bool:
         return self.__new_path_available
     
     def get_result(self) -> PlanningResult:
-        while not self.timeout() and self.is_running():
-            if not self._mtx_path.acquire(blocking=True):
-                return None
-            if not self.__new_path_available:
-                self._mtx_path.release()
-                continue
-            
-            res = self._planning_result
-            self.__new_path_available = False
-            self._mtx_path.release()
-            return res
-        return None
+        if not self.__new_path_available:
+            return None
+       
+        self._mtx_path.acquire(blocking=True)
+        res = self._planning_result
+        self.__new_path_available = False
+        self._mtx_path.release()
+        return res
     
     K1 = 0.5
     K2 = 0.5
@@ -214,3 +220,8 @@ class Ensemble(LocalPlannerExecutor):
             if d <= max_distance_px:
                 return True
         return False
+    
+    def plan (self, data: PlanningData, run_in_main_thread: bool = False) -> None:
+        self.cancel()
+        self.__new_path_available = False
+        super().plan(data, run_in_main_thread)

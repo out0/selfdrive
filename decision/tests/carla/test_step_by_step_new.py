@@ -179,6 +179,13 @@ def menu_opt_lp(sim_data: SimulationData) -> None:
     
     sim_data.pipeline.step5_perform_local_planning(sim_data.planning_data, sim_data.local_planner)
 
+    while not sim_data.local_planner.new_path() and sim_data.local_planner.is_planning():
+        time.sleep(0.01)
+        
+    if not sim_data.local_planner.new_path():
+        print ("Invalid path\n\n")
+        return
+
     res = sim_data.local_planner.get_result()
 
     if res is None:

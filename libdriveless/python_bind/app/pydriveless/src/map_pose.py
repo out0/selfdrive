@@ -400,7 +400,7 @@ class MapPose:
     @classmethod
     def find_nearest_goal_pose(cls, location: 'MapPose', poses: list['MapPose'], start: int = 0, min_distance: float = 10, max_hopping: int = 5) -> int:
         
-        nearest_res = MapPose.__find_nearest_pose_in_list(location, poses, start, max_hopping);
+        nearest_res = MapPose.__find_nearest_pose_in_list(location, poses, start, max_hopping)
  
         last_pos = len(poses) - 1
         dist_from_p2 = 0

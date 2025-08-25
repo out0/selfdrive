@@ -22,7 +22,8 @@ IMU_PERIOD_MS=100
 ###
 
 #file = "log/timeout_planning"
-file = "log/invalid_planning"
+#file = "log/invalid_planning"
+file = "log/bev_0"
 
 planner_data: SearchFrame = None
 with open(f"{file}.log", "r") as f:
@@ -33,7 +34,8 @@ with open(f"{file}.log", "r") as f:
 print (f"driving to g1 = {planner_data.g1()}, g2 = {planner_data.g2()}")
 print (f"current pos: {planner_data.ego_location()}")
 
-frame = np.array(cv2.imread(f"{file}_bev.png"), dtype=np.float32)
+#frame = np.array(cv2.imread(f"{file}_bev.png"), dtype=np.float32)
+frame = np.array(cv2.imread(f"log/bev_0.png"), dtype=np.float32)
 
 planner_data.og().set_frame_data(frame)
 planner_data.og().set_class_colors(PhysicalParameters.SEGMENTED_COLORS)
@@ -66,8 +68,8 @@ planner = Ensemble(conv, -1)
 
 start_time = time.time()
 planner.plan(planner_data)
-# while not planner.new_path_available():
-#     time.sleep(0.1)
+while not planner.new_path_available():
+    time.sleep(0.1)
 res = planner.get_result()
 print (f"path acquired with planner: {res.planner_name}")
 

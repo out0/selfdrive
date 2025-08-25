@@ -85,7 +85,7 @@ class LocalPlannerExecutor:
             self._planning_exec()
             return
         
-        self.__loop_thr = Thread(target=self._planning_exec)
+        self.__loop_thr = Thread(target=self._planning_exec, name="thr" + self.__name)
         self.__loop_thr.start()
     
     def _planning_exec(self) -> None:

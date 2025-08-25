@@ -5,7 +5,7 @@ from .lateral_controller import LateralController
 from typing import List
 from pydriveless import SLAM
 from pydriveless import Telemetry
-import json
+import json, time
 
 SHOW_DEBUG_MESSAGES = False
 TELEMETRY = False
@@ -84,6 +84,7 @@ class MotionController (DiscreteComponent):
 
     def _loop(self, dt: float) -> None:
         if not self._search_state:
+            time.sleep(0.01)
             return
         
         pose = self._slam.estimate_ego_pose()
