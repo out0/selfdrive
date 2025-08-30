@@ -16,7 +16,7 @@ install: bin
 	rm -rf python_bind/app/pygpd/cpp
 	mkdir -p python_bind/app/pygpd/cpp
 	cp build/libgpd.so.1.0.0	python_bind/app/pygpd/cpp/libgpd.so
-	cd python_bind && pip3 install .
+	cd python_bind && pip3 install . --break-system-packages
 	cd python_bind && rm -rf build
 	cd python_bind && rm -rf dist	
 	rm -rf build

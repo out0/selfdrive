@@ -22,7 +22,8 @@ IMU_PERIOD_MS=100
 ###
 
 #file = "log/timeout_planning"
-file = "log/invalid_planning"
+#file = "log/invalid_planning"
+file = "log/bev_0"
 
 path = read_path("test_motion_controller_goal_points.dat")
 
@@ -33,7 +34,8 @@ with open(f"{file}.log", "r") as f:
 
 path_pos = planner_data.seq
 
-frame = np.array(cv2.imread(f"{file}_bev.png"), dtype=np.float32)
+#frame = np.array(cv2.imread(f"{file}_bev.png"), dtype=np.float32)
+frame = np.array(cv2.imread(f"log/bev_0.png"), dtype=np.float32)
 
 planner_data.og().set_frame_data(frame)
 planner_data.og().set_class_colors(PhysicalParameters.SEGMENTED_COLORS)

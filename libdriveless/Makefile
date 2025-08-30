@@ -16,7 +16,7 @@ install: bin
 	rm -rf python_bind/app/pydriveless/cpp
 	mkdir -p python_bind/app/pydriveless/cpp
 	cp build/libdriveless.so.2.0.0	python_bind/app/pydriveless/cpp/libdriveless.so
-	cd python_bind && pip3 install .
+	cd python_bind && pip3 install . --break-system-packages
 	cd python_bind && rm -rf build
 	cd python_bind && rm -rf dist	
 	rm -rf build
