@@ -53,7 +53,10 @@ class FastRRT:
                return
         
           lib_path = os.path.join(os.path.dirname(__file__), "../cpp", "libfastrrt.so")
+          lib_path_driveless = os.path.join(os.path.dirname(__file__), "../cpp", "libdriveless.so")
           FastRRT.lib = ctypes.CDLL(lib_path)
+          ctypes.CDLL(lib_path_driveless, mode=ctypes.RTLD_GLOBAL)
+          
           FastRRT.lib.fastrrt_initialize.restype = ctypes.c_void_p
           FastRRT.lib.fastrrt_initialize.argtypes = [
             ctypes.c_int, # width

@@ -13,7 +13,7 @@ extern "C"
         int minDistance_x, int minDistance_z,
         int lowerBound_x, int lowerBound_z,
         int upperBound_x, int upperBound_z,
-        int *segmentationClassCost)
+        float *segmentationClassCost)
     {
         CudaGraph *g = new CudaGraph(width, height);
         g->setSearchParams({minDistance_x, minDistance_z},
