@@ -25,7 +25,7 @@ extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, 
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
-__device__ __host__ int2 convert_map_pose_to_waypoint(int2 center, float rate_w, float rate_h, double2 coord)
+__device__ __host__ int2 convert_map_pose_to_waypoint(float3* ogStart, float rate_w, float rate_h, double2 coord)
 {
     // map to waypoint formula is:
     //
@@ -44,8 +44,8 @@ __device__ __host__ int2 convert_map_pose_to_waypoint(int2 center, float rate_w,
     // z = Zcenter - x * rh
 
     return {
-        center.x + TO_INT(coord.y * rate_w),
-        center.y - TO_INT(coord.x * rate_h)};
+        TO_INT((*ogStart).x + coord.y * rate_w),
+        TO_INT((*ogStart).y + coord.x * rate_h)};
 }
 
 /// @brief Converts any waypoint (x, z) to map coordinate (x, y) assuming that location = (x = 0, y = 0, heading = 0)
@@ -54,11 +54,11 @@ __device__ __host__ int2 convert_map_pose_to_waypoint(int2 center, float rate_w,
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
-__device__ __host__ inline double2 convert_waypoint_to_map_pose(int2 center, double inv_rate_w, double inv_rate_h, int2 coord)
+__device__ __host__ inline double2 convert_waypoint_to_map_pose(float3 *ogStart, double inv_rate_w, double inv_rate_h, int2 coord)
 {
     return {
-        inv_rate_h * (center.y - coord.y),
-        inv_rate_w * (coord.x - center.x)};
+        inv_rate_h * ((*ogStart).y - coord.y),
+        inv_rate_w * (coord.x - (*ogStart).x)};
 }
 
 __device__ __host__ double compute_euclidean_2d_dist(const double2 &start, const double2 &end)
@@ -123,7 +123,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
 }
 
 #define MIN_PATH_SIZE 1
-__device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+__device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -141,7 +141,9 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
-    const double2 startPose = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
+    const double2 startPose = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, start);
+
+    // printf ("draw_kinematic_path_candidate startPose: waypoint (%d, %d) -> map (%f, %f)\n", start.x, start.y, startPose.x, startPose.y);
 
     // printf("rateW: %f, rateH: %f, invRateW: %f, invRateH: %f, maxSteering: %f, lr: %f, startPose: (%d, %d)==(%f, %f)\n",
     //        rateW, rateH, invRateW, invRateH, maxSteering, lr, start.x, start.y, startPose.x, startPose.y);
@@ -177,14 +179,14 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
     // int2 debug[5000];
     // int k = 0;
 
-    int pathNodeCount = 0;
     while (size < maxSize)
     {
         x += ds * cosf(heading + beta);
         y += ds * sinf(heading + beta);
         heading += heading_increment_factor;
 
-        lastp = convert_map_pose_to_waypoint(center, rateW, rateH, {x, y});
+        lastp = convert_map_pose_to_waypoint(ogStart, rateW, rateH, {x, y});
+        // printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
 
         if (lastp.x == last_x && lastp.y == last_z)
             continue;
@@ -200,25 +202,21 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, lastp.x, lastp.y, heading))
         {
-            //printf("unfeasible path from %d, %d to %d, %d\n", start.x, start.y, lastp.x, lastp.y);
-
-            // printf ("unfeasible: (%d, %d) ", start.x, start.y);
-            // for (int r = 0; r < k; r++) {
-            //     printf (" --> (%d, %d)", debug[r].x, debug[r].y);
-            // }
-            // printf ("\n");
+            // printf("unfeasible path from %d, %d to %d, %d\n", start.x, start.y, lastp.x, lastp.y);
+            // printf ("path size: %d velocity_m_s: %f\n", size, velocity_m_s);
             return {-1.0, -1.0, 0.0, 0.0};
         }
 
         last_x = lastp.x;
         last_z = lastp.y;
-        pathNodeCount++;
+
         // debug[k++] = { last_x, last_z};
     }
 
-    if (pathNodeCount < MIN_PATH_SIZE) 
+    if (size < MIN_PATH_SIZE) 
         return {-1, -1};
 
+    //printf ("path size: %d\n", size);
 
     return {(float)last_x, (float)last_z, nodeCost, heading};
 }
@@ -230,7 +228,7 @@ __device__ __host__ bool checkKinematicPath(
     double *physicalParams,
     int *searchSpaceParams,
     float *classCost,
-    int2 center,
+    float3* ogStart,
     int2 start,
     int2 end,
     float velocity_m_s,
@@ -250,8 +248,8 @@ __device__ __host__ bool checkKinematicPath(
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];   
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
 
-    double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
-    double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, end);
+    double2 startM = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, start);
+    double2 endM = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, end);
     double dt = 0.1;
 
     long startPos = computePos(width, start.x, start.y);
@@ -286,7 +284,7 @@ __device__ __host__ bool checkKinematicPath(
         steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
 
-        nextp = convert_map_pose_to_waypoint(center, rateW, rateH, nextpM);
+        nextp = convert_map_pose_to_waypoint(ogStart, rateW, rateH, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;
@@ -312,7 +310,7 @@ __device__ __host__ bool checkKinematicPath(
     return false;
 }
 
-bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s)
+bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int velocity_m_s)
 {
     double finalHeading = 0;
     double pathCost = 0;
@@ -324,8 +322,8 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 start, int2 end, int ve
         _physicalParams->get(),
         _searchSpaceParams->get(),
         _classCosts->get(),
-        _gridCenter,
-        start,
+        _ogCoordinateStart->get(),
+        init,
         end,
         velocity_m_s,
         finalHeading,
@@ -339,13 +337,13 @@ __device__ __host__ bool check_graph_connection(
     double *physicalParams,
     int *searchSpaceParams,
     float *classCost,
-    int2 center,
-    int2 start,
+    float3* ogStart,
+    int2 init,
     int2 end,
     float velocity_m_s,
     float &path_cost)
 {
-    double distance = compute_euclidean_2d_dist(start, end);
+    double distance = compute_euclidean_2d_dist(init, end);
 
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
@@ -358,10 +356,10 @@ __device__ __host__ bool check_graph_connection(
     const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-    const double2 startM = convert_waypoint_to_map_pose(center, invRateW, invRateH, start);
-    const double2 endM = convert_waypoint_to_map_pose(center, invRateW, invRateH, end);
+    const double2 startM = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, init);
+    const double2 endM = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, end);
     const double dt = 0.1;
-    const long startPos = computePos(width, start.x, start.y);
+    const long startPos = computePos(width, init.x, init.y);
     const double max_cost = getCostCuda(graphData, computePos(width, end.x, end.y));
     const double ds = velocity_m_s * dt;
     const int total_steps = TO_INT(distance / ds);
@@ -373,12 +371,12 @@ __device__ __host__ bool check_graph_connection(
     double2 nextpM;
     nextpM.x = startM.x;
     nextpM.y = startM.y;
-    int2 nextp, lastp = {start.x, start.y};
+    int2 nextp, lastp = {init.x, init.y};
 
     double bestEndDist = distance;
     path_cost = 0;
 
-    float curr_cost = getCostCuda(graphData, computePos(width, start.x, start.y));
+    float curr_cost = getCostCuda(graphData, computePos(width, init.x, init.y));
 
     for (int i = 0; i < total_steps; i++)
     {
@@ -398,7 +396,7 @@ __device__ __host__ bool check_graph_connection(
 
         steering_angle_rad = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
-        nextp = convert_map_pose_to_waypoint(center, rateW, rateH, nextpM);
+        nextp = convert_map_pose_to_waypoint(ogStart, rateW, rateH, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;
@@ -445,7 +443,6 @@ __device__ __host__ bool check_graph_connection_with_hermite(
     double *physicalParams,
     int *searchSpaceParams,
     float *classCost,
-    int2 center,
     int2 start,
     int2 end,
     float velocity_m_s,

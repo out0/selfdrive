@@ -29,9 +29,9 @@ class CudaGraph
 private:
     std::shared_ptr<CudaGrid<int4>> _frame;
     std::shared_ptr<CudaGrid<float3>> _frameData;
-    int2 _gridCenter;
     bool __checkLimits(int x, int z);
-
+    
+    cptr<float3> _ogCoordinateStart;
     cptr<unsigned int> _parallelCount;
     cptr<bool> _newNodesAdded;
     cptr<bool> _nodeCollision;
@@ -72,13 +72,36 @@ public:
     void computeRepulsiveFieldAPF(float3 *og, float Kr, int radius);
     void computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal);
 
+    void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
+    double * getPhysicalParams() {
+        return _physicalParams->get();
+    }
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
-    void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
+    int * getSearchParams() {
+        return _searchSpaceParams->get();
+    }
+
+    void setClassCosts(float *costs, int count);
     void setClassCosts(std::vector<float> costs);
+    float * getClassCosts() {
+        return _classCosts->get();
+    }
+    unsigned int getClassCount() {
+        return _classCosts->count();
+    }
+
+
     void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
     void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost);
+    
+    
+    void setCoordinateStart(int x, int z, angle heading);
+    void setCoordinateStart(int x, int z);
     void addStart(int x, int z, angle heading);
+    float3* getCoordinateStart();
+
+
     void remove(int x, int z);
     void clear();
     std::vector<int2> list();
@@ -104,13 +127,13 @@ public:
         return _frameData;
     }
 
-    double * getPhysicalParams() {
-        return _physicalParams->get();
-    }
+   
 
-    int2 getCenter() {
-        return _gridCenter;
-    }
+    // int2 getCenter() {
+    //     return _gridCenter;
+    // }
+
+
 
     bool checkInGraph(int x, int z);
     void setParent(int x, int z, int parent_x, int parent_z);

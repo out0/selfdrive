@@ -188,6 +188,22 @@ class TestFrame:
 
 class TestUtils:
     
+    def print_distinc_classes(frame: np.ndarray) -> None:
+        class_set = set()
+        first = True
+        for j in range(frame.shape[0]):
+            for i in range(frame.shape[1]):
+                if frame[j, i, 0] not in class_set:
+                    class_set.add(frame[j, i, 0])
+                    if first:
+                        print (f"{frame[j, i, 0]}", end="")
+                        first = False
+                    else:
+                        print (f", {frame[j, i, 0]}", end="")
+                        
+                    
+        print ("")
+
     def pre_process_gpu(data: TestData, gpu_frame: SearchFrame, max_steering_deg: int, vehicle_length_m: float, copy_intrinsic_costs_from_frame: bool = False) -> np.ndarray:
         graph = CudaGraph(
             width=data.width(),
@@ -204,7 +220,6 @@ class TestUtils:
             upper_bound_z=data.upper_bound.z,
         )
         TestUtils.timed_exec(graph.compute_boundaries, gpu_frame, copy_intrinsic_costs_from_frame)
-        gpu_frame.invalidate_cpu_frame()
         return gpu_frame.get_frame()
     
     def log_graph(rrt: FastRRT, frame: SearchFrame, file: str) -> None:
@@ -246,20 +261,19 @@ class TestUtils:
             if 0 <= zi < h and 0 <= xi < w:
                 frame[zi, xi] = color
 
-    def output_path_result(frame: SearchFrame, path: np.ndarray, output: str) -> None:
+    def output_path_result(frame: SearchFrame, path: np.ndarray, output: str, goal: tuple[int, int, float]) -> None:
         if path is None:
             return
         #f = frame.get_color_frame()
-        frame.invalidate_cpu_frame()
         fo = frame.get_frame()
-        f = np.zeros((fo.shape[1], fo.shape[0], 3), dtype=np.uint8)
+        f = np.zeros((fo.shape[0], fo.shape[1], 3), dtype=np.uint8)
         
         for i in range(fo.shape[0]):
             for j in range(fo.shape[1]):      
-                if (fo[j, i, 0] == 1.0):
-                    f[j, i, :] = [255, 255, 255]
+                if (fo[i, j, 0] == 0.0):
+                    f[i, j, :] = [0, 0, 0]
                 else:
-                    f[j, i, :] = [0, 0, 0]
+                    f[i, j, :] = [255, 255, 255]                    
         
         for i in range(path.shape[0]):
             x = int(path[i,0])
@@ -270,7 +284,7 @@ class TestUtils:
         
 
         TestUtils.show_start(f, path[0])
-        TestUtils.show_goal(f, path[-1])
+        TestUtils.show_goal(f, goal)
 
 
 
@@ -327,16 +341,14 @@ class TestUtils:
         
         cv2.imwrite(output, f)
     
-    def output_obstacle_graph(frame: SearchFrame, output: str) -> None:
-        shape = frame.get_shape()
-        frame.invalidate_cpu_frame()
+    def export_occupancy(frame: SearchFrame, output: str) -> None:
         orig_frame = frame.get_frame()
-        raw = np.zeros((shape[0], shape[1], 3), dtype=np.uint8)
+        raw = np.zeros((frame.height(), frame.width(), 3), dtype=np.uint8)
         
-        for i in range(shape[0]):
-            for j in range(shape[1]):
-                if (orig_frame[i, j, 2] == 1.0):
-                    raw[i, j] = [255, 255, 255]
+        for i in range(frame.height()):
+            for j in range(frame.width()):
+                if (int(orig_frame[i, j, 2]) & 256 > 0):
+                    raw[i, j] = [128, 128, 128]
                 else:
                     raw[i, j] = [0, 0, 0]
         cv2.imwrite(output, raw)

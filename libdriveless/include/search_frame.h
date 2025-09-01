@@ -168,6 +168,11 @@ public:
     {
         return _classCosts->get();
     }
+    /// @brief Returns the number of segmentation classes registered in this search frame
+    /// @return 
+    inline int getClassCount() {
+        return _classCount;
+    }
 
 
     // returns the vehicle length in meters (computed from the values set by lower and upper bound and the height perception size in meters (to properly convert px to m))

@@ -34,10 +34,6 @@ extern "C"
             angle::deg(maxSteeringAngle_deg),
             vehicleLength,
             timeout_ms,
-            {minDistance_x, minDistance_z},
-            {lowerBound_x, lowerBound_z},
-            {upperBound_x, upperBound_z},
-            costs,
             maxPathSize,
             distToGoalTolerance);
     }
@@ -48,7 +44,7 @@ extern "C"
         delete rrt;
     }
 
-    void set_plan_data(void *ptr, void *cudaFramePtr, int start_x, int start_z, float start_heading_rad, int goal_x, int goal_z, float goal_heading_rad, float velocity_m_s)
+    void set_plan_data(void *ptr, void *cudaFramePtr, int start_x, int start_z, float start_heading_rad, int goal_x, int goal_z, float goal_heading_rad, float velocity_m_s, int min_dist_x, int min_dist_z)
     {
         FastRRT *rrt = (FastRRT *)ptr;
         Waypoint s(start_x, start_z, angle::rad(start_heading_rad));
@@ -56,7 +52,7 @@ extern "C"
         // printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
 
         SearchFrame *frame = (SearchFrame *)cudaFramePtr;
-        rrt->setPlanData(frame->getCudaPtr(), s, p, velocity_m_s);
+        rrt->setPlanData(*frame, s, p, velocity_m_s, {min_dist_x, min_dist_z});
     }
 
     bool goal_reached(void *ptr)

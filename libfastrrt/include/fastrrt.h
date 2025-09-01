@@ -40,14 +40,14 @@ public:
             angle maxSteeringAngle,
             float vehicleLength,
             int timeout_ms,
-            std::pair<int, int> minDistance, 
-            std::pair<int, int> lowerBound, 
-            std::pair<int, int> upperBound,
-            std::vector<float> segmentationClassCost,       
+            // std::pair<int, int> minDistance, 
+            // std::pair<int, int> lowerBound, 
+            // std::pair<int, int> upperBound,
+            // std::vector<float> segmentationClassCost,       
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0);
 
-    void setPlanData(float3* frame, Waypoint start, Waypoint goal, float velocity_m_s);
+    void setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance);
 
     /// @brief 
     /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.

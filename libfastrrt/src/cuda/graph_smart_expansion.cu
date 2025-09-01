@@ -3,7 +3,7 @@
 #include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, int2 center, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3* ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
@@ -149,7 +149,7 @@ void CudaGraph::__computeGraphRegionDensity()
 
 extern __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int4 *graph, float3 *graphData, float *classCosts, double *physicalParams, int width, int height, int2 start, int2 end, float pathSize);
 
-__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float3 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, int2 gridCenter, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision)
+__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float3 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3* ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -179,16 +179,18 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
     double pathSize = 0;
 
+    
     while (pathSize <= 0)
     {
         pathSize = generateRandom(state, pos, 5.0, maxPathSize);
     }
+    printf ("[cuda] path size: %f, max: %f\n", pathSize, maxPathSize);
+    printf ("[cuda] heading %f, steeringAngle: %f, max steeringAngle: %f\n", heading, steeringAngle, maxSteeringAngle);
 
     // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
-    int2 start = {x, z};
-    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, searchParams, frame, classCosts, gridCenter, start, steeringAngle, pathSize, velocity_m_s);
+    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;
@@ -233,7 +235,7 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
         _classCosts->get(),
         _searchSpaceParams->get(),
         _physicalParams->get(),
-        _gridCenter,
+        _ogCoordinateStart->get(),
         maxPathSize,
         velocity_m_s,
         expandFrontier,

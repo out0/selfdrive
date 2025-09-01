@@ -16,6 +16,10 @@ CoordinateConverter::CoordinateConverter(WorldPose &origin,
     _rateH = height / perceptionHeightSize_m;
     _invRateW = perceptionWidthSize_m / width;
     _invRateH = perceptionHeightSize_m / height;
+    _width = width;
+    _height = height;
+    _perceptionHeightSize_m = perceptionHeightSize_m;
+    _perceptionWidthSize_m = perceptionWidthSize_m;
 }
 
 double CoordinateConverter::__convert_map_heading_to_compass(double h)

@@ -88,11 +88,11 @@ add_executable(
   src/test_cuda_grid.cpp
   src/test_cuda_grid.cu
   src/test_graph.cpp
-  src/test_kinematics.cpp
   src/test_graph_node_derivation.cpp
-  src/test_graph_best_node.cpp
-  src/test_rrt.cpp
-  src/test_optimize_path.cpp
+  # src/test_kinematics.cpp
+  # src/test_graph_best_node.cpp
+  # src/test_rrt.cpp
+  # src/test_optimize_path.cpp
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

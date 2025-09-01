@@ -10,10 +10,10 @@ FastRRT::FastRRT(
     angle maxSteeringAngle,
     float vehicleLength,
     int timeout_ms,
-    std::pair<int, int> minDistance,
-    std::pair<int, int> lowerBound,
-    std::pair<int, int> upperBound,
-    std::vector<float> segmentationClassCost,
+    // std::pair<int, int> minDistance,
+    // std::pair<int, int> lowerBound,
+    // std::pair<int, int> upperBound,
+    // std::vector<float> segmentationClassCost,
     float maxPathSize,
     float distToGoalTolerance) : 
         _graph(CudaGraph(width, height)), 
@@ -36,8 +36,6 @@ FastRRT::FastRRT(
     // printf ("distToGoalTolerance = %f\n", distToGoalTolerance);
 
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength);
-    _graph.setSearchParams(minDistance, lowerBound, upperBound);
-    _graph.setClassCosts(segmentationClassCost);
     _ptr = nullptr;
     
 }
@@ -59,12 +57,15 @@ bool FastRRT::__check_timeout()
     return (_timeout_ms > 0 && __get_exec_time_ms() > _timeout_ms);
 }
 
-void FastRRT::setPlanData(float3* ptr, Waypoint start, Waypoint goal, float velocity_m_s)
+void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance)
 {
     this->_start = start;
     this->_goal = goal;
-    this->_ptr = ptr;
+    this->_ptr = frame.getCudaPtr();
     this->_planningVelocity_m_s = velocity_m_s;
+    _graph.setSearchParams(minDistance, frame.lowerBound(), frame.upperBound());
+    _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());
+
     //printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 
@@ -192,8 +193,15 @@ std::vector<int3> FastRRT::exportGraphNodes() {
 extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2);
 
 std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal) {
-    int2 center = _graph.getCenter();
-    return interpolateHermiteCurve(_graph.width(), _graph.height(), Waypoint(center.x, center.y, angle::deg(0)), goal);
+    float3* start = _graph.getCoordinateStart();
+    return interpolateHermiteCurve(
+        _graph.width(), 
+        _graph.height(), 
+        Waypoint(
+            static_cast<int>((*start).x), 
+            static_cast<int>((*start).y), 
+            angle::rad(static_cast<float>((*start).z))), 
+        goal);
 }
 
 

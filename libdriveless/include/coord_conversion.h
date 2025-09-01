@@ -18,6 +18,10 @@ private:
     float _rateH;
     float _invRateW;
     float _invRateH;
+    int _width;
+    int _height;
+    float _perceptionWidthSize_m;
+    float _perceptionHeightSize_m;
     Waypoint _ogCenter;
 
     double __convert_map_heading_to_compass(double h);
@@ -33,6 +37,11 @@ public:
 
     Waypoint convert (MapPose &location, MapPose &target);
     MapPose convert (MapPose &location, Waypoint &pose);
+
+    int width() { return _width; };
+    int height() { return _height; };
+    float perceptionWidthSize_m() { return _perceptionWidthSize_m; };
+    float perceptionHeightSize_m() { return _perceptionHeightSize_m; };
 };
 
 #endif

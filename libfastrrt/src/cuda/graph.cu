@@ -166,14 +166,12 @@ CudaGraph::CudaGraph(int width, int height)
     _frame = std::make_shared<CudaGrid<int4>>(width, height);
     _frameData = std::make_unique<CudaGrid<float3>>(width, height);
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
-    _gridCenter.x = TO_INT(width / 2);
-    _gridCenter.y = TO_INT(height / 2);
     _physicalParams = nullptr;
     _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);
     _searchSpaceParams->get()[FRAME_PARAM_WIDTH] = width;
     _searchSpaceParams->get()[FRAME_PARAM_HEIGHT] = height;
-    _searchSpaceParams->get()[FRAME_PARAM_CENTER_X] = _gridCenter.x;
-    _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z] = _gridCenter.y;
+    _searchSpaceParams->get()[FRAME_PARAM_CENTER_X] = TO_INT(width / 2);
+    _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
     _classCosts = nullptr;
 
     // TODO: make this method refresh randomness for each clear() in graph
@@ -182,9 +180,12 @@ CudaGraph::CudaGraph(int width, int height)
     _goalReached = std::make_unique<CudaPtr<bool>>(1);
     _newNodesAdded = std::make_unique<CudaPtr<bool>>(1);
     _nodeCollision = std::make_unique<CudaPtr<bool>>(1);
-
+    _ogCoordinateStart = std::make_unique<CudaPtr<float3>>(1);
     __initializeRegionDensity();
     _directOptimPos = -1;
+
+    // default coordinate system start is the middle of the map with heading = 0.0
+    setCoordinateStart(_searchSpaceParams->get()[FRAME_PARAM_CENTER_X], _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z]);
 }
 CudaGraph::~CudaGraph()
 {
@@ -213,6 +214,19 @@ void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, 
     _searchSpaceParams->get()[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
 }
 
+void CudaGraph::setClassCosts(float *costs, int count)
+{
+    _classCosts = std::make_unique<CudaPtr<float>>(count);
+
+    auto ptr = _classCosts->get();
+
+    for (int i = 0; i < count; i++)
+    {
+        ptr[i] = costs[i];
+    }
+}
+
+
 void CudaGraph::setClassCosts(std::vector<float> costs)
 {
     _classCosts = std::make_unique<CudaPtr<float>>(costs.size());
@@ -225,9 +239,28 @@ void CudaGraph::setClassCosts(std::vector<float> costs)
     }
 }
 
+float3 *CudaGraph::getCoordinateStart()
+{
+    return _ogCoordinateStart->get();
+}
+
 void CudaGraph::addStart(int x, int z, angle heading)
 {
+
     add(x, z, heading, -1, -1, 0);
+}
+
+void CudaGraph::setCoordinateStart(int x, int z, angle heading)
+{
+    (*_ogCoordinateStart->get()).x = static_cast<float>(x);
+    (*_ogCoordinateStart->get()).y = static_cast<float>(z);
+    (*_ogCoordinateStart->get()).z = static_cast<float>(heading.rad());
+}
+void CudaGraph::setCoordinateStart(int x, int z)
+{
+    (*_ogCoordinateStart->get()).x = static_cast<float>(x);
+    (*_ogCoordinateStart->get()).y = static_cast<float>(z);
+    (*_ogCoordinateStart->get()).z = 0.0;
 }
 
 void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, float cost)
@@ -269,12 +302,12 @@ __global__ static void __CUDA_KERNEL_clear(int4 *graph, int width, int height)
     if (pos >= width * height)
         return;
 
-        /*
-        Clear only sets the type because when we shrink the graph, we want it to preserve the
-        original connections, because the shrink simply clears the graph and reset the nodes
-        in the path to GRAPH_TYPE_NODE. Thats why the clear must not interfere with x, y values 
-        (parent values)
-        */
+    /*
+    Clear only sets the type because when we shrink the graph, we want it to preserve the
+    original connections, because the shrink simply clears the graph and reset the nodes
+    in the path to GRAPH_TYPE_NODE. Thats why the clear must not interfere with x, y values
+    (parent values)
+    */
     graph[pos].z = GRAPH_TYPE_NULL;
 }
 

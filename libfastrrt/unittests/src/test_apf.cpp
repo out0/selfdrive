@@ -30,4 +30,5 @@ TEST(TestSimpleAPF, TestAPF)
     float3 *og = createEmptySearchFrame(256, 256);
     og[128 * 256 + 128].x = 2; // single obstacle in 128,128
     g.computeRepulsiveFieldAPF(og, 2.0, 5);
+    g.computeAttractiveFieldAPF(og, 3.0, {128, 0});
 }

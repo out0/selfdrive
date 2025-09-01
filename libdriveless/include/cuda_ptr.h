@@ -10,23 +10,27 @@ template <typename T>
 class CudaPtr {
     T* _data;
     bool _data_owner;
+    unsigned int _count;
 
 public:
 
     CudaPtr() { 
         _data = nullptr;
         _data_owner = false;
+        _count = 0;
     }
 
     CudaPtr(unsigned int count) {
         if (!cudaAllocMapped(&_data, sizeof(T)*count))
             throw std::bad_alloc();
         _data_owner = true;
+        _count = count;
     }
 
-    CudaPtr(T *val) {
+    CudaPtr(T *val, int count) {
         _data = val;
         _data_owner = true;
+        _count = count;
     }
 
     ~CudaPtr() {
@@ -37,6 +41,10 @@ public:
 
     T* get () {
         return _data;
+    }
+
+    unsigned int count() {
+        return _count;
     }
 
 };

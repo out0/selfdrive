@@ -1,8 +1,9 @@
 import unittest
 from pyfastrrt import FastRRT
-from pydriveless import SearchFrame
+from pydriveless import SearchFrame, angle
 import time, math
 import cv2, numpy as np
+from test_utils import TestUtils
 
 MAX_STEERING_ANGLE = 40
 VEHICLE_LENGTH_M = 5.412658774
@@ -37,23 +38,25 @@ class TestFastRRTFrenetix(unittest.TestCase):
         ])))
         frame.set_frame_data(img)
 
+        TestUtils.print_distinc_classes(img)
+
         
         rrt = FastRRT(
             search_frame=frame,
-            perception_height_m=PERCEPTION_HEIGHT_M,
             perception_width_m=PERCEPTION_WIDTH_M,
+            perception_height_m=PERCEPTION_HEIGHT_M,
             max_steering_angle_deg=MAX_STEERING_ANGLE,
             vehicle_length_m=VEHICLE_LENGTH_M,
             timeout_ms=TIMEOUT,
             min_dist_x=2,
             min_dist_z=2,
-            max_path_size_px=30,
-            dist_to_goal_tolerance_px=20,
-            path_costs=np.array([-1, 0, 0, 0, 0])
+            path_costs=np.array([-1, 0, 0, 0, 0], dtype=np.float32),
+            max_path_size_px=20.0,
+            dist_to_goal_tolerance_px=20.0
         )
         
-        start = (416, 686, -0.039754376)
-        goal = (296, 15, 1.9513413283239596)
+        start = (416, 686, angle.new_deg(90 + -0.039754376).rad())
+        goal = (296, 15, angle.new_deg(1.9513413283239596).rad())
         
         rrt.set_plan_data(
             frame,
@@ -65,9 +68,11 @@ class TestFastRRTFrenetix(unittest.TestCase):
         
         start_time = time.time()
 
-        frame.process_safe_distance_zone(min_distance=(1,1), compute_vectorized=False)
+        frame.process_safe_distance_zone(min_distance=(2,2), compute_vectorized=False)
         frame.process_distance_to_goal(296, 15)
 
+
+        TestUtils.export_occupancy(frame, "output1.png")
 
         rrt.search_init(True)
         loop_count = 0
@@ -79,7 +84,7 @@ class TestFastRRTFrenetix(unittest.TestCase):
         while not rrt.goal_reached() and rrt.loop(True):
             loop_count += 1
             nodes = rrt.export_graph_nodes()     
-            TestUtils.output_path_result(data.frame, nodes, "output1.png")
+            TestUtils.output_path_result(frame, nodes, "output1.png", goal)
         end_time = time.time()
         execution_time = end_time - start_time
         

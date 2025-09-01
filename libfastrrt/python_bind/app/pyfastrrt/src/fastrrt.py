@@ -42,7 +42,7 @@ class FastRRT:
                  costs,
                  max_path_size_px,
                  dist_to_goal_tolerance_px)
-    
+
      def __del__(self) -> None:
           if hasattr(FastRRT, "lib"):
                FastRRT.lib.fastrrt_destroy(self.__ptr)

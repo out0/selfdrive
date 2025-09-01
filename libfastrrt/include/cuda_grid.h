@@ -27,6 +27,9 @@ extern void CUDA_clear(float *frame, int width, int height);
 extern void CUDA_clear(int *frame, int width, int height);
 
 template <typename T>
+///
+/// Implements a simple tessellated grid in CUDA 
+///
 class CudaGrid
 {
 private:
