@@ -13,7 +13,7 @@
 TEST(TestSimpleAPF, TestAPF)
 {
     CudaGraph g(256, 256);
-    float3 *ptr = createEmptySearchFrame(256, 256);
+    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
         {0},
@@ -27,8 +27,8 @@ TEST(TestSimpleAPF, TestAPF)
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
     g.add(128, 230, angle::rad(0.0), -1, -1, 0);
 
-    float3 *og = createEmptySearchFrame(256, 256);
-    og[128 * 256 + 128].x = 2; // single obstacle in 128,128
-    g.computeRepulsiveFieldAPF(og, 2.0, 5);
-    g.computeAttractiveFieldAPF(og, 3.0, {128, 0});
+    CudaPtr<float3> og = createEmptySearchFrame(256, 256);
+    og.get()[128 * 256 + 128].x = 2; // single obstacle in 128,128
+    g.computeRepulsiveFieldAPF(og.get(), 2.0, 5);
+    g.computeAttractiveFieldAPF(og.get(), 3.0, {128, 0});
 }

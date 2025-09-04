@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.26)
 project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless test")
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CUDA_ARCHITECTURES all-major)
+#set(CMAKE_CUDA_ARCHITECTURES all-major)
 
 # Optional: explicitly set NVCC if needed
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
@@ -16,7 +16,7 @@ find_package(PkgConfig REQUIRED)
 find_package(GSL REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
-find_package(CUDA REQUIRED)
+#find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
@@ -51,7 +51,7 @@ pkg_search_module(GLIB REQUIRED glib-2.0)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
-include_directories(${OpenCV_INCLUDE_DIRS})   # ✅ Now works
+include_directories(${OpenCV_INCLUDE_DIRS}) 
 
 SET(TARGET_H
     # (headers if any)
@@ -111,7 +111,7 @@ target_link_libraries(
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
   ${CUDA_FRAME}
-  ${OpenCV_LIBS}          # ✅ Now properly resolved
+  ${OpenCV_LIBS} 
   GSL::gsl 
   GSL::gslcblas
 )

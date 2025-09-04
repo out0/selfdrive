@@ -3,7 +3,7 @@
 #include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
@@ -79,7 +79,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
-    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
+    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;
@@ -158,12 +158,12 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
     }
 }
 
-int2 CudaGraph::derivateNode(float3 *og, angle goalHeading, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
+int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z)
 {
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    float4 p = draw_kinematic_path_candidate(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams->get(), _searchSpaceParams->get(), og, _classCosts->get(), _ogCoordinateStart->get(), {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    float4 p = check_kinematic_new_path(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams->get(), _searchSpaceParams->get(), og, _classCosts->get(), _ogCoordinateStart->get(), {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
     if (p.x < 0 || p.y < 0)
         return int2{-1, -1};

@@ -1,7 +1,6 @@
 #include "../include/fastrrt.h"
 #include <bits/algorithmfwd.h>
 
-
 FastRRT::FastRRT(
     int width,
     int height,
@@ -15,13 +14,13 @@ FastRRT::FastRRT(
     // std::pair<int, int> upperBound,
     // std::vector<float> segmentationClassCost,
     float maxPathSize,
-    float distToGoalTolerance) : 
-        _graph(CudaGraph(width, height)), 
-        _distToGoalTolerance(distToGoalTolerance), 
-        _timeout_ms(timeout_ms), 
-        _maxPathSize(maxPathSize), 
-        _start(Waypoint(0, 0, angle::rad(0))),
-        _goal(Waypoint(0, 0, angle::rad(0)))
+    float distToGoalTolerance) : _graph(CudaGraph(width, height)),
+                                 _distToGoalTolerance(distToGoalTolerance),
+                                 _timeout_ms(timeout_ms),
+                                 _maxPathSize(maxPathSize),
+                                 _start(Waypoint(0, 0, angle::rad(0))),
+                                 _goal(Waypoint(0, 0, angle::rad(0))),
+                                 _hasPlanData(false)
 {
     // printf ("Parameters: \n");
     // printf ("width: %d, height: %d\n", width, height);
@@ -37,7 +36,6 @@ FastRRT::FastRRT(
 
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength);
     _ptr = nullptr;
-    
 }
 
 void FastRRT::__set_exec_started()
@@ -59,6 +57,7 @@ bool FastRRT::__check_timeout()
 
 void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance)
 {
+    this->_hasPlanData = true;
     this->_start = start;
     this->_goal = goal;
     this->_ptr = frame.getCudaPtr();
@@ -66,13 +65,17 @@ void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, flo
     _graph.setSearchParams(minDistance, frame.lowerBound(), frame.upperBound());
     _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());
 
-    //printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
+    // printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 
 // extern void exportGraph2(CudaGraph *graph, const char *filename);
 
 void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
 {
+    if (!_hasPlanData)
+    {
+        throw std::runtime_error("unable to initialize planning without planning data");
+    }
     __set_exec_started();
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
@@ -92,28 +95,31 @@ void FastRRT::__shrink_search_graph()
 
 bool FastRRT::loop(bool smart)
 {
-    if (__check_timeout()) {
-        printf ("timeout\n");
+    if (__check_timeout())
+    {
+        printf("timeout\n");
         return false;
     }
 
     bool expandFrontier = _last_expanded_node_count >= 100;
 
-    //printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
+    // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
-    if (smart) {
+    if (smart)
+    {
         _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0);
-    } else {        
+    }
+    else
+    {
         _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier);
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
-    _graph.acceptDerivedNodes();    
-
+    _graph.acceptDerivedNodes();
 
     if (goalReached())
     {
-        //printf ("shrinking graph...\n");
+        // printf ("shrinking graph...\n");
         __shrink_search_graph();
         return false;
     }
@@ -128,7 +134,6 @@ void FastRRT::path_optimize()
     _graph.optimizeGraph(_ptr, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _planningVelocity_m_s);
 }
 
-
 bool FastRRT::goalReached()
 {
     int2 goal = {_goal.x(), _goal.z()};
@@ -138,6 +143,9 @@ bool FastRRT::goalReached()
 std::vector<Waypoint> FastRRT::getPlannedPath()
 {
     std::vector<Waypoint> res;
+
+    if (!_hasPlanData)
+        return res;
 
     if (!goalReached())
         return res;
@@ -150,7 +158,7 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
-        
+
         // if (i >= 1000000)
         // {
         //     printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
@@ -161,18 +169,15 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
 
     std::reverse(res.begin(), res.end());
 
-    
     // for (auto p : res) {
     //     printf("(%d, %d) - ", p.x(), p.z());
     // }
     // printf("\n");
 
-
     return res;
 }
 
-
-extern std::vector<Waypoint> interpolate(std::vector<Waypoint>& path, int width, int height);
+extern std::vector<Waypoint> interpolate(std::vector<Waypoint> &path, int width, int height);
 
 std::vector<Waypoint> FastRRT::interpolatePlannedPath()
 {
@@ -185,26 +190,27 @@ std::vector<Waypoint> FastRRT::interpolatePlannedPath(std::vector<Waypoint> path
     return interpolate(path, _graph.width(), _graph.height());
 }
 
-std::vector<int3> FastRRT::exportGraphNodes() {
-   return _graph.listAll();
+std::vector<int3> FastRRT::exportGraphNodes()
+{
+    return _graph.listAll();
 }
-
 
 extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2);
 
-std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal) {
-    float3* start = _graph.getCoordinateStart();
+std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal)
+{
+    float3 *start = _graph.getCoordinateStart();
     return interpolateHermiteCurve(
-        _graph.width(), 
-        _graph.height(), 
+        _graph.width(),
+        _graph.height(),
         Waypoint(
-            static_cast<int>((*start).x), 
-            static_cast<int>((*start).y), 
-            angle::rad(static_cast<float>((*start).z))), 
+            static_cast<int>((*start).x),
+            static_cast<int>((*start).y),
+            angle::rad(static_cast<float>((*start).z))),
         goal);
 }
 
-
-void  FastRRT::__computeGraphRegionDensity() {
+void FastRRT::__computeGraphRegionDensity()
+{
     _graph.__computeGraphRegionDensity();
 }

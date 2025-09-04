@@ -55,7 +55,7 @@ TEST(TestKinematics, ConvertMapPoseWaypointNonOrigin)
 TEST(TestKinematics, TestCheckKinematicPath)
 {
     CudaGraph g(256, 256);
-    float3 *ptr = createEmptySearchFrame(256, 256);
+    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
         {0},
@@ -70,15 +70,15 @@ TEST(TestKinematics, TestCheckKinematicPath)
 
     g.add(128, 128, angle::rad(0), -1, -1, 0);
 
-    int2 node = g.derivateNode(ptr, angle::rad(0), angle::deg(20), 50, 2, 128, 128);
+    int2 node = g.derivateNode(ptr.get(),  angle::deg(20), 50, 2, 128, 128);
 
-    ASSERT_TRUE(g.checkFeasibleConnection(ptr, {128, 128}, node, 2));
+    ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, node, 2));
 }
 
 TEST(TestKinematics, TestCheckKinematicPathShapeZeroHeading)
 {
     CudaGraph g(256, 256);
-    float3 *ptr = createEmptySearchFrame(256, 256);
+    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
         {0},
@@ -93,7 +93,7 @@ TEST(TestKinematics, TestCheckKinematicPathShapeZeroHeading)
 
     g.add(128, 128, angle::rad(0), -1, -1, 0);
 
-    int2 node = g.derivateNode(ptr, angle::rad(0), angle::deg(20), 50, 2, 128, 128);
+    int2 node = g.derivateNode(ptr.get(), angle::deg(20), 50, 2, 128, 128);
 
-    ASSERT_TRUE(g.checkFeasibleConnection(ptr, {128, 128}, node, 2));
+    ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, node, 2));
 }

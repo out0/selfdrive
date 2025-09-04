@@ -121,7 +121,7 @@ float sumPathTotalCost(std::vector<int2> path, CudaGraph *g)
 TEST(TestOptimizeGraphs, TestOptimizeGraph)
 {
     CudaGraph g(256, 256);
-    float3 *ptr = createEmptySearchFrame(256, 256);
+    CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
                    {0},
@@ -146,17 +146,17 @@ TEST(TestOptimizeGraphs, TestOptimizeGraph)
     addToGraphSeq(g, {114, 0}, angle::rad(0.04908384382724762));
 
     float3 goal = {128.0, 0.0, 0.0};
-    float3 *og = createEmptySearchFrame(g.width(), g.height());
+    CudaPtr<float3> og = createEmptySearchFrame(g.width(), g.height());
 
-    std::vector<int2> plannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 20.0);
+    std::vector<int2> plannedPath = get_planned_path(&g, og.get(), angle::rad(0.0), 128, 0, 20.0);
     std::vector<int2> newPlannedPath;
 
     exportGraph(&g, "test.png", &plannedPath);
 
     for (int i = 0; i < 100; i++)
     {
-        g.optimizeGraph(ptr, {128, 0}, angle::rad(0), 20.0, 1.0);      
-        newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 20.0);
+        g.optimizeGraph(ptr.get(), {128, 0}, angle::rad(0), 20.0, 1.0);      
+        newPlannedPath = get_planned_path(&g, og.get(), angle::rad(0.0), 128, 0, 20.0);
         g.clear();
         for (int j = 0; j < newPlannedPath.size(); j++)
         {
@@ -164,7 +164,7 @@ TEST(TestOptimizeGraphs, TestOptimizeGraph)
         }
     }
 
-    newPlannedPath = get_planned_path(&g, og, angle::rad(0.0), 128, 0, 20.0);
+    newPlannedPath = get_planned_path(&g, og.get(), angle::rad(0.0), 128, 0, 20.0);
 
     float mean_original_path_cost = sumPathTotalCost(plannedPath, &g) / plannedPath.size();
     

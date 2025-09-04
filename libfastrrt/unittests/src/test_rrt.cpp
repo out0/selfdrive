@@ -138,7 +138,7 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
 
 TEST(TestRRT, TestSearch)
 {
-    std::pair<cv::Mat, float *> res = readImg("bev_1.png");
+    std::pair<cv::Mat, float *> res = readImg("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/unittests/bev_1.png");
     cv::Mat img = res.first;
     float *ptr = res.second;
 
@@ -171,10 +171,6 @@ TEST(TestRRT, TestSearch)
         angle::deg(MAX_STEERING_ANGLE),
         VEHICLE_LENGTH_M,
         TIMEOUT,
-        {22, 40},
-        {119, 148},
-        {137, 108},
-        p,
         maxPathSize,
         distToGoal);
     
@@ -185,7 +181,7 @@ TEST(TestRRT, TestSearch)
 
     Waypoint goal(128, 0, angle::rad(0));
     Waypoint start(128, 128, angle::rad(0));
-    rrt.setPlanData(frame.getCudaPtr(), start, goal, 1);
+    rrt.setPlanData(frame, start, goal, 1, {22, 40});
 
     rrt.search_init();
 

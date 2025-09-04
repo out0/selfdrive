@@ -152,7 +152,7 @@ public:
     /// @param z
     /// @param heading
     /// @return final node of the path
-    int2 derivateNode(float3 *og, angle goalHeading, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
+    int2 derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
     
     /// @brief Derivates all nodes in graph with a random steering angle and pathSize, for the specified maxSteeringAngle, maxPathSize, and velocity_m_s.
     /// @param maxSteeringAngle

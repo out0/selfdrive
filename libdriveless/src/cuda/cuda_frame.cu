@@ -2,7 +2,7 @@
 #include "../../include/cuda_frame.h"
 
 __global__ static void __CUDA_KERNEL_Clear(double4 *frame, int width, int height)
-{
+{    
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (pos >= width * height)
@@ -42,8 +42,9 @@ __global__ static void __CUDA_KERNEL_Clear(double3 *frame, int width, int height
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (pos >= width * height)
+    if (pos >= width * height) 
         return;
+
 
     frame[pos].x = 0.0;
     frame[pos].y = 0.0;
@@ -71,6 +72,7 @@ __global__ static void __CUDA_KERNEL_Clear(int3 *frame, int width, int height)
     frame[pos].y = 0.0;
     frame[pos].z = 0.0;
 }
+
 
 __global__ static void __CUDA_KERNEL_Clear(double2 *frame, int width, int height)
 {

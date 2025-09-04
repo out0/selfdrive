@@ -22,11 +22,12 @@ private:
     int _height;
     float _perceptionWidthSize_m;
     float _perceptionHeightSize_m;
-    Waypoint _ogCenter;
 
     double __convert_map_heading_to_compass(double h);
     double __convert_compass_to_map_heading(double hc);
 
+    int _waypoint_coord_origin_x;
+    int _waypoint_coord_origin_z;
 
 
 public:
@@ -42,6 +43,9 @@ public:
     int height() { return _height; };
     float perceptionWidthSize_m() { return _perceptionWidthSize_m; };
     float perceptionHeightSize_m() { return _perceptionHeightSize_m; };
+    void setWaypointCoordinateOrigin(int x, int z);
 };
+
+
 
 #endif

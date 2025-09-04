@@ -25,7 +25,7 @@ extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, 
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
-__device__ __host__ int2 convert_map_pose_to_waypoint(float3* ogStart, float rate_w, float rate_h, double2 coord)
+__device__ __host__ int2 convert_map_pose_to_waypoint(float3* coord_origin, float rate_w, float rate_h, double2 coord)
 {
     // map to waypoint formula is:
     //
@@ -44,8 +44,8 @@ __device__ __host__ int2 convert_map_pose_to_waypoint(float3* ogStart, float rat
     // z = Zcenter - x * rh
 
     return {
-        TO_INT((*ogStart).x + coord.y * rate_w),
-        TO_INT((*ogStart).y + coord.x * rate_h)};
+        TO_INT((*coord_origin).x + coord.y * rate_w),
+        TO_INT((*coord_origin).y - coord.x * rate_h)};
 }
 
 /// @brief Converts any waypoint (x, z) to map coordinate (x, y) assuming that location = (x = 0, y = 0, heading = 0)
@@ -54,11 +54,11 @@ __device__ __host__ int2 convert_map_pose_to_waypoint(float3* ogStart, float rat
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
-__device__ __host__ inline double2 convert_waypoint_to_map_pose(float3 *ogStart, double inv_rate_w, double inv_rate_h, int2 coord)
+__device__ __host__ inline double2 convert_waypoint_to_map_pose(float3 *coord_origin, double inv_rate_w, double inv_rate_h, int2 coord)
 {
     return {
-        inv_rate_h * ((*ogStart).y - coord.y),
-        inv_rate_w * (coord.x - (*ogStart).x)};
+        inv_rate_h * ((*coord_origin).y - coord.y),
+        inv_rate_w * (coord.x - (*coord_origin).x)};
 }
 
 __device__ __host__ double compute_euclidean_2d_dist(const double2 &start, const double2 &end)
@@ -123,7 +123,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
 }
 
 #define MIN_PATH_SIZE 1
-__device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
+__device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
     if (physicalParams == nullptr)
     {
@@ -186,7 +186,7 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
         heading += heading_increment_factor;
 
         lastp = convert_map_pose_to_waypoint(ogStart, rateW, rateH, {x, y});
-        // printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
+        //printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
 
         if (lastp.x == last_x && lastp.y == last_z)
             continue;
@@ -211,6 +211,8 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
         last_z = lastp.y;
 
         // debug[k++] = { last_x, last_z};
+
+        //printf("x = %f, y = %f\n", x, y);
     }
 
     if (size < MIN_PATH_SIZE) 
@@ -221,23 +223,10 @@ __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *gr
     return {(float)last_x, (float)last_z, nodeCost, heading};
 }
 
-__device__ __host__ bool checkKinematicPath(
-    int4 *graph,
-    float3 *graphData,
-    float3 *frame,
-    double *physicalParams,
-    int *searchSpaceParams,
-    float *classCost,
-    float3* ogStart,
-    int2 start,
-    int2 end,
-    float velocity_m_s,
-    double &final_heading,
-    double &path_cost)
+__device__ __host__ bool check_kinematic_connection_start_end(int4 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *searchSpaceParams, float *classCost, float3* ogStart, int2 start, int2 end, float velocity_m_s, double &final_heading, double &path_cost)
 {
     double distance = compute_euclidean_2d_dist(start, end);
-
-    
+   
     const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
     const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
     const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
@@ -315,7 +304,7 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int vel
     double finalHeading = 0;
     double pathCost = 0;
 
-    return checkKinematicPath(
+    return check_kinematic_connection_start_end(
         _frame->getCudaPtr(),
         _frameData->getCudaPtr(),
         og,
@@ -330,6 +319,7 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int vel
         pathCost);
 }
 
+/*
 __device__ __host__ bool check_graph_connection(
     int4 *graph,
     float3 *graphData,
@@ -434,7 +424,7 @@ __device__ __host__ bool check_graph_connection(
     }
 
     return false;
-}
+} */
 
 __device__ __host__ bool check_graph_connection_with_hermite(
     int4 *graph,

@@ -3,7 +3,7 @@
 #include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ float4 draw_kinematic_path_candidate(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3* ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3* ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
@@ -190,7 +190,7 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
     //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
 
-    float4 end = draw_kinematic_path_candidate(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
+    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
 
     if (end.x < 0 || end.y < 0)
         return;

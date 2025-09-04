@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.26)
 project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless test")
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CUDA_ARCHITECTURES all-major)
+#set(CMAKE_CUDA_ARCHITECTURES all-major)
 
 # Optional: explicitly set NVCC if needed
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
@@ -89,10 +89,10 @@ add_executable(
   src/test_cuda_grid.cu
   src/test_graph.cpp
   src/test_graph_node_derivation.cpp
-  # src/test_kinematics.cpp
-  # src/test_graph_best_node.cpp
-  # src/test_rrt.cpp
-  # src/test_optimize_path.cpp
+  src/test_kinematics.cpp
+  src/test_graph_best_node.cpp
+  src/test_rrt.cpp
+  src/test_optimize_path.cpp
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

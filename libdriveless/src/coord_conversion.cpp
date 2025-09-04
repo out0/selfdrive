@@ -8,18 +8,19 @@ CoordinateConverter::CoordinateConverter(WorldPose &origin,
                                          int width,
                                          int height,
                                          float perceptionWidthSize_m,
-                                         float perceptionHeightSize_m) : _ogCenter(TO_INT(width / 2), TO_INT(width / 2), angle::rad(0)),
-                                                                         _origin_compass_angle(origin.compass())
+                                         float perceptionHeightSize_m) : _origin_compass_angle(origin.compass())
 {
     _world_coord_scale = cos(origin.lat().rad());
     _rateW = width / perceptionWidthSize_m;
     _rateH = height / perceptionHeightSize_m;
-    _invRateW = perceptionWidthSize_m / width;
+    _invRateW = perceptionWidthSize_m / width; 
     _invRateH = perceptionHeightSize_m / height;
     _width = width;
     _height = height;
     _perceptionHeightSize_m = perceptionHeightSize_m;
     _perceptionWidthSize_m = perceptionWidthSize_m;
+    _waypoint_coord_origin_x = TO_INT(width / 2);
+    _waypoint_coord_origin_z = TO_INT(height / 2);
 }
 
 double CoordinateConverter::__convert_map_heading_to_compass(double h)
@@ -73,15 +74,15 @@ Waypoint CoordinateConverter::convert(MapPose &location, MapPose &target)
     double p0 = _rateH * (c * dx - s * dy);
     double p1 = _rateW * (s * dx + c * dy);
 
-    int x = TO_INT(_ogCenter.x() + p1);
-    int z = TO_INT(_ogCenter.z() - p0);
+    int x = TO_INT(_waypoint_coord_origin_x + p1);
+    int z = TO_INT(_waypoint_coord_origin_z - p0);
 
     return Waypoint(x, z, target.heading() - location.heading());
 }
 MapPose CoordinateConverter::convert(MapPose &location, Waypoint &target)
 {
-    double p0 = _ogCenter.z() - target.z();
-    double p1 = target.x() - _ogCenter.x();
+    double p0 = _waypoint_coord_origin_z - target.z();
+    double p1 = target.x() - _waypoint_coord_origin_x;
     double c = cos(location.heading().rad());
     double s = sin(location.heading().rad());
 
@@ -93,4 +94,8 @@ MapPose CoordinateConverter::convert(MapPose &location, Waypoint &target)
         y,
         location.z(),
         target.heading() + location.heading());
+}
+void CoordinateConverter::setWaypointCoordinateOrigin(int x, int z) {
+    _waypoint_coord_origin_x = x;
+    _waypoint_coord_origin_z = z;
 }

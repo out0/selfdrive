@@ -3,7 +3,8 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include "test_utils.h"
-#include "../../include/graph.h"
+
+
 
 bool _ASSERT_DEQ(double a, double b, int tolerance)
 {
@@ -83,20 +84,16 @@ void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path
     cv::imwrite(filename, cimg);
 }
 
-float3 *createEmptySearchFrame(int width, int height)
+CudaPtr<float3> createEmptySearchFrame(int width, int height)
 {
-    float3 *ptr;
-    cudaAllocMapped(&ptr, sizeof(float3) * width * height);
+    CudaPtr<float3> ptr(width * height);
     long size = height * width;
     for (int i = 0; i < size; i++)
     {
-        ptr[i].x = 0;
-        ptr[i].y = 0;
-        ptr[i].z = 0;
+        ptr.get()[i].x = 0;
+        ptr.get()[i].y = 0;
+        ptr.get()[i].z = 0;
     }
     return ptr;
 }
 
-void destroySearchFrame(float3 * ptr) {
-    cudaFree(ptr);
-}
