@@ -17,14 +17,14 @@ extern "C"
     {
         CudaGraph *g = new CudaGraph(width, height);
         g->setSearchParams({minDistance_x, minDistance_z},
-            {lowerBound_x, lowerBound_z},
-            {upperBound_x, upperBound_z});
+                           {lowerBound_x, lowerBound_z},
+                           {upperBound_x, upperBound_z});
         g->setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, angle::deg(maxSteeringAngle_deg), vehicleLength);
 
         std::vector<float> costs;
         int count = segmentationClassCost[0];
         costs.reserve(count);
-        
+
         for (int i = 1; i <= count; i++)
             costs.push_back(segmentationClassCost[i]);
 
@@ -37,30 +37,33 @@ extern "C"
         delete graph;
     }
 
-
-    void compute_apf_repulsion(void *ptr, void *cudaFramePtr, float kr, int radius) {
+    void compute_apf_repulsion(void *ptr, void *cudaFramePtr, float kr, int radius)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *frame = (SearchFrame *)cudaFramePtr;
         graph->computeRepulsiveFieldAPF(frame->getCudaPtr(), kr, radius);
     }
 
-    void compute_apf_attraction(void *ptr, void *cudaFramePtr, float ka, int goal_x, int goal_z) {
+    void compute_apf_attraction(void *ptr, void *cudaFramePtr, float ka, int goal_x, int goal_z)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *frame = (SearchFrame *)cudaFramePtr;
         graph->computeAttractiveFieldAPF(frame->getCudaPtr(), ka, {goal_x, goal_z});
     }
 
-    float * get_intrinsic_costs (void *ptr) {
+    float *get_intrinsic_costs(void *ptr)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
-        float3 * frameData = graph->getFrameDataPtr()->getCudaPtr();
+        float3 *frameData = graph->getFrameDataPtr()->getCudaPtr();
 
         int width = graph->width();
         int height = graph->height();
 
-        float * data = new float[width * height];
+        float *data = new float[width * height];
 
         for (int h = 0; h < height; h++)
-            for (int w = 0; w < width; w++) {
+            for (int w = 0; w < width; w++)
+            {
                 int i = h * width + w;
                 data[i] = frameData[i].z;
             }
@@ -68,13 +71,64 @@ extern "C"
         return data;
     }
 
-    void destroy_intrinsic_costs_ptr (float *ptr) {
-        delete []ptr;
+    void destroy_intrinsic_costs_ptr(float *ptr)
+    {
+        delete[] ptr;
     }
 
-    // void compute_boundaries(void *ptr, void *cudaFramePtr, bool copyIntrinsicCostsFromFrame) {
-    //     CudaGraph *graph = (CudaGraph *)ptr;
-    //     SearchFrame *frame = (SearchFrame *)cudaFramePtr;
-    //     graph->computeBoundaries(frame->getCudaPtr(), copyIntrinsicCostsFromFrame);
-    // }
+    void add(void *ptr, int x, int z, float heading_rad, int parent_x, int parent_z, float cost)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->add(x, z, angle::rad(heading_rad), parent_x, parent_z, cost);
+    }
+
+    void derivate_node(void *ptr, void *searchFramePtr, float steering_angle, int path_size, float velocity, int x, int z)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        SearchFrame *f = (SearchFrame *)searchFramePtr;
+        graph->derivateNode(f->getCudaPtr(), angle::rad(steering_angle), static_cast<double>(path_size), velocity, x, z); 
+    }
+
+    void accept_derived_nodes(void *ptr)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->acceptDerivedNodes();
+    }
+    bool check_in_graph(void *ptr, int x, int z)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        return graph->checkInGraph(x, z);
+    }
+    float get_heading(void *ptr, int x, int z)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        return graph->getHeading(x, z).rad();
+    }
+    void clear(void *ptr) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->clear();
+    }
+
+    float * list_all(void *ptr) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        std::vector<int3> nodes = graph->listAll();
+
+        float *res = new float[nodes.size() * 4 + 1];
+        int pos = 1;
+        
+        res[0] = 0.0 + nodes.size();
+        for (auto n : nodes) {
+            res[pos] = static_cast<float>(n.x);
+            res[pos+1] = static_cast<float>(n.y);
+            res[pos+2] = graph->getHeading(n.x, n.y).rad();
+            res[pos+3] = n.z;
+            pos += 4;
+        }
+
+        return res;
+    }
+
+    void free_list_all(float *p) {
+        delete []p;
+    }
 }

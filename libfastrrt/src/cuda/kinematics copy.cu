@@ -25,7 +25,7 @@ extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, 
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
-__device__ __host__ int2 convert_map_pose_to_waypoint(float3* coord_origin, double2 coord)
+__device__ __host__ int2 convert_map_pose_to_waypoint(float3* coord_origin, float rate_w, float rate_h, double2 coord)
 {
     // map to waypoint formula is:
     //
@@ -44,8 +44,8 @@ __device__ __host__ int2 convert_map_pose_to_waypoint(float3* coord_origin, doub
     // z = Zcenter - x * rh
 
     return {
-        TO_INT((*coord_origin).x + coord.y),
-        TO_INT((*coord_origin).y - coord.x)};
+        TO_INT((*coord_origin).x + coord.y * rate_w),
+        TO_INT((*coord_origin).y - coord.x * rate_h)};
 }
 
 /// @brief Converts any waypoint (x, z) to map coordinate (x, y) assuming that location = (x = 0, y = 0, heading = 0)
@@ -54,11 +54,11 @@ __device__ __host__ int2 convert_map_pose_to_waypoint(float3* coord_origin, doub
 /// @param rate_h
 /// @param coord
 /// @return waypoint(x, z)
-__device__ __host__ inline double2 convert_waypoint_to_map_pose(float3 *coord_origin, int2 coord)
+__device__ __host__ inline double2 convert_waypoint_to_map_pose(float3 *coord_origin, double inv_rate_w, double inv_rate_h, int2 coord)
 {
     return {
-        ((*coord_origin).y - coord.y),
-        (coord.x - (*coord_origin).x)};
+        inv_rate_h * ((*coord_origin).y - coord.y),
+        inv_rate_w * (coord.x - (*coord_origin).x)};
 }
 
 __device__ __host__ double compute_euclidean_2d_dist(const double2 &start, const double2 &end)
@@ -133,10 +133,10 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphDa
         return {-1, -1};
     }
 
-    // const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-    // const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-    // const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-    // const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
+    const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
+    const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
+    const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
+    const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
     const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
@@ -145,15 +145,15 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphDa
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
 
 
-    const double2 startPose = convert_waypoint_to_map_pose(ogStart, start);
-    // printf ("[check_kinematic_new_path] ogStart: %f, %f, %f\n", ogStart->x, ogStart->y, ogStart->z);
-    // printf ("[check_kinematic_new_path] startPose: waypoint (%d, %d) -> map (%f, %f)\n", start.x, start.y, startPose.x, startPose.y);
+    const double2 startPose = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, start);
+    printf ("[check_kinematic_new_path] ogStart: %f, %f, %f\n", ogStart->x, ogStart->y, ogStart->z);
+    printf ("[check_kinematic_new_path] startPose: waypoint (%d, %d) -> map (%f, %f)\n", start.x, start.y, startPose.x, startPose.y);
 
     float x = startPose.x;
     float y = startPose.y;
 
-    // printf("rateW: %f, rateH: %f, invRateW: %f, invRateH: %f, maxSteering: %f, lr: %f, startPose: (%d, %d)==(%f, %f)\n",
-    //         rateW, rateH, invRateW, invRateH, maxSteering, lr, start.x, start.y, startPose.x, startPose.y);
+    printf("rateW: %f, rateH: %f, invRateW: %f, invRateH: %f, maxSteering: %f, lr: %f, startPose: (%d, %d)==(%f, %f)\n",
+            rateW, rateH, invRateW, invRateH, maxSteering, lr, start.x, start.y, startPose.x, startPose.y);
 
     if (steeringAngle > maxSteering)
         steeringAngle = maxSteering;
@@ -187,14 +187,13 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphDa
     const int loop_max = (100 * maxSize) / dt;
     while (size < maxSize)
     {
-        //printf ("current size: %d,  maxSize: %d, loop count: %d > %d?\n", size, maxSize,  loop_count, loop_max);
         if (loop_count++ > loop_max) break;
         x += ds * cosf(heading + beta);
         y += ds * sinf(heading + beta);
         heading += heading_increment_factor;
 
-        lastp = convert_map_pose_to_waypoint(ogStart, {x, y});
-        //printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
+        lastp = convert_map_pose_to_waypoint(ogStart, rateW, rateH, {x, y});
+        printf ("next pose: map (%f, %f) -> (%d, %d) waypoint\n", x, y, lastp.x, lastp.y);
 
         if (lastp.x == last_x && lastp.y == last_z)
             continue;
@@ -223,8 +222,6 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphDa
         //printf("x = %f, y = %f\n", x, y);
     }
 
-    //printf("got out of the loop\n");
-
     if (size < MIN_PATH_SIZE) 
         return {-1, -1};
 
@@ -237,18 +234,18 @@ __device__ __host__ bool check_kinematic_connection_start_end(int4 *graph, float
 {
     double distance = compute_euclidean_2d_dist(start, end);
    
-    // const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
-    // const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
-    // const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
-    // const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
+    const double rateW = physicalParams[PHYSICAL_PARAMS_RATE_W];
+    const double rateH = physicalParams[PHYSICAL_PARAMS_RATE_H];
+    const double invRateW = physicalParams[PHYSICAL_PARAMS_INV_RATE_W];
+    const double invRateH = physicalParams[PHYSICAL_PARAMS_INV_RATE_H];
     const double lr = physicalParams[PHYSICAL_PARAMS_LR];
     const double maxSteering = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
     const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];   
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
 
-    double2 startM = convert_waypoint_to_map_pose(ogStart, start);
-    double2 endM = convert_waypoint_to_map_pose(ogStart, end);
+    double2 startM = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, start);
+    double2 endM = convert_waypoint_to_map_pose(ogStart, invRateW, invRateH, end);
     double dt = 0.1;
 
     long startPos = computePos(width, start.x, start.y);
@@ -283,7 +280,7 @@ __device__ __host__ bool check_kinematic_connection_start_end(int4 *graph, float
         steering_angle_deg = clip(path_heading - heading, -maxSteering, maxSteering);
         double dist = compute_euclidean_2d_dist(nextpM, endM);
 
-        nextp = convert_map_pose_to_waypoint(ogStart, nextpM);
+        nextp = convert_map_pose_to_waypoint(ogStart, rateW, rateH, nextpM);
 
         if (nextp.x == lastp.x && nextp.y == lastp.y)
             continue;

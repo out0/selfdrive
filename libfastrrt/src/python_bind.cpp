@@ -11,7 +11,6 @@ extern "C"
         float maxSteeringAngle_deg,
         float vehicleLength,
         int timeout_ms,
-        int minDistance_x, int minDistance_z,
         int lowerBound_x, int lowerBound_z,
         int upperBound_x, int upperBound_z,
         float *classCosts,

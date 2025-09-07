@@ -1,15 +1,35 @@
 #include <driveless/cuda_params.h>
-#include  <driveless/math_utils.h>
+#include <driveless/math_utils.h>
+#include <stdio.h>
 
-__device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos) {
+extern __device__ __host__ long computePos(int width, int x, int z);
+
+__device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos)
+{
     int segmentation_class = TO_INT(frame[pos].x);
     return classCost[segmentation_class];
+}
+
+__device__ __host__ bool isAllAngleFeasible(float3 *frame, long pos)
+{
+    return TO_INT(frame[pos].z) & 256 > 0;
 }
 
 __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians)
 {
     int width = params[FRAME_PARAM_WIDTH];
     int height = params[FRAME_PARAM_HEIGHT];
+
+    //printf("computeFeasibleForAngle [1]\n");
+
+    long pos = computePos(width, x, z);
+
+    if (isAllAngleFeasible(frame, pos))
+    {
+        //printf("computeFeasibleForAngle: feasible for all\n");
+        return true;
+    }
+
     int lower_bound_ego_x = params[FRAME_PARAM_LOWER_BOUND_X];
     int lower_bound_ego_z = params[FRAME_PARAM_LOWER_BOUND_Z];
     int upper_bound_ego_x = params[FRAME_PARAM_UPPER_BOUND_X];
@@ -18,10 +38,9 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
     float c = cosf(angle_radians);
     float s = sinf(angle_radians);
 
-    // if (x == 108 && z == 46)
-    // {
-    //     printf("minDistX: %d, minDistZ: %d\n", minDistX, minDistZ);
-    // }
+    //printf("minDistX: %d, minDistZ: %d\n", minDistX, minDistZ);
+
+    //printf("computeFeasibleForAngle [2]\n");
 
     for (int i = -minDistZ; i <= minDistZ; i++)
         for (int j = -minDistX; j <= minDistX; j++)
@@ -42,10 +61,12 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
 
             if (classCost[segmentation_class] < 0)
             {
-                // printf("(%d, %d) invalid on %d, %d segmentation_class: %d (x param = %f) class cost %f\n", x, z, xl, zl, segmentation_class, frame[zl * width + xl].x, classCost[segmentation_class]);
+                //printf("(%d, %d) invalid on %d, %d segmentation_class: %d (x param = %f) class cost %f\n", x, z, xl, zl, segmentation_class, frame[zl * width + xl].x, classCost[segmentation_class]);
                 return false;
             }
         }
+
+    //printf("computeFeasibleForAngle [3]\n");
     return true;
 }
 

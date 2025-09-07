@@ -220,7 +220,7 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
     if (*_goalReached->get())
         return true;
 
-    // printf("check goal: %d, %d\n", goal.x, goal.y);
+     //printf("check goal: %d, %d\n", goal.x, goal.y);
 
     __CUDA_KERNEL_checkGoalReached<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
@@ -236,5 +236,7 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
         _goalReached->get());
 
     CUDA(cudaDeviceSynchronize());
+
+    //printf ("goal checked\n");
     return *_goalReached->get();
 }

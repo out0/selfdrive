@@ -48,10 +48,8 @@ class TestFastRRTFrenetix(unittest.TestCase):
             max_steering_angle_deg=MAX_STEERING_ANGLE,
             vehicle_length_m=VEHICLE_LENGTH_M,
             timeout_ms=TIMEOUT,
-            min_dist_x=2,
-            min_dist_z=2,
             path_costs=np.array([-1, 0, 0, 0, 0], dtype=np.float32),
-            max_path_size_px=20.0,
+            max_path_size_px=120.0,
             dist_to_goal_tolerance_px=20.0
         )
         
@@ -62,7 +60,8 @@ class TestFastRRTFrenetix(unittest.TestCase):
             frame,
             start=start,
             goal=goal,
-            velocity_m_s=1.0
+            velocity_m_s=1.0,
+            min_dist=(2, 2)
         )
         
         
@@ -83,8 +82,8 @@ class TestFastRRTFrenetix(unittest.TestCase):
 
         while not rrt.goal_reached() and rrt.loop(True):
             loop_count += 1
-            nodes = rrt.export_graph_nodes()     
-            TestUtils.output_path_result(frame, nodes, "output1.png", goal)
+            #nodes = rrt.export_graph_nodes()     
+            #TestUtils.output_path_result(frame, nodes, "output1.png", goal)
         end_time = time.time()
         execution_time = end_time - start_time
         

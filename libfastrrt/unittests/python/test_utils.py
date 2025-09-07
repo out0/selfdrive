@@ -449,6 +449,34 @@ class TestUtils:
         execution_time = end_time - start_time
         print(f"[{name}] total: {1000 * execution_time:.6f} ms, mean: {1000 * (execution_time/loop_count):.6f} ms/loop, num loops: {loop_count}")
 
+#define GRAPH_TYPE_NULL 0
+#define GRAPH_TYPE_NODE 1
+#define GRAPH_TYPE_TEMP 2
+#define GRAPH_TYPE_PROCESSING 3
+#define GRAPH_TYPE_COLLISION 4
+
+    def output_graph_nodes(frame: SearchFrame, graph: CudaGraph, file: str) -> None:
+        nodes = graph.list_all()
+        f = frame.get_color_frame()
+
+        for i in range(nodes.shape[0]):
+            node_type = int(nodes[i, 3])
+            x = int(nodes[i, 0])
+            z = int(nodes[i, 1])
+           
+            match node_type:
+                case 1:
+                    f[z, x] = [0, 255, 0]               
+                case 2:
+                    f[z, x] = [128, 0, 128]
+                case 3:
+                    f[z, x] = [128, 128, 128]
+                case 4:
+                    f[z, x] = [0, 0, 255]
+
+        cv2.imwrite(file, f)
+
+
 
 
 

@@ -48,7 +48,6 @@ class CoordinateConverter:
         return a 
 
 
-
     def __convertWorldToMap(self, pose: WorldPose) -> MapPose:
         x = self.__world_coord_scale * EARTH_RADIUS * pose.lon.rad()
         y = -self.__world_coord_scale * EARTH_RADIUS * math.log(math.tan(QUARTER_PI + 0.5 * pose.lat.rad()))
@@ -115,3 +114,6 @@ class CoordinateConverter:
         for p in list_waypoint:
             res.append(self.__convertWaypointToMap(location, p))
         return res    
+    
+    def set_yaypoint_coordinate_origin(self, x: int, z: int) -> None:
+        self.__center = Waypoint(x, z, angle.new_rad(0))

@@ -14,8 +14,6 @@ class FastRRT:
                  max_steering_angle_deg : float,
                  vehicle_length_m: float,
                  timeout_ms: int,
-                 min_dist_x: int,
-                 min_dist_z: int,
                  path_costs: np.ndarray,
                  max_path_size_px: float = 30.0,
                  dist_to_goal_tolerance_px: float = 5.0
@@ -33,8 +31,6 @@ class FastRRT:
                  max_steering_angle_deg,
                  vehicle_length_m,
                  timeout_ms,
-                 min_dist_x,
-                 min_dist_z,
                  search_frame.lower_bound()[0],
                  search_frame.lower_bound()[1],
                  search_frame.upper_bound()[0],
@@ -59,22 +55,20 @@ class FastRRT:
           
           FastRRT.lib.fastrrt_initialize.restype = ctypes.c_void_p
           FastRRT.lib.fastrrt_initialize.argtypes = [
-            ctypes.c_int, # width
-            ctypes.c_int, # height
-            ctypes.c_float, # perceptionWidthSize_m
-            ctypes.c_float, # perceptionHeightSize_m
-            ctypes.c_float, # maxSteeringAngle_rad
-            ctypes.c_float, # vehicleLength
-            ctypes.c_int, # timeout_ms
-            ctypes.c_int, #minDistance_x
-            ctypes.c_int, #minDistance_z
-            ctypes.c_int, #lowerBound_x
-            ctypes.c_int, #lowerBound_z
-            ctypes.c_int, #upperBound_x
-            ctypes.c_int, #upperBound_z
+            ctypes.c_int,     # width
+            ctypes.c_int,     # height
+            ctypes.c_float,   # perceptionWidthSize_m
+            ctypes.c_float,   # perceptionHeightSize_m
+            ctypes.c_float,   # maxSteeringAngle_rad
+            ctypes.c_float,   # vehicleLength
+            ctypes.c_int,     # timeout_ms
+            ctypes.c_int,     # lowerBound_x
+            ctypes.c_int,     # lowerBound_z
+            ctypes.c_int,     # upperBound_x
+            ctypes.c_int,     # upperBound_z
             np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1), # segmentationClassCost
-            ctypes.c_float, # maxPathSize
-            ctypes.c_float  # distToGoalTolerance
+            ctypes.c_float,   # maxPathSize
+            ctypes.c_float    # distToGoalTolerance
           ]
         
           FastRRT.lib.fastrrt_destroy.restype = None
@@ -92,7 +86,9 @@ class FastRRT:
                ctypes.c_int,      # goal_x
                ctypes.c_int,      # goal_z
                ctypes.c_float,    # goal_heading_rad
-               ctypes.c_float     # velocity_m_s             
+               ctypes.c_float,    # velocity_m_s             
+               ctypes.c_int,      # min_dist_x
+               ctypes.c_int       # min_dist_z
           ]
 
           FastRRT.lib.goal_reached.restype = ctypes.c_bool
@@ -163,7 +159,7 @@ class FastRRT:
           ]
          
 
-     def set_plan_data(self, cuda_ptr: SearchFrame, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float) -> bool:
+     def set_plan_data(self, cuda_ptr: SearchFrame, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float, min_dist: tuple[int, int]) -> bool:
           return FastRRT.lib.set_plan_data(
             self.__ptr, 
             cuda_ptr.get_cuda_ptr(),
@@ -173,7 +169,9 @@ class FastRRT:
             goal[0],
             goal[1],
             goal[2],
-            velocity_m_s
+            velocity_m_s,
+            min_dist[0],
+            min_dist[1]
           )
    
      def search_init(self, copy_intrinsic_costs_from_frame: bool = False) -> None:
