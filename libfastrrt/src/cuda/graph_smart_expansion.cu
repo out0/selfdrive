@@ -20,6 +20,7 @@ extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_
 extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
+extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
 
 #define BLOCK_SIZE 128
 
@@ -64,7 +65,7 @@ __device__ __host__ bool checkCanExpand(int4 *graph, unsigned int *region_count,
     }
 
     const int densityPos = computeDensityPos(params[FRAME_DENSITY_WIDTH], x, z);
-    //return getNodeDeriveCount(graph, pos) < 3 && (region_count[densityPos] <= 0.5 * BLOCK_SIZE);
+    // return getNodeDeriveCount(graph, pos) < 3 && (region_count[densityPos] <= 0.5 * BLOCK_SIZE);
     return region_count[densityPos] <= 0.5 * BLOCK_SIZE;
 }
 
@@ -153,7 +154,7 @@ extern __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, 
 
 #define MIN_PATH_SIZE 5.0
 
-__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float3 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision)
+__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float3 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision, int goal_x, int goal_z, float goal_heading)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -194,7 +195,6 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
 
     // printf("start expansion: %d, %d, heading: %f\n", x, z, heading);
 
-
     float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
 
     // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
@@ -224,9 +224,15 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
         incNodeDeriveCount(graph, pos);
     }
+
+    if (canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, maxSteeringAngle, x, z, goal_x, goal_z, goal_heading))
+    {
+        long goal_pos = computePos(width, goal_x, goal_z);
+        set(graph, graphData, goal_pos, goal_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+    }
 }
 
-void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand)
+void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -248,7 +254,10 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
         velocity_m_s,
         expandFrontier,
         forceExpand,
-        _nodeCollision->get());
+        _nodeCollision->get(),
+        goal.x,
+        goal.y,
+        goal_heading.rad());
 
     CUDA(cudaDeviceSynchronize());
 

@@ -8,6 +8,7 @@ bin:
 
 local: bin
 	cp build/libfastrrt.so.1	./libfastrrt.so
+	cp ../libdriveless/python_bind/app/pydriveless/cpp/libdriveless.so ./libdriveless.so
 	rm -rf build
 
 install: bin 

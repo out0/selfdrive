@@ -134,7 +134,7 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
     cv::imwrite(file, cimg);
 }
 
-#define TIMEOUT 200
+#define TIMEOUT -1
 
 TEST(TestRRT, TestSearch)
 {
@@ -163,6 +163,7 @@ TEST(TestRRT, TestSearch)
 
     frame.copyFrom(res.second);
     frame.processSafeDistanceZone({22, 40}, false);
+    
 
     std::vector<float> p = classCosts;
 
@@ -182,12 +183,13 @@ TEST(TestRRT, TestSearch)
     Waypoint goal(128, 0, angle::rad(0));
     Waypoint start(128, 128, angle::rad(0));
     rrt.setPlanData(frame, start, goal, 1, {22, 40});
+    frame.processDistanceToGoal(goal.x(), goal.z());
 
     rrt.search_init();
 
     while (!rrt.goalReached() && rrt.loop())
     {
-        //logGraph(&rrt, &frame, "output1.png");
+        logGraph(&rrt, &frame, "output1.png");
     }
 
     ASSERT_TRUE(rrt.goalReached());

@@ -205,6 +205,8 @@ __global__ void __CUDA_KERNEL_checkGoalReached(
 
     if (compute_euclidean_2d_dist(s, e) > distToGoalTolerance)
         return;
+    
+    printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance);
 
     float heading = getHeadingCuda(graphData, pos);
 

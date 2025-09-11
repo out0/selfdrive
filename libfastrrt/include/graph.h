@@ -158,9 +158,9 @@ public:
     /// @param maxSteeringAngle
     /// @param maxPathSize
     /// @param velocity_m_s
-    void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion);
+    void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 goal, angle goal_heading);
 
-    void smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand);
+    void smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading);
 
     /// @brief Accepts a derivated node and connects it to the graph.
     /// @param start
@@ -216,6 +216,8 @@ public:
     bool checkNewNodesAddedOnTreeExpansion();
 
     void solveCollisions();
+
+    bool canConnectToGoal(SearchFrame *frame, int x, int z, int goal_x, int goal_z, int goal_heading);
 };
 
 #endif

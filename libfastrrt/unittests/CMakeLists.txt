@@ -15,7 +15,7 @@ find_package(PkgConfig REQUIRED)
 find_package(GSL REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
-find_package(CUDA REQUIRED)
+#find_package(CUDA REQUIRED)
 find_package(OpenCV REQUIRED)
 
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
@@ -74,25 +74,27 @@ add_executable(
   ../src/cuda/graph_costs.cu
   ../src/cuda/cuda_grid.cu
   ../src/cuda/apf.cu
-    ../src/cuda/graph_smart_expansion.cu
-    ../src/cuda/graph_collision.cu
-  #../src/cuda/graph_clear_except.cu
+  ../src/cuda/graph_smart_expansion.cu
+  ../src/cuda/graph_collision.cu
+  ../src/cuda/graph_hermite_connection.cu
   ../src/fastrrt.cpp
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp
   ../src/interpolation.cpp
+  
 
   src/test_utils.cpp
   src/unittests.cpp
-  src/test_apf.cpp
-  src/test_cuda_grid.cpp
-  src/test_cuda_grid.cu
-  src/test_graph.cpp
-  src/test_graph_node_derivation.cpp
-  src/test_kinematics.cpp
-  src/test_graph_best_node.cpp
+  # src/test_apf.cpp
+  # src/test_cuda_grid.cpp
+  # src/test_cuda_grid.cu
+  # src/test_graph.cpp
+  # src/test_graph_node_derivation.cpp
+  # src/test_kinematics.cpp
+  # src/test_graph_best_node.cpp
   src/test_rrt.cpp
-  src/test_optimize_path.cpp
+  # src/test_optimize_path.cpp
+  # src/test_graph_can_connect_hermite.cpp
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

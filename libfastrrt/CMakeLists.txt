@@ -5,7 +5,7 @@ project(fastrrt LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libfastrrt")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CUDA_ARCHITECTURES all-major)
+#set(CMAKE_CUDA_ARCHITECTURES all-major)
 
 # Optional: explicitly set NVCC if needed
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
@@ -66,7 +66,7 @@ add_library(
   src/cuda/apf.cu
   src/cuda/graph_smart_expansion.cu
   src/cuda/graph_collision.cu
-#  src/cuda/graph_clear_except.cu
+  src/cuda/graph_hermite_connection.cu
   src/fastrrt.cpp
     src/python_bind.cpp
   src/python_cuda_graph_bind.cpp

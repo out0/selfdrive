@@ -1,6 +1,7 @@
 #include "../include/graph.h"
 #include <driveless/search_frame.h>
 #include "../include/fastrrt.h"
+
 extern "C"
 {
     void *cudagraph_initialize(
@@ -131,4 +132,12 @@ extern "C"
     void free_list_all(float *p) {
         delete []p;
     }
+
+    bool can_connect_to_goal_using_hermite(void *ptr, void *frame_ptr, int x, int z, int goal_x, int goal_z, float goal_heading) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        SearchFrame *frame = (SearchFrame *)frame_ptr;
+        
+        return graph->canConnectToGoal(frame, x, z, goal_x, goal_z, goal_heading);
+    }
+    
 }

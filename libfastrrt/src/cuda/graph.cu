@@ -441,3 +441,18 @@ void CudaGraph::readfromDump(const char *filename)
     fclose(fp);
     printf("Graph read from %s\n", filename);
 }
+
+
+extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, int x, int z, int goal_x, int goal_z, float goal_heading);
+
+bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int goal_x, int goal_z, int goal_heading) {
+    if (search_frame->isObstacle(goal_x, goal_z)) return false;
+    
+    return canConnectToGoalUsingHermite(
+        _frame->getCudaPtr(), 
+        _frameData->getCudaPtr(), 
+        search_frame->getCudaPtr(), 
+        search_frame->getCudaClassCostsPtr(),
+        search_frame->getCudaFrameParamsPtr(),
+        x, z, goal_x, goal_z, goal_heading);
+}

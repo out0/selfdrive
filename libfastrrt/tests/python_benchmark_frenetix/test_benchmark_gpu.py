@@ -54,7 +54,7 @@ class TestFastRRTFrenetix(unittest.TestCase):
         )
         
         start = (416, 686, angle.new_deg(90 + -0.039754376).rad())
-        goal = (296, 15, angle.new_deg(1.9513413283239596).rad())
+        goal = (296, 15, angle.new_deg(-8.9513413283239596).rad())
         
         rrt.set_plan_data(
             frame,
@@ -93,6 +93,16 @@ class TestFastRRTFrenetix(unittest.TestCase):
             return False
         
         print (f"found path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
+        TestUtils.output_path_result(frame, path, "output1.png", goal)
+
+        start_time = time.time()
+        rrt.path_optimize()
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print (f"optimze path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
+        
+        path = rrt.get_planned_path(interpolate=True)
+
     
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
 
     if (isAllAngleFeasible(frame, pos))
     {
-        //printf("computeFeasibleForAngle: feasible for all\n");
+        //printf("computeFeasibleForAngle: feasible for all at %d, %d\n", x, z);
         return true;
     }
 
@@ -66,7 +66,7 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
             }
         }
 
-    //printf("computeFeasibleForAngle [3]\n");
+    //printf("computeFeasibleForAngle %d, %d\n", x, z);
     return true;
 }
 

@@ -13,6 +13,8 @@ void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path
 
 CudaPtr<float3> createEmptySearchFrame(int width, int height);
 
+SearchFrame * createEmptySearchFramePtr(int width, int height);
+
 void destroySearchFrame(float3 * ptr);
 
 #endif

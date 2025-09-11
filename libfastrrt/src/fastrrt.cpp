@@ -107,11 +107,11 @@ bool FastRRT::loop(bool smart)
 
     if (smart)
     {
-        _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0);
+        _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0, {_goal.x(), _goal.z()}, _goal.heading());
     }
     else
     {
-        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier);
+        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, {_goal.x(), _goal.z()}, _goal.heading());
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);

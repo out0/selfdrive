@@ -1,0 +1,101 @@
+
+#include "../../include/graph.h"
+
+extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
+extern __device__ __host__ long computePos(int width, int x, int z);
+extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
+
+
+__device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading)
+{
+    // int numPoints = 2 * abs(max(int(p2.z() - p1.z()), int(p2.x() - p1.x()), 100));
+    const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
+    const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
+    const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
+    const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
+    
+    const long pos = computePos(width, x, z);
+    const float distance = frame[pos].y;
+    int numPoints = TO_INT(distance);
+
+    float local_heading = getHeadingCuda(graphData, pos);
+
+    float a1 = local_heading - PI / 2;
+    float a2 = goal_heading - PI / 2;
+
+    // Tangent vectors
+    float2 tan1 = {distance * cosf(a1), distance * sinf(a1)};
+    float2 tan2 = {distance * cosf(a2), distance * sinf(a2)};
+
+    int last_x = -1;
+    int last_z = -1;
+
+    const float parentCost = getCostCuda(graphData, pos);
+    float nodeCost = parentCost;
+
+
+    // float dx = goal_x - x;
+    // float dz = goal_z - z;
+
+    //printf ("dist: %f, computed dist: %f, numPoints = %d\n", distance, sqrtf(dx*dx + dz*dz),  numPoints);
+
+    for (int i = 0; i < numPoints; ++i)
+    {
+        double t = ((double)0.0 + i) / (numPoints - 1);
+
+        double t2 = t * t;
+        double t3 = t2 * t;
+
+        // Hermite basis functions
+        double h00 = 2 * t3 - 3 * t2 + 1;
+        double h10 = t3 - 2 * t2 + t;
+        double h01 = -2 * t3 + 3 * t2;
+        double h11 = t3 - t2;
+
+        double px = h00 * x + h10 * tan1.x + h01 * goal_x + h11 * tan2.x;
+        double pz = h00 * z + h10 * tan1.y + h01 * goal_z + h11 * tan2.y;
+
+        if (px < 0 || px >= width)
+            continue;
+        if (pz < 0 || pz >= height)
+            continue;
+
+
+        int cx = TO_INT(px);
+        int cz = TO_INT(pz);
+
+        if (cx == last_x && cz == last_z)
+            continue;
+        if (cx < 0 || cx >= width)
+            continue;
+        if (cz < 0 || cz >= height)
+            continue;
+
+        nodeCost += getIntrinsicCost(graphData, width, cx, cz) + 1;
+
+        double t00 = 6 * t2 - 6 * t;
+        double t10 = 3 * t2 - 4 * t + 1;
+        double t01 = -6 * t2 + 6 * t;
+        double t11 = 3 * t2 - 2 * t;
+
+        double ddx = t00 * x + t10 * tan1.x + t01 * goal_x + t11 * tan2.x;
+        double ddz = t00 * z + t10 * tan1.y + t01 * goal_z + t11 * tan2.y;
+
+        float heading = atan2f(ddz, ddx) + HALF_PI;
+
+        if (heading > max_steering_rad or heading < -max_steering_rad)
+            return false;
+        
+
+        // Interpolated point
+        last_x = cx;
+        last_z = cz;
+
+        if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading))
+            return false;
+    }
+
+    return numPoints > 0;
+}

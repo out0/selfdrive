@@ -5,27 +5,23 @@
 #include <cuda_runtime.h>
 #include "test_utils.h"
 
-extern double2 convert_waypoint_to_map_pose(float3 *ogStart, double inv_rate_w, double inv_rate_h, int2 coord);
-extern int2 convert_map_pose_to_waypoint(float3 *ogStart, float rate_w, float rate_h, double2 coord);
+extern double2 convert_waypoint_to_map_pose(float3 *ogStart, int2 coord);
+extern int2 convert_map_pose_to_waypoint(float3 *ogStart, double2 coord);
 
 #define PHYS_SIZE 34.641016151377535
 
 TEST(TestKinematics, ConvertMapPoseWaypointOrigin)
 {
-    float rw = 256 / PHYS_SIZE;
-    float rh = 256 / PHYS_SIZE;
-    float inv_rw = PHYS_SIZE / 256;
-    float inv_rh = PHYS_SIZE / 256;
 
-    float3 *ogStart = new float3 {128.0, 128.0, 0.0};
+    float3 *ogStart = new float3{128.0, 128.0, 0.0};
     int2 coord = {128, 128};
 
-    double2 mapCoord = convert_waypoint_to_map_pose(ogStart, inv_rw, inv_rh, coord);
+    double2 mapCoord = convert_waypoint_to_map_pose(ogStart, coord);
 
     ASSERT_EQ(0, mapCoord.x);
     ASSERT_EQ(0, mapCoord.y);
 
-    int2 waypoint = convert_map_pose_to_waypoint(ogStart, rw, rh, mapCoord);
+    int2 waypoint = convert_map_pose_to_waypoint(ogStart, mapCoord);
 
     ASSERT_EQ(128, waypoint.x);
     ASSERT_EQ(128, waypoint.y);
@@ -40,12 +36,12 @@ TEST(TestKinematics, ConvertMapPoseWaypointNonOrigin)
     float inv_rw = PHYS_SIZE / 256;
     float inv_rh = PHYS_SIZE / 256;
 
-    float3 *ogStart = new float3 {128.0, 128.0, 0.0};
+    float3 *ogStart = new float3{128.0, 128.0, 0.0};
     int2 coord = {108, 108};
 
-    double2 mapCoord = convert_waypoint_to_map_pose(ogStart, inv_rw, inv_rh, coord);
+    double2 mapCoord = convert_waypoint_to_map_pose(ogStart, coord);
 
-    int2 waypoint = convert_map_pose_to_waypoint(ogStart, rw, rh, mapCoord);
+    int2 waypoint = convert_map_pose_to_waypoint(ogStart, mapCoord);
 
     ASSERT_EQ(108, waypoint.x);
     ASSERT_EQ(108, waypoint.y);
@@ -70,7 +66,7 @@ TEST(TestKinematics, TestCheckKinematicPath)
 
     g.add(128, 128, angle::rad(0), -1, -1, 0);
 
-    int2 node = g.derivateNode(ptr.get(),  angle::deg(20), 50, 2, 128, 128);
+    int2 node = g.derivateNode(ptr.get(), angle::deg(20), 50, 2, 128, 128);
 
     ASSERT_TRUE(g.checkFeasibleConnection(ptr.get(), {128, 128}, node, 2));
 }

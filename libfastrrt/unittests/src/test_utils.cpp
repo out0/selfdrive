@@ -97,3 +97,21 @@ CudaPtr<float3> createEmptySearchFrame(int width, int height)
     return ptr;
 }
 
+SearchFrame * createEmptySearchFramePtr(int width, int height)
+{
+    auto ptr = new SearchFrame(width, height, {-1, -1}, {-1, -1});
+    long size = height * width;
+    float* p = new float[size * 3];
+
+    for (int i = 0; i < size; i++)
+    {
+        int pos = 3*i;
+        p[pos] = 0;
+        p[pos + 1] = 0;
+        p[pos + 2]= 0;
+    }
+    ptr->copyFrom(p);
+    delete []p;
+    return ptr;
+}
+
