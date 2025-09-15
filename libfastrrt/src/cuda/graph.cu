@@ -25,7 +25,7 @@ __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float hea
             graph[pos].z != GRAPH_TYPE_NODE &&
             graph[pos].z != GRAPH_TYPE_NULL &&
             graph[pos].z != GRAPH_TYPE_PROCESSING &&
-            graph[pos].z != GRAPH_TYPE_TEMP && 
+            graph[pos].z != GRAPH_TYPE_TEMP &&
             graph[pos].z != GRAPH_TYPE_CONNECT_TO_GOAL)
         {
             printf("erro no set: para pos = %ld\n", pos);
@@ -41,7 +41,7 @@ __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float hea
             graph[pos].z != GRAPH_TYPE_NODE &&
             graph[pos].z != GRAPH_TYPE_NULL &&
             graph[pos].z != GRAPH_TYPE_PROCESSING &&
-            graph[pos].z != GRAPH_TYPE_TEMP && 
+            graph[pos].z != GRAPH_TYPE_TEMP &&
             graph[pos].z != GRAPH_TYPE_CONNECT_TO_GOAL)
         {
             printf("erro no set: para pos = %ld\n", pos);
@@ -62,12 +62,34 @@ __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float hea
         graph[pos].z != GRAPH_TYPE_NODE &&
         graph[pos].z != GRAPH_TYPE_NULL &&
         graph[pos].z != GRAPH_TYPE_PROCESSING &&
-        graph[pos].z != GRAPH_TYPE_TEMP && 
+        graph[pos].z != GRAPH_TYPE_TEMP &&
         graph[pos].z != GRAPH_TYPE_CONNECT_TO_GOAL)
     {
         printf("erro no set: para pos = %ld\n", pos);
     }
 
+    return true;
+}
+
+__device__ __host__ bool setCollisionCuda(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost)
+{
+// Sets the value of graph[pos].z to GRAPH_TYPE_COLLISION if graph[pos].z is GRAPH_TYPE_NODE
+#ifdef __CUDA_ARCH__
+    if (!atomicCAS(&(graph[pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE)
+        return false;
+#else
+    if (graph[pos].z != GRAPH_TYPE_NODE)
+    {
+        return false;
+    }
+    graph[pos].z = GRAPH_TYPE_COLLISION;
+#endif
+
+    // will return if z is originally not 0.
+    graph[pos].x = parent_x;
+    graph[pos].y = parent_z;
+    graphData[pos].x = heading;
+    graphData[pos].y = cost;
     return true;
 }
 
@@ -95,6 +117,10 @@ __device__ __host__ int getTypeCuda(int4 *graph, long pos)
 __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos)
 {
     graph[pos].w++;
+}
+__device__ __host__ void decNodeDeriveCount(int4 *graph, long pos)
+{
+    graph[pos].w--;
 }
 
 __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count)
@@ -189,7 +215,6 @@ __device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int w
     printf("[CUDA ERROR] Collision detected when starting in %d, %d, parents %d, %d\n", x, z, parent.x, parent.y);
 }
 
-
 void CudaGraph::setType(int x, int z, int type)
 {
     long pos = computePos(_frame->width(), x, z);
@@ -219,7 +244,6 @@ CudaGraph::CudaGraph(int width, int height)
     _bestCostDirectConnect = std::make_unique<CudaPtr<int>>(1);
     __initializeRegionDensity();
     _directOptimPos = -1;
-    
 
     // default coordinate system start is the middle of the map with heading = 0.0
     setCoordinateStart(_searchSpaceParams->get()[FRAME_PARAM_CENTER_X], _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z]);
@@ -263,7 +287,6 @@ void CudaGraph::setClassCosts(float *costs, int count)
     }
 }
 
-
 void CudaGraph::setClassCosts(std::vector<float> costs)
 {
     _classCosts = std::make_unique<CudaPtr<float>>(costs.size());
@@ -305,6 +328,10 @@ void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, flo
     if (!__checkLimits(x, z))
         return;
     long pos = computePos(_frame->width(), x, z);
+
+    if (parent_x != -1 && parent_z != -1)
+        incNodeDeriveCount(_frame->getCudaPtr(), computePos(_frame->width(), parent_x, parent_z));
+
     set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_NODE, true);
 }
 void CudaGraph::addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost)
@@ -359,6 +386,7 @@ void CudaGraph::clear()
     CUDA(cudaDeviceSynchronize());
     *_goalReached->get() = false;
     *_bestCostDirectConnect->get() = 999999999;
+    *_nodeCollision->get() = false;
 }
 
 bool CudaGraph::checkInGraph(int x, int z)
@@ -480,3 +508,19 @@ void CudaGraph::readfromDump(const char *filename)
     printf("Graph read from %s\n", filename);
 }
 
+int CudaGraph::getChildCount(int x, int z)
+{
+    return getNodeDeriveCount(_frame->getCudaPtr(), computePos(_frame->width(), x, z));
+}
+
+void CudaGraph::setCollision(int x, int z, int new_parent_x, int new_parent_z, angle new_heading, float new_cost)
+{
+    long pos = computePos(_frame->width(), x, z);
+    int2 currentParent = getParentCuda(_frame->getCudaPtr(), pos);
+    long currentParentPos = computePos(_frame->width(), currentParent.x, currentParent.y);
+
+    if (setCollisionCuda(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, new_heading.rad(), new_parent_x, new_parent_z, new_cost))
+    {
+        decNodeDeriveCount(_frame->getCudaPtr(), currentParentPos);
+    }
+}

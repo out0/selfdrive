@@ -227,6 +227,13 @@ public:
     /// @return 
     bool checkGraphIsDAG();
 
+    /// @brief Returns the number of childs of the node x, z
+    /// @param x 
+    /// @param z 
+    /// @return 
+    int getChildCount(int x, int z);
+
+    void setCollision(int x, int z, int new_parent_x, int new_parent_z, angle new_heading, float new_cost);
 };
 
 #endif

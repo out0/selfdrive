@@ -13,11 +13,13 @@ extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ void setCostCuda(float4 *graphData, long pos, float cost);
 extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ bool setCollisionCuda(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost);
 extern __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos);
 extern __device__ float generateRandom(curandState *state, int pos, float min_val, float max_val);
 extern __device__ float generateRandomNeg(curandState *state, int pos, float max_val);
 extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_x, int parent_z);
 extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
+extern __device__ __host__ void decNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
 extern __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
@@ -193,11 +195,6 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     // printf("[cuda] heading %f, steeringAngle: %f, max steeringAngle: %f\n", heading, steeringAngle, maxSteeringAngle);
     // printf("velocity_m_s: %f\n", velocity_m_s);
 
-    // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
-    //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
-
-    // printf("start expansion: %d, %d, heading: %f\n", x, z, heading);
-
     float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
 
     // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
@@ -218,9 +215,13 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     if (checkInGraphCuda(graph, end_pos))
     {
         // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        setNodeDeriveCount(graph, pos, 1);
-        *nodeCollision = true;
+        
+        // If n threads reach this, the last one will be its owner. That is not a problem.
+        // the losing threads will not increment derive count and can try again
+        if (setCollisionCuda(graph, graphData, end_pos, end_heading, x, z, end_cost)) {
+            *nodeCollision = true;
+            decNodeDeriveCount(graph, pos);
+        }
     }
     else
     {

@@ -7,6 +7,9 @@ extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
 extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
+extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
+extern __device__ __host__ void decNodeDeriveCount(int4 *graph, long pos);
+extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
 
 __global__ void __CUDA_solveGraphCollision_erase_trees(int4 *graph, int *params, int numNodesInGraph)
 {
@@ -18,27 +21,31 @@ __global__ void __CUDA_solveGraphCollision_erase_trees(int4 *graph, int *params,
     if (pos >= width * height)
         return;
 
-    auto p = getTypeCuda(graph, pos);
-
-    if (p != GRAPH_TYPE_NODE)
+    if (getTypeCuda(graph, pos) != GRAPH_TYPE_NODE)
         return;
 
+    int z = pos / width;
+    int x = pos - z * width;
+    //printf("[collision] solving for %d, %d\n", x, z);
+
+    int curr = pos;
     for (int i = 0; i <= numNodesInGraph; i++)
     {
-        int2 parent = getParentCuda(graph, pos);
+        int2 parent = getParentCuda(graph, curr);
 
         if (parent.x == -1 && parent.y == -1)
             return;
 
-        long pos_parent = computePos(width, parent.x, parent.y);
+        long next = computePos(width, parent.x, parent.y);
 
-        if (getTypeCuda(graph, pos_parent) == GRAPH_TYPE_COLLISION)
+        if (getTypeCuda(graph, next) == GRAPH_TYPE_COLLISION)
         {
+            //printf("[collision] found collision parent of %d, %d in node %d, %d\n", x, z, parent.x, parent.y);
             setTypeCuda(graph, pos, GRAPH_TYPE_NULL);
             return;
         }
 
-        pos = pos_parent;
+        curr = next;
     }
 }
 
@@ -53,12 +60,18 @@ __global__ void __CUDA_solveGraphCollision_set_nodes(int4 *graph, int *params)
         return;
 
     if (getTypeCuda(graph, pos) == GRAPH_TYPE_COLLISION)
+    {
         setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
+        setNodeDeriveCount(graph, pos, 0);
+
+        int2 parent = getParentCuda(graph, pos);
+        long pos_parent = computePos(width, parent.x, parent.y);
+        incNodeDeriveCount(graph, pos_parent);
+    }
 }
 
 void CudaGraph::solveCollisions()
 {
-    return;
     int numNodesInGraph = count();
 
     if (numNodesInGraph <= 2)

@@ -3,6 +3,7 @@
 
 #include "../../include/graph.h"
 #include <driveless/cuda_ptr.h>
+#include <gtest/gtest.h>
 
 extern bool _ASSERT_DEQ(double a, double b, int tolerance = 4);
 #define ASSERT_DEQ(a, b) ASSERT_TRUE(_ASSERT_DEQ(a, b))
@@ -15,6 +16,7 @@ CudaPtr<float3> createEmptySearchFrame(int width, int height);
 
 SearchFrame * createEmptySearchFramePtr(int width, int height);
 
-void destroySearchFrame(float3 * ptr);
+
+void assertInt2Equal(int2 a, int2 b);
 
 #endif

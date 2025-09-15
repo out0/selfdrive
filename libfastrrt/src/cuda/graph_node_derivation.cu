@@ -14,6 +14,7 @@ extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ void setCostCuda(float4 *graphData, long pos, float cost);
 extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ bool setCollisionCuda(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost);
 extern __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos);
 extern __device__ float generateRandom(curandState *state, int pos, float min_val, float max_val);
 extern __device__ float generateRandomNeg(curandState *state, int pos, float max_val);
@@ -25,6 +26,7 @@ extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float4
 extern __device__ __host__ float getDirectCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
 extern __device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int width, int height, long pos);
+extern __device__ __host__ void decNodeDeriveCount(int4 *graph, long pos);
 
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
 {
@@ -114,10 +116,10 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
 
     if (checkInGraphCuda(graph, end_pos))
     {
-        // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        setNodeDeriveCount(graph, pos, 1);
-        *nodeCollision = true;
+       if (setCollisionCuda(graph, graphData, end_pos, end_heading, x, z, end_cost)) {
+            *nodeCollision = true;
+            decNodeDeriveCount(graph, pos);
+        }
     }
     else
     {

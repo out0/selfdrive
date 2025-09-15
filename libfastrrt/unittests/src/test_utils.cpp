@@ -115,3 +115,10 @@ SearchFrame * createEmptySearchFramePtr(int width, int height)
     return ptr;
 }
 
+void assertInt2Equal(int2 a, int2 b) {
+    if (a.x != b.x || a.y != b.y) {
+        printf("(%d, %d) != (%d, %d)\n", a.x, a.y, b.x, b.y);
+        FAIL();
+    }
+}
+

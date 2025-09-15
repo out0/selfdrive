@@ -90,3 +90,16 @@ TEST(TestGraphConsistencyCheck, CheckPointSelf)
     graph->add(78, 90, angle::rad(0), 78, 90, 0);
     ASSERT_FALSE(graph->checkGraphIsDAG());
 }
+
+TEST(TestGraphConsistencyCheck, RegularDAGWithBranches)
+{
+    CudaGraph *graph = buildTestGraph();
+    angle p = angle::rad(0);
+
+    graph->add(128, 128, p, -1, -1, 0);
+    /**/ graph->add(100, 100, p, 128, 128, 0);
+    /**/ graph->add(135, 100, p, 128, 128, 0);
+    /******/ graph->add(110, 70, p, 135, 100, 0);
+    /******/ graph->add(145, 70, p, 135, 100, 0);
+    ASSERT_TRUE(graph->checkGraphIsDAG());
+}
