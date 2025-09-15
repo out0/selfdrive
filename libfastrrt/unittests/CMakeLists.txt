@@ -81,6 +81,7 @@ add_executable(
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp
   ../src/interpolation.cpp
+  ../src/graph_check_dag_consistency.cpp
   
 
   src/test_utils.cpp
@@ -92,9 +93,11 @@ add_executable(
   # src/test_graph_node_derivation.cpp
   # src/test_kinematics.cpp
   # src/test_graph_best_node.cpp
-  src/test_rrt.cpp
+  # src/test_rrt.cpp
   # src/test_optimize_path.cpp
   # src/test_graph_can_connect_hermite.cpp
+  src/test_graph_dag_consistency.cpp
+  # src/test_graph_solve_collisions.cpp
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

@@ -42,7 +42,7 @@ TEST(TestGraphNodeDerivation, StraightDerivationInXcoord)
     CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
 
     graph->derivateNode(ptr.get(), angle::deg(0), pathSize, velocity, 128, 128);
-    graph->acceptDerivedNodes();
+    graph->acceptDerivedNodes({0, 0}, 0.0);
 
     // ensure that the end-node is 128, 78 with heading 0.0 deg
     if (!graph->checkInGraph(128, 78))
@@ -83,7 +83,7 @@ TEST(TestGraphNodeDerivation, StraightDerivationInYcoord)
     CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
 
     graph->derivateNode(ptr.get(), angle::deg(0), pathSize, velocity, 128, 128);
-    graph->acceptDerivedNodes();
+    graph->acceptDerivedNodes({0, 0}, 0.0);
 
     // ensure that the end-node is 128, 78 with heading 0.0 deg
     if (!graph->checkInGraph(128, 78))
@@ -118,7 +118,7 @@ TEST(TestGraphNodeDerivation, StraightDerivationWithDelocatedLocalPosition)
     CudaPtr<float3> ptr = createEmptySearchFrame(256, 256);
 
     graph->derivateNode(ptr.get(), angle::deg(0), pathSize, velocity, 50, 200);
-    graph->acceptDerivedNodes();
+    graph->acceptDerivedNodes({0, 0}, 0.0);
 
     // ensure that the end-node is 128, 78 with heading 0.0 deg
     if (!graph->checkInGraph(50, 150))
@@ -225,7 +225,7 @@ TEST(TestGraphNodeDerivation, CurvyNodeDerivation)
         {
             graph->add(100, 200, angle::deg(a), -1, -1, 0);
             graph->derivateNode(ptr.get(), angle::deg(i), pathSize, velocity, 100, 200);
-            graph->acceptDerivedNodes();
+            graph->acceptDerivedNodes({0, 0}, 0.0);
 
             Waypoint start(100, 200, angle::deg(a));
             auto end = derive(256, 256, 256, 256, location, start, pathSize, angle::deg(i).rad(), velocity, 0.5 * 5.412658773);

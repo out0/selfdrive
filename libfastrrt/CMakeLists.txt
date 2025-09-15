@@ -71,6 +71,7 @@ add_library(
   src/python_bind.cpp
   src/python_cuda_graph_bind.cpp
   src/interpolation.cpp
+  src/graph_check_dag_consistency.cpp
   #src/debug.cpp
 )
 

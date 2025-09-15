@@ -54,6 +54,8 @@ private:
     
     float _node_mean;
     int _directOptimPos;
+
+    void __printInconsistentChain(int2 n, int maxLoop);
     
     
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
@@ -220,6 +222,11 @@ public:
     void solveCollisions();
 
     bool canConnectToGoal(SearchFrame *frame, int x, int z, int goal_x, int goal_z, int goal_heading);
+
+    /// @brief Returns true if the GRAPH is DAG consistent. This is usually be used for testing and debugging, as bugfree operation should always be DAG consistent
+    /// @return 
+    bool checkGraphIsDAG();
+
 };
 
 #endif
