@@ -5,9 +5,9 @@
 #include "../../include/graph.h"
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
-extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 
 #define K1 1
 #define K2 3
@@ -20,7 +20,7 @@ __device__ long long __compute_cost_findBestNode(float dist, float heading_rad, 
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
     int4 *graph,
-    float3 *graphData,
+    float4 *graphData,
     float3 *frame,
     int *params,
     float *classCost,
@@ -70,7 +70,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
 
 __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(
     int4 *graph, 
-    float3 *graphData, 
+    float4 *graphData, 
     float3 *frame, 
     int *params, 
     float *classCost, 
@@ -175,7 +175,7 @@ extern __device__ __host__ double compute_euclidean_2d_dist(const int2 &start, c
 
 __global__ void __CUDA_KERNEL_checkGoalReached(
     int4 *graph, 
-    float3 *graphData, 
+    float4 *graphData, 
     float3 *frame, 
     int *params, 
     float *costs, 
@@ -206,7 +206,7 @@ __global__ void __CUDA_KERNEL_checkGoalReached(
     if (compute_euclidean_2d_dist(s, e) > distToGoalTolerance)
         return;
     
-    printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance);
+    //printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance);
 
     float heading = getHeadingCuda(graphData, pos);
 

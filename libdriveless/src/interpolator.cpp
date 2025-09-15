@@ -7,7 +7,7 @@ typedef struct d2
     double x, y;
 } d2;
 
-std::vector<Waypoint> Interpolator::hermite(int width, int height, Waypoint p1, Waypoint p2)
+std::vector<Waypoint> Interpolator::hermite(int width, int height, Waypoint p1, Waypoint p2, float max_curvature)
 {
     std::vector<Waypoint> curve;
 
@@ -69,6 +69,24 @@ std::vector<Waypoint> Interpolator::hermite(int width, int height, Waypoint p1, 
 
         float heading = static_cast<float>(atan2f(ddz, ddx) + HALF_PI);
 
+        double d00 = 12 * t - 6;
+        double d10 = 6 * t - 4;
+        double d01 = -12 * t + 6;
+        double d11 = 6 * t - 2;
+
+        double dd2x = d00 * p1.x() + d10 * tan1.x + d01 * p2.x() + d11 * tan2.x;
+        double dd2z = d00 * p1.z() + d10 * tan1.y + d01 * p2.z() + d11 * tan2.y;
+
+        if (max_curvature > 0)
+        {
+            float k = abs(ddx * dd2z - ddz * dd2x) / pow(ddx * ddx + ddz * ddz, 3 / 2);
+            if (k > max_curvature)
+            {
+                curve.clear();
+                return curve;
+            }
+        }
+
         // Interpolated point
         curve.push_back({cx, cz, angle::rad(heading)});
         last_x = cx;
@@ -88,17 +106,17 @@ static void catmull_roll_interpolate(std::vector<Waypoint> &points, Waypoint p0,
         double t3 = t2 * t;
 
         double x = 0.5 * ((2.0 * p1.x()) + (-p0.x() + p2.x()) * t +
-                         (2.0 * p0.x() - 5.0 * p1.x() + 4.0 * p2.x() - p3.x()) * t2 +
-                         (-p0.x() + 3.0 * p1.x() - 3.0 * p2.x() + p3.x()) * t3);
+                          (2.0 * p0.x() - 5.0 * p1.x() + 4.0 * p2.x() - p3.x()) * t2 +
+                          (-p0.x() + 3.0 * p1.x() - 3.0 * p2.x() + p3.x()) * t3);
         double y = 0.5 * ((2.0 * p1.z()) + (-p0.z() + p2.z()) * t +
-                         (2.0 * p0.z() - 5.0 * p1.z() + 4.0 * p2.z() - p3.z()) * t2 +
-                         (-p0.z() + 3.0 * p1.z() - 3.0 * p2.z() + p3.z()) * t3);
+                          (2.0 * p0.z() - 5.0 * p1.z() + 4.0 * p2.z() - p3.z()) * t2 +
+                          (-p0.z() + 3.0 * p1.z() - 3.0 * p2.z() + p3.z()) * t3);
         double dx = 0.5 * ((-p0.x() + p2.x()) +
-                          2.0 * (2.0 * p0.x() - 5.0 * p1.x() + 4.0 * p2.x() - p3.x()) * t +
-                          3.0 * (-p0.x() + 3 * p1.x() - 3.0 * p2.x() + p3.x()) * t2);
+                           2.0 * (2.0 * p0.x() - 5.0 * p1.x() + 4.0 * p2.x() - p3.x()) * t +
+                           3.0 * (-p0.x() + 3 * p1.x() - 3.0 * p2.x() + p3.x()) * t2);
         double dy = 0.5 * ((-p0.z() + p2.z()) +
-                          2.0 * (2.0 * p0.z() - 5.0 * p1.z() + 4.0 * p2.z() - p3.z()) * t +
-                          3.0 * (-p0.z() + 3.0 * p1.z() - 3.0 * p2.z() + p3.z()) * t2);
+                           2.0 * (2.0 * p0.z() - 5.0 * p1.z() + 4.0 * p2.z() - p3.z()) * t +
+                           3.0 * (-p0.z() + 3.0 * p1.z() - 3.0 * p2.z() + p3.z()) * t2);
 
         points.push_back(Waypoint(TO_INT(x), TO_INT(y), angle::rad(0.0 + HALF_PI - atan2(-dy, dx))));
         t += inv_res;
@@ -120,11 +138,11 @@ std::vector<Waypoint> Interpolator::cubicSpline(std::vector<Waypoint> &dataPoint
     if (size < 4)
         return std::vector<Waypoint>(dataPoints);
 
-    //printf("[%d] res size: %d\n", 1, res.size());
+    // printf("[%d] res size: %d\n", 1, res.size());
     catmull_roll_interpolate(res,
                              dataPoints[0], dataPoints[0], dataPoints[1], dataPoints[2], resolution);
 
-    //printf("[%d] res size: %d\n", 2, res.size());
+    // printf("[%d] res size: %d\n", 2, res.size());
 
     if (size >= 4)
     {
@@ -135,17 +153,16 @@ std::vector<Waypoint> Interpolator::cubicSpline(std::vector<Waypoint> &dataPoint
             const Waypoint p2 = dataPoints[i + 2];
             const Waypoint p3 = dataPoints[i + 3];
             catmull_roll_interpolate(res, p0, p1, p2, p3, resolution);
-            //printf("[loop %d] res size: %d\n", i, res.size());
+            // printf("[loop %d] res size: %d\n", i, res.size());
         }
     }
 
     catmull_roll_interpolate(res,
                              dataPoints[size - 3], dataPoints[size - 2], dataPoints[size - 1], dataPoints[size - 1], resolution);
 
-    //printf("[%d] res size: %d\n", 3, res.size());
+    // printf("[%d] res size: %d\n", 3, res.size());
 
     return res;
-
 }
 
 float *to_float_array(std::vector<Waypoint> res)
@@ -187,9 +204,9 @@ std::vector<Waypoint> from_float_array(float *arr)
 extern "C"
 {
 
-    float *interpolate_hermite(int width, int height, int x1, int z1, float h1_rad, int x2, int z2, float h2_rad)
+    float *interpolate_hermite(int width, int height, int x1, int z1, float h1_rad, int x2, int z2, float h2_rad, float max_curvature)
     {
-        std::vector<Waypoint> res = Interpolator::hermite(width, height, Waypoint(x1, z1, angle::rad(h1_rad)), Waypoint(x2, z2, angle::rad(h2_rad)));
+        std::vector<Waypoint> res = Interpolator::hermite(width, height, Waypoint(x1, z1, angle::rad(h1_rad)), Waypoint(x2, z2, angle::rad(h2_rad)), max_curvature);
         return to_float_array(res);
     }
 

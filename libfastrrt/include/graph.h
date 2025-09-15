@@ -19,6 +19,7 @@
 #define GRAPH_TYPE_TEMP 2
 #define GRAPH_TYPE_PROCESSING 3
 #define GRAPH_TYPE_COLLISION 4
+#define GRAPH_TYPE_CONNECT_TO_GOAL 5
 
 #define THREADS_IN_BLOCK 256
 
@@ -28,7 +29,7 @@ class CudaGraph
 {
 private:
     std::shared_ptr<CudaGrid<int4>> _frame;
-    std::shared_ptr<CudaGrid<float3>> _frameData;
+    std::shared_ptr<CudaGrid<float4>> _frameData;
     bool __checkLimits(int x, int z);
     
     cptr<float3> _ogCoordinateStart;
@@ -41,6 +42,7 @@ private:
     cptr<unsigned int> _region_node_count;
     cptr<float> _classCosts;
     cptr<curandState> _randState;
+    cptr<int> _bestCostDirectConnect;
 
 
     void __initializeRandomGenerator();
@@ -122,7 +124,7 @@ public:
     {
         return _frame;
     }
-    std::shared_ptr<CudaGrid<float3>> getFrameDataPtr()
+    std::shared_ptr<CudaGrid<float4>> getFrameDataPtr()
     {
         return _frameData;
     }
@@ -170,7 +172,7 @@ public:
 
     /// @brief Accepts all derivated nodes and connects them to the graph.
     /// @return
-    void acceptDerivedNodes();
+    void acceptDerivedNodes(int2 goal, float goal_heading);
 
     /// @brief Finds the best node in graph (with the lowest cost) that is feasible with the given heading, in a given search radius
     /// @param searchFrame

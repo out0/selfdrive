@@ -3,19 +3,18 @@
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
-extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
-extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
+extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
+extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
+extern __device__ __host__ float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 
-
-__device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading)
+__device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_curvature, int x, int z, int goal_x, int goal_z, float goal_heading)
 {
     // int numPoints = 2 * abs(max(int(p2.z() - p1.z()), int(p2.x() - p1.x()), 100));
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
     const int height = searchSpaceParams[FRAME_PARAM_HEIGHT];
     const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
-    
+
     const long pos = computePos(width, x, z);
     const float distance = frame[pos].y;
     int numPoints = TO_INT(distance);
@@ -35,11 +34,10 @@ __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graph
     const float parentCost = getCostCuda(graphData, pos);
     float nodeCost = parentCost;
 
-
     // float dx = goal_x - x;
     // float dz = goal_z - z;
 
-    //printf ("dist: %f, computed dist: %f, numPoints = %d\n", distance, sqrtf(dx*dx + dz*dz),  numPoints);
+    // printf ("dist: %f, computed dist: %f, numPoints = %d\n", distance, sqrtf(dx*dx + dz*dz),  numPoints);
 
     for (int i = 0; i < numPoints; ++i)
     {
@@ -61,7 +59,6 @@ __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graph
             continue;
         if (pz < 0 || pz >= height)
             continue;
-
 
         int cx = TO_INT(px);
         int cz = TO_INT(pz);
@@ -85,17 +82,30 @@ __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graph
 
         float heading = atan2f(ddz, ddx) + HALF_PI;
 
-        if (heading > max_steering_rad or heading < -max_steering_rad)
-            return false;
-        
+        double d00 = 12 * t - 6;
+        double d10 = 6 * t - 4;
+        double d01 = -12 * t + 6;
+        double d11 = 6 * t - 2;
+
+        double dd2x = d00 * x + d10 * tan1.x + d01 * goal_x + d11 * tan2.x;
+        double dd2z = d00 * z + d10 * tan1.y + d01 * goal_z + d11 * tan2.y;
+
+        if (max_curvature > 0)
+        {
+            float k = abs(ddx * dd2z - ddz * dd2x) / pow(ddx * ddx + ddz * ddz, 3 / 2);
+            if (k > max_curvature)
+                return -1;
+        }
 
         // Interpolated point
         last_x = cx;
         last_z = cz;
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading))
-            return false;
+            return -1;
     }
 
-    return numPoints > 0;
+    if (numPoints <= 0) return -1;
+    return nodeCost;
 }
+

@@ -3,15 +3,17 @@
 #include <driveless/cuda_params.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
+#define CHECK_NO_COLLISION 1
+
+extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
 extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
-extern __device__ __host__ void setCostCuda(float3 *graphData, long pos, float cost);
-extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
-extern __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ void setCostCuda(float4 *graphData, long pos, float cost);
+extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
+extern __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos);
 extern __device__ float generateRandom(curandState *state, int pos, float min_val, float max_val);
 extern __device__ float generateRandomNeg(curandState *state, int pos, float max_val);
@@ -19,14 +21,17 @@ extern __device__ __host__ void setParentCuda(int4 *graph, long pos, int parent_
 extern __device__ __host__ void incNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
 extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
-extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, int x, int z, int goal_x, int goal_z, float goal_heading);
+extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
+extern __device__ __host__ float getDirectCostCuda(float4 *graphData, long pos);
+extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
+extern __device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int width, int height, long pos);
 
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
 {
     return a.x == b.x && a.y == b.y;
 }
 
-__global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int height)
+__global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, float4 *graphData, int *bestCostDirectConnect, int goal_x, int goal_z, float goal_heading, bool *goalReached, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -37,11 +42,27 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, int width, int h
     {
         setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
     }
+    else if (getTypeCuda(graph, pos) == GRAPH_TYPE_CONNECT_TO_GOAL)
+    {
+        int z = pos / width;
+        int x = pos - z * width;
+
+        float currentDirectCost = getDirectCostCuda(graphData, pos);
+        if (*bestCostDirectConnect >= TO_INT(1000 * currentDirectCost))
+        {
+            printf("found the best node %d, %d to connect to the goal: %d, %d with cost %f\n", x, z, goal_x, goal_z, currentDirectCost);
+            long goalPos = computePos(width, goal_x, goal_z);
+            float parentCost = getCostCuda(graphData, pos);
+            set(graph, graphData, goalPos, goal_heading, x, z, parentCost + currentDirectCost, GRAPH_TYPE_NODE, true);
+            *goalReached = true;
+        }
+        setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
+    }
 
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
 
-__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float3 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, int2 goal, float goal_heading)
+__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, int2 goal, float goal_heading, int *bestCostDirectConnect)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int width = searchParams[FRAME_PARAM_WIDTH];
@@ -102,22 +123,37 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     {
         incNodeDeriveCount(graph, pos);
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+
+        float max_curvature = 0.25;
+        float connect_cost = canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, max_curvature, x, z, goal.x, goal.y, goal_heading);
+
+        if (connect_cost > 0)
+        {
+            set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_CONNECT_TO_GOAL, true);
+            setDirectCostCuda(graphData, end_pos, connect_cost);
+            atomicMin(bestCostDirectConnect, TO_INT(1000 * connect_cost));
+            printf("[CUDA] %d, %d can connect to the goal %d, %d with cost = %f\n", end_x, end_z, goal.x, goal.y, connect_cost);
+        }
     }
 
-    if (canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, x, z, goal.x, goal.y, goal_heading))
-    {
-        long goal_pos = computePos(width, goal.x, goal.y);
-        set(graph, graphData, goal_pos, goal_heading, end_x, end_z, end_cost, GRAPH_TYPE_TEMP, true);
-    }
+    #ifdef CHECK_NO_COLLISION
+    assertNoCollision(graph, graphData, width, height, end_pos);
+    #endif
 }
 
-void CudaGraph::acceptDerivedNodes()
+void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     __CUDA_KERNEL_acceptDerivatedPaths<<<numBlocks, THREADS_IN_BLOCK>>>(
         _frame->getCudaPtr(),
+        _frameData->getCudaPtr(),
+        _bestCostDirectConnect->get(),
+        goal.x,
+        goal.y,
+        goal_heading,
+        _goalReached->get(),
         _frame->width(),
         _frame->height());
 
@@ -151,7 +187,8 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         frontierExpansion,
         _nodeCollision->get(),
         goal,
-        goal_heading.rad());
+        goal_heading.rad(),
+        _bestCostDirectConnect->get());
 
     CUDA(cudaDeviceSynchronize());
 
@@ -194,4 +231,21 @@ int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, f
     }
 
     return {end_x, end_z};
+}
+
+bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int goal_x, int goal_z, int goal_heading)
+{
+    if (search_frame->isObstacle(goal_x, goal_z))
+        return false;
+
+    float maxSteering = _physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+
+    return canConnectToGoalUsingHermite(
+        _frame->getCudaPtr(),
+        _frameData->getCudaPtr(),
+        search_frame->getCudaPtr(),
+        search_frame->getCudaClassCostsPtr(),
+        search_frame->getCudaFrameParamsPtr(),
+        maxSteering,
+        x, z, goal_x, goal_z, goal_heading);
 }

@@ -115,12 +115,11 @@ bool FastRRT::loop(bool smart)
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
-    _graph.acceptDerivedNodes();
-
+    _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
     if (goalReached())
     {
         // printf ("shrinking graph...\n");
-        __shrink_search_graph();
+        //__shrink_search_graph();
         return false;
     }
     return true;
@@ -151,13 +150,16 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
         return res;
 
     // res.push_back(*_goal);
+    printf ("[getPlannedPath] findBestNode (init)\n");
     int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), TO_RAD * 10);
-
+    printf ("[getPlannedPath] findBestNode = %d, %d\n", n.x, n.y);
     // long i = 0;
+    
     while (n.x != -1 && n.y != -1)
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
+        printf ("[getPlannedPath] parent %d, %d\n", n.x, n.y);
 
         // if (i >= 1000000)
         // {

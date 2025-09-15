@@ -29,6 +29,7 @@ class Interpolator:
             ctypes.c_int,    # x2
             ctypes.c_int,    # z2
             ctypes.c_float,  # h2_rad
+            ctypes.c_float   # max_curvature
         ]
 
         Interpolator.lib.interpolate_cubic_spline.restype = ctypes.POINTER(
@@ -78,10 +79,10 @@ class Interpolator:
         return res
 
     @classmethod
-    def hermite(cls, width: int, height: int, p1: Waypoint, p2: Waypoint, return_as_waypoint: bool = True) -> Union[list[Waypoint], np.ndarray]:
+    def hermite(cls, width: int, height: int, p1: Waypoint, p2: Waypoint, return_as_waypoint: bool = True, max_curvature: float = -1) -> Union[list[Waypoint], np.ndarray]:
         Interpolator.setup_cpp_lib()
         raw_res = Interpolator.lib.interpolate_hermite(width, height, p1.x,
-                                                       p1.z, p1.heading.rad(), p2.x, p2.z, p2.heading.rad())
+                                                       p1.z, p1.heading.rad(), p2.x, p2.z, p2.heading.rad(), max_curvature)
         if return_as_waypoint:
             res = Interpolator.__convert_raw_arr_to_waypoint_list(raw_res)
         else:

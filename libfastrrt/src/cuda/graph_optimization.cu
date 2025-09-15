@@ -5,7 +5,7 @@
 
 extern __device__ __host__ bool check_graph_connection_with_hermite(
     int4 *graph,
-    float3 *graphData,
+    float4 *graphData,
     float3 *frame,
     double *physicalParams,
     int *params,

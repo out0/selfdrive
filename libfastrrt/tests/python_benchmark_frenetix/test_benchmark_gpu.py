@@ -71,7 +71,7 @@ class TestFastRRTFrenetix(unittest.TestCase):
         frame.process_distance_to_goal(296, 15)
 
 
-        TestUtils.export_occupancy(frame, "output1.png")
+        #TestUtils.export_occupancy(frame, "output1.png")
 
         rrt.search_init(True)
         loop_count = 0
@@ -82,16 +82,19 @@ class TestFastRRTFrenetix(unittest.TestCase):
 
         while not rrt.goal_reached() and rrt.loop(True):
             loop_count += 1
-            #nodes = rrt.export_graph_nodes()     
+#            nodes = rrt.export_graph_nodes()
             #TestUtils.output_path_result(frame, nodes, "output1.png", goal)
         end_time = time.time()
         execution_time = end_time - start_time
         
-        path = rrt.get_planned_path(interpolate=True)
+        path = rrt.get_planned_path(interpolate=False)
         if path is None:
             print(f"no path found")
             return False
         
+        np.save('coarse_path.npy', path)
+        
+        path = rrt.get_planned_path(interpolate=True)
         print (f"found path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
         TestUtils.output_path_result(frame, path, "output1.png", goal)
 
@@ -101,7 +104,11 @@ class TestFastRRTFrenetix(unittest.TestCase):
         execution_time = end_time - start_time
         print (f"optimze path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
         
+        path = rrt.get_planned_path(interpolate=False)
+        np.save('optimized_path.npy', path)
+        
         path = rrt.get_planned_path(interpolate=True)
+        TestUtils.output_path_result(frame, path, "output1.png", goal)
 
     
 

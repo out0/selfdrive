@@ -18,7 +18,9 @@ __global__ void __CUDA_solveGraphCollision_erase_trees(int4 *graph, int *params,
     if (pos >= width * height)
         return;
 
-    if (getTypeCuda(graph, pos) != GRAPH_TYPE_NODE)
+    auto p = getTypeCuda(graph, pos);
+
+    if (p != GRAPH_TYPE_NODE)
         return;
 
     for (int i = 0; i <= numNodesInGraph; i++)

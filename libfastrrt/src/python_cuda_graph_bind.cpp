@@ -55,7 +55,7 @@ extern "C"
     float *get_intrinsic_costs(void *ptr)
     {
         CudaGraph *graph = (CudaGraph *)ptr;
-        float3 *frameData = graph->getFrameDataPtr()->getCudaPtr();
+        float4 *frameData = graph->getFrameDataPtr()->getCudaPtr();
 
         int width = graph->width();
         int height = graph->height();
@@ -90,10 +90,10 @@ extern "C"
         graph->derivateNode(f->getCudaPtr(), angle::rad(steering_angle), static_cast<double>(path_size), velocity, x, z); 
     }
 
-    void accept_derived_nodes(void *ptr)
+    void accept_derived_nodes(void *ptr, int goal_x, int goal_z, float goal_heading)
     {
         CudaGraph *graph = (CudaGraph *)ptr;
-        graph->acceptDerivedNodes();
+        graph->acceptDerivedNodes({goal_x, goal_z}, goal_heading);
     }
     bool check_in_graph(void *ptr, int x, int z)
     {
@@ -140,4 +140,8 @@ extern "C"
         return graph->canConnectToGoal(frame, x, z, goal_x, goal_z, goal_heading);
     }
     
+    void solve_collisions(void *ptr) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->solveCollisions();
+    }
 }

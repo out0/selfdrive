@@ -6,15 +6,15 @@
 #include <driveless/math_utils.h>
 #include "../../include/graph.h"
 
-extern __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
+extern __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
-extern __device__ __host__ float getHeadingCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ float getCostCuda(float3 *graphData, long pos);
+extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ float getFrameCostCuda(float3 *frame, float *classCost, long pos);
-extern __device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z);
+extern __device__ __host__ float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 
 /// @brief Converts any map coordinate (x, y) to waypoint (x, z) assuming that location = (x = 0, y = 0, heading = 0)
 /// @param center
@@ -120,7 +120,7 @@ __device__ __host__ inline double clip(double val, double min, double max)
 }
 
 #define MIN_PATH_SIZE 1
-__device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphData,
+__device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData,
                                                     double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts,
                                                     float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s)
 {
@@ -230,7 +230,7 @@ __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float3 *graphDa
     return {(float)last_x, (float)last_z, nodeCost, heading};
 }
 
-__device__ __host__ bool check_kinematic_connection_start_end(int4 *graph, float3 *graphData, float3 *frame, double *physicalParams, int *searchSpaceParams, float *classCost, float3 *ogStart, int2 start, int2 end, float velocity_m_s, double &final_heading, double &path_cost)
+__device__ __host__ bool check_kinematic_connection_start_end(int4 *graph, float4 *graphData, float3 *frame, double *physicalParams, int *searchSpaceParams, float *classCost, float3 *ogStart, int2 start, int2 end, float velocity_m_s, double &final_heading, double &path_cost)
 {
     double distance = compute_euclidean_2d_dist(start, end);
 
@@ -327,7 +327,7 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int vel
 
 __device__ __host__ bool check_graph_connection_with_hermite(
     int4 *graph,
-    float3 *graphData,
+    float4 *graphData,
     float3 *frame,
     double *physicalParams,
     int *searchSpaceParams,

@@ -140,7 +140,10 @@ class CudaGraph:
 
         CudaGraph.lib.accept_derived_nodes.restype = None
         CudaGraph.lib.accept_derived_nodes.argtypes = [
-            ctypes.c_void_p    # graph ptr
+            ctypes.c_void_p,    # graph ptr
+            ctypes.c_int,       # goal_x 
+            ctypes.c_int,       # goal_z
+            ctypes.c_float      # goal_heading
         ]
 
         CudaGraph.lib.check_in_graph.restype = ctypes.c_bool
@@ -169,6 +172,11 @@ class CudaGraph:
 
         CudaGraph.lib.free_list_all.restype = None
         CudaGraph.lib.free_list_all.argtypes = [
+            ctypes.POINTER(ctypes.c_float)
+        ]
+
+        CudaGraph.lib.solve_collisions.restype = None
+        CudaGraph.lib.solve_collisions.argtypes = [
             ctypes.POINTER(ctypes.c_float)
         ]
 
@@ -231,3 +239,5 @@ class CudaGraph:
         
         return res
 
+    def solve_collisions(self) -> None:
+        CudaGraph.lib.solve_collisions(self.__ptr)

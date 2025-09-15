@@ -11,7 +11,7 @@ __device__ __host__ long computePos(int width, int x, int z)
     return z * width + x;
 }
 
-__device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override)
+__device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override)
 {
 #ifdef __CUDA_ARCH__
     if (override)
@@ -25,7 +25,8 @@ __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float hea
             graph[pos].z != GRAPH_TYPE_NODE &&
             graph[pos].z != GRAPH_TYPE_NULL &&
             graph[pos].z != GRAPH_TYPE_PROCESSING &&
-            graph[pos].z != GRAPH_TYPE_TEMP)
+            graph[pos].z != GRAPH_TYPE_TEMP && 
+            graph[pos].z != GRAPH_TYPE_CONNECT_TO_GOAL)
         {
             printf("erro no set: para pos = %ld\n", pos);
         }
@@ -40,7 +41,8 @@ __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float hea
             graph[pos].z != GRAPH_TYPE_NODE &&
             graph[pos].z != GRAPH_TYPE_NULL &&
             graph[pos].z != GRAPH_TYPE_PROCESSING &&
-            graph[pos].z != GRAPH_TYPE_TEMP)
+            graph[pos].z != GRAPH_TYPE_TEMP && 
+            graph[pos].z != GRAPH_TYPE_CONNECT_TO_GOAL)
         {
             printf("erro no set: para pos = %ld\n", pos);
         }
@@ -60,7 +62,8 @@ __device__ __host__ bool set(int4 *graph, float3 *graphData, long pos, float hea
         graph[pos].z != GRAPH_TYPE_NODE &&
         graph[pos].z != GRAPH_TYPE_NULL &&
         graph[pos].z != GRAPH_TYPE_PROCESSING &&
-        graph[pos].z != GRAPH_TYPE_TEMP)
+        graph[pos].z != GRAPH_TYPE_TEMP && 
+        graph[pos].z != GRAPH_TYPE_CONNECT_TO_GOAL)
     {
         printf("erro no set: para pos = %ld\n", pos);
     }
@@ -104,47 +107,48 @@ __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos)
     return graph[pos].w;
 }
 
-__device__ __host__ float getHeadingCuda(float3 *graphData, long pos)
+__device__ __host__ float getHeadingCuda(float4 *graphData, long pos)
 {
     return graphData[pos].x;
 }
 
-__device__ __host__ inline void setHeadingCuda(float3 *graphData, long pos, float heading)
+__device__ __host__ inline void setHeadingCuda(float4 *graphData, long pos, float heading)
 {
     graphData[pos].x = heading;
 }
 
-__device__ __host__ float getCostCuda(float3 *graphData, long pos)
+__device__ __host__ float getCostCuda(float4 *graphData, long pos)
 {
     return graphData[pos].y;
 }
 
-__device__ __host__ inline void setCostCuda(float3 *graphData, long pos, float cost)
+__device__ __host__ inline void setCostCuda(float4 *graphData, long pos, float cost)
 {
     graphData[pos].y = cost;
 }
 
-__device__ __host__ float getIntrinsicCostCuda(float3 *graphData, long pos)
+__device__ __host__ float getIntrinsicCostCuda(float4 *graphData, long pos)
 {
     return graphData[pos].z;
 }
 
-__device__ __host__ float getIntrinsicCost(float3 *graphData, int width, int x, int z)
+__device__ __host__ float getIntrinsicCost(float4 *graphData, int width, int x, int z)
 {
     long pos = computePos(width, x, z);
     return graphData[pos].z;
 }
 
-__device__ __host__ void setIntrinsicCostCuda(float3 *graphData, long pos, float cost)
+__device__ __host__ void setIntrinsicCostCuda(float4 *graphData, long pos, float cost)
 {
     graphData[pos].z = cost;
 }
-__device__ __host__ void setIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
+__device__ __host__ void setIntrinsicCost(float4 *graphData, int width, int x, int z, float cost)
 {
     long pos = computePos(width, x, z);
     graphData[pos].z = cost;
 }
-__device__ void incIntrinsicCost(float3 *graphData, int width, int x, int z, float cost)
+
+__device__ void incIntrinsicCost(float4 *graphData, int width, int x, int z, float cost)
 {
     long pos = computePos(width, x, z);
     atomicAdd(&graphData[pos].z, cost);
@@ -155,6 +159,37 @@ __device__ __host__ bool checkInGraphCuda(int4 *graph, long pos)
     return graph[pos].z == GRAPH_TYPE_NODE;
 }
 
+__device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost)
+{
+    graphData[pos].w = cost;
+}
+__device__ __host__ float getDirectCostCuda(float4 *graphData, long pos)
+{
+    return graphData[pos].w;
+}
+
+__device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int width, int height, long pos)
+{
+    long curr_pos = pos;
+    long i = width * height;
+    while (i-- > 0)
+    {
+        int2 parent = getParentCuda(graph, curr_pos);
+        if (parent.x == -1)
+            return;
+        curr_pos = computePos(width, parent.x, parent.y);
+        if (curr_pos == pos)
+            break;
+    }
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    int2 parent = getParentCuda(graph, pos);
+    printf("[CUDA ERROR] Collision detected when starting in %d, %d, parents %d, %d\n", x, z, parent.x, parent.y);
+}
+
+
 void CudaGraph::setType(int x, int z, int type)
 {
     long pos = computePos(_frame->width(), x, z);
@@ -164,7 +199,7 @@ void CudaGraph::setType(int x, int z, int type)
 CudaGraph::CudaGraph(int width, int height)
 {
     _frame = std::make_shared<CudaGrid<int4>>(width, height);
-    _frameData = std::make_unique<CudaGrid<float3>>(width, height);
+    _frameData = std::make_unique<CudaGrid<float4>>(width, height);
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _physicalParams = nullptr;
     _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);
@@ -181,8 +216,10 @@ CudaGraph::CudaGraph(int width, int height)
     _newNodesAdded = std::make_unique<CudaPtr<bool>>(1);
     _nodeCollision = std::make_unique<CudaPtr<bool>>(1);
     _ogCoordinateStart = std::make_unique<CudaPtr<float3>>(1);
+    _bestCostDirectConnect = std::make_unique<CudaPtr<int>>(1);
     __initializeRegionDensity();
     _directOptimPos = -1;
+    
 
     // default coordinate system start is the middle of the map with heading = 0.0
     setCoordinateStart(_searchSpaceParams->get()[FRAME_PARAM_CENTER_X], _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z]);
@@ -321,6 +358,7 @@ void CudaGraph::clear()
 
     CUDA(cudaDeviceSynchronize());
     *_goalReached->get() = false;
+    *_bestCostDirectConnect->get() = 999999999;
 }
 
 bool CudaGraph::checkInGraph(int x, int z)
@@ -400,7 +438,7 @@ void CudaGraph::dumpGraph(const char *filename)
     }
 
     int4 *fptr = _frame->getCudaPtr();
-    float3 *fptrData = _frameData->getCudaPtr();
+    float4 *fptrData = _frameData->getCudaPtr();
 
     for (int z = 0; z < _frame->height(); z++)
     {
@@ -426,7 +464,7 @@ void CudaGraph::readfromDump(const char *filename)
     }
 
     int4 *fptr = _frame->getCudaPtr();
-    float3 *fptrData = _frameData->getCudaPtr();
+    float4 *fptrData = _frameData->getCudaPtr();
 
     for (int z = 0; z < _frame->height(); z++)
     {
@@ -442,17 +480,3 @@ void CudaGraph::readfromDump(const char *filename)
     printf("Graph read from %s\n", filename);
 }
 
-
-extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float3 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, int x, int z, int goal_x, int goal_z, float goal_heading);
-
-bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int goal_x, int goal_z, int goal_heading) {
-    if (search_frame->isObstacle(goal_x, goal_z)) return false;
-    
-    return canConnectToGoalUsingHermite(
-        _frame->getCudaPtr(), 
-        _frameData->getCudaPtr(), 
-        search_frame->getCudaPtr(), 
-        search_frame->getCudaClassCostsPtr(),
-        search_frame->getCudaFrameParamsPtr(),
-        x, z, goal_x, goal_z, goal_heading);
-}

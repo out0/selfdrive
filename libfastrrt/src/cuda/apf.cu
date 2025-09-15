@@ -6,10 +6,10 @@
 
 #define FORCE_RANGE 5
 
-extern __device__ __host__ void incIntrinsicCost(float3 *graphData, int width, int x, int z, float cost);
+extern __device__ __host__ void incIntrinsicCost(float4 *graphData, int width, int x, int z, float cost);
 extern __device__ __host__ long computePos(int width, int x, int z);
-extern __device__ __host__ float getIntrinsicCostCuda(float3 *graphData, long pos);
-extern __device__ __host__ void setIntrinsicCostCuda(float3 *graphData, long pos, float cost);
+extern __device__ __host__ float getIntrinsicCostCuda(float4 *graphData, long pos);
+extern __device__ __host__ void setIntrinsicCostCuda(float4 *graphData, long pos, float cost);
 
 __device__ inline bool in_range(int width, int height, int x, int z) {
     return x >= 0 && x < width && z >= 0 && z < height;
@@ -21,7 +21,7 @@ __device__ inline bool check_is_obstacle(float3 *og, float *classCosts, int widt
     return classCosts[TO_INT(og[pos].x)] < 0;
 }
 
-__global__ static void __CUDA_KERNEL_repulsive_force(float3 *og, float3 *graphData, float *classCosts, int *params, int width, int height, float Kr_half, int radius)
+__global__ static void __CUDA_KERNEL_repulsive_force(float3 *og, float4 *graphData, float *classCosts, int *params, int width, int height, float Kr_half, int radius)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -95,7 +95,7 @@ __global__ static void __CUDA_KERNEL_repulsive_force(float3 *og, float3 *graphDa
     }
 }
 
-__global__ static void __CUDA_KERNEL_attractive_force(float3 *og, float3 *graphData, float *classCosts, int width, int height, float Ka_half, int goal_x, int goal_z)
+__global__ static void __CUDA_KERNEL_attractive_force(float3 *og, float4 *graphData, float *classCosts, int width, int height, float Ka_half, int goal_x, int goal_z)
 {
     long pos = blockIdx.x * blockDim.x + threadIdx.x;
 
