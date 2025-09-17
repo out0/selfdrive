@@ -40,11 +40,11 @@ __device__ __host__ float computeCost(float3 *frame, int4 *graph, float4 *graphD
 //     float3 *path = res.first;
 //     int size = res.second;
 
-//     int size = _frame->width() * _frame->height();
+//     int size = _graph->width() * _graph->height();
 //     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
 //     __CUDA_KERNEL_computeIntrinsicCosts<<<numBlocks, THREADS_IN_BLOCK>>>(
-//         _frame->getCudaPtr(),
+//         _graph->getCudaPtr(),
 //         _frameData->getCudaPtr(),
 //         searchFrame->getCudaPtr(),
 //         searchFrame->getCudaFrameParamsPtr(),

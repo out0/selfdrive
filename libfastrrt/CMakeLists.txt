@@ -59,12 +59,12 @@ add_library(
   src/cuda/graph_list.cu
   src/cuda/graph_best_node.cu
   src/cuda/graph_optimization.cu
-  src/cuda/graph_node_derivation.cu
+  src/cuda/graph_expansion.cu
   src/cuda/graph_nodes_in_range.cu
   src/cuda/graph_costs.cu
   src/cuda/cuda_grid.cu
   src/cuda/apf.cu
-  src/cuda/graph_smart_expansion.cu
+  src/cuda/graph_expansion_search_zones.cu
   src/cuda/graph_collision.cu
   src/cuda/graph_hermite_connection.cu
   src/fastrrt.cpp

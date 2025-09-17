@@ -42,8 +42,8 @@ typedef float3 pose;
 class CudaGraph
 {
 private:
-    std::shared_ptr<CudaGrid<int4>> _frame;
-    std::shared_ptr<CudaGrid<float4>> _frameData;
+    std::shared_ptr<CudaGrid<int4>> _graph;
+    std::shared_ptr<CudaGrid<float4>> _graphData;
     bool __checkLimits(int x, int z);
     
     cptr<float3> _ogCoordinateStart;
@@ -130,19 +130,19 @@ public:
 
     inline int height()
     {
-        return _frame->height();
+        return _graph->height();
     }
     inline int width()
     {
-        return _frame->width();
+        return _graph->width();
     }
     std::shared_ptr<CudaGrid<int4>> getFramePtr()
     {
-        return _frame;
+        return _graph;
     }
     std::shared_ptr<CudaGrid<float4>> getFrameDataPtr()
     {
-        return _frameData;
+        return _graphData;
     }
 
    

@@ -23,12 +23,12 @@ __global__ static void __CUDA_KERNEL_count_elements_in_graph(int4 *graph, int wi
 
 unsigned int CudaGraph::count(int type)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount->get() = 0;
-    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), type, _parallelCount->get());
+    __CUDA_KERNEL_count_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), type, _parallelCount->get());
     cudaDeviceSynchronize();
 
     return *_parallelCount->get();
@@ -54,12 +54,12 @@ __global__ static void __CUDA_KERNEL_count_all_elements_in_graph(int4 *graph, in
 
 unsigned int CudaGraph::countAll()
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount->get() = 0;
-    __CUDA_KERNEL_count_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _parallelCount->get());
+    __CUDA_KERNEL_count_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), _parallelCount->get());
     cudaDeviceSynchronize();
 
     return *_parallelCount->get();
@@ -86,7 +86,7 @@ __global__ static void __CUDA_KERNEL_list_elements_in_graph(int4 *graph, int wid
 std::pair<int2 *, int> CudaGraph::__listNodes(int type) {
     unsigned int c = count(type);
 
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
@@ -109,7 +109,7 @@ std::pair<int2 *, int> CudaGraph::__listNodes(int type) {
     }
     *listPos = 0;
 
-    __CUDA_KERNEL_list_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), type, cudaResult, listPos);
+    __CUDA_KERNEL_list_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), type, cudaResult, listPos);
     CUDA(cudaDeviceSynchronize());
 
     cudaFreeHost(listPos);
@@ -159,7 +159,7 @@ __global__ static void __CUDA_KERNEL_list_all_elements_in_graph(int4 *graph, int
 std::pair<int3 *, int> CudaGraph::__listAllNodes() {
     unsigned int c = countAll();
 
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
@@ -182,7 +182,7 @@ std::pair<int3 *, int> CudaGraph::__listAllNodes() {
     }
     *listPos = 0;
 
-    __CUDA_KERNEL_list_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), cudaResult, listPos);
+    __CUDA_KERNEL_list_all_elements_in_graph<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), cudaResult, listPos);
     CUDA(cudaDeviceSynchronize());
 
 
@@ -222,12 +222,12 @@ __global__ static void __CUDA_KERNEL_check_new_nodes_added(int4 *graph, int widt
 
 bool CudaGraph::checkNewNodesAddedOnTreeExpansion()
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_newNodesAdded->get() = false;
-    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), _newNodesAdded->get());
+    __CUDA_KERNEL_check_new_nodes_added<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), _newNodesAdded->get());
 
     CUDA(cudaDeviceSynchronize());
     

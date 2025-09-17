@@ -122,31 +122,31 @@ __global__ static void __CUDA_KERNEL_attractive_force(float3 *og, float4 *graphD
 
 void CudaGraph::computeRepulsiveFieldAPF(float3 *og, float Kr, int radius)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     __CUDA_KERNEL_repulsive_force<<<numBlocks, THREADS_IN_BLOCK>>>(
         og,
-        _frameData->getCudaPtr(),
+        _graphData->getCudaPtr(),
         _classCosts->get(),
         _searchSpaceParams->get(),
-        _frame->width(),
-        _frame->height(),
+        _graph->width(),
+        _graph->height(),
         Kr * 0.5,
         radius);
 
     CUDA(cudaDeviceSynchronize());
 }
 void CudaGraph::computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal) {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     __CUDA_KERNEL_attractive_force<<<numBlocks, THREADS_IN_BLOCK>>>(
         og,
-        _frameData->getCudaPtr(),
+        _graphData->getCudaPtr(),
         _classCosts->get(),
-        _frame->width(),
-        _frame->height(),
+        _graph->width(),
+        _graph->height(),
         Ka * 0.5,
         goal.first,
         goal.second);

@@ -31,10 +31,10 @@ long long getCurrentTimeMillis() {
 
 void CudaGraph::__initializeRandomGenerator()
 {   
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    _randState = std::make_unique<CudaPtr<curandState>>(_frame->width() * _frame->height());
+    _randState = std::make_unique<CudaPtr<curandState>>(_graph->width() * _graph->height());
 
     __CUDA_KERNEL_setupRandomGenKernel<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(), size, getCurrentTimeMillis());

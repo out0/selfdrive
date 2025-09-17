@@ -43,8 +43,8 @@ int CudaGraph::__optimizePathDirectConnect(float3 *og, float distanceToGoalToler
     for (int i = 0; i < res.size() - 1; i++)
     {
         if (check_graph_connection_with_hermite(
-                _frame->getCudaPtr(),
-                _frameData->getCudaPtr(),
+                _graph->getCudaPtr(),
+                _graphData->getCudaPtr(),
                 og,
                 _physicalParams->get(),
                 _searchSpaceParams->get(),
@@ -120,8 +120,8 @@ void CudaGraph::__optimizePath(float3 *og, int2 goal, angle goalHeading, float d
 
         float pathCost = 0.0;
         if (check_graph_connection_with_hermite(
-                _frame->getCudaPtr(),
-                _frameData->getCudaPtr(),
+                _graph->getCudaPtr(),
+                _graphData->getCudaPtr(),
                 og,
                 _physicalParams->get(),
                 _searchSpaceParams->get(),

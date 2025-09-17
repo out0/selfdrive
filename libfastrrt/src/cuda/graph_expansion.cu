@@ -168,27 +168,27 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
 
 void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     __CUDA_KERNEL_acceptDerivatedPaths<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         _bestCostDirectConnect->get(),
         goal.x,
         goal.y,
         goal_heading,
         _goalReached->get(),
-        _frame->width(),
-        _frame->height());
+        _graph->width(),
+        _graph->height());
 
     CUDA(cudaDeviceSynchronize());
 }
 
 void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
 {
-    long pos = computePos(_frame->width(), lastNode.x, lastNode.y);
-    setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NODE);
+    long pos = computePos(_graph->width(), lastNode.x, lastNode.y);
+    setTypeCuda(_graph->getCudaPtr(), pos, GRAPH_TYPE_NODE);
 }
 
 void CudaGraph::dumpNodesToFile(const char *filename)
@@ -222,16 +222,16 @@ void CudaGraph::dumpNodesToFile(const char *filename)
 
 void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 start_node, int2 goal, angle goal_heading)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_nodeCollision->get() = false;
-    const long start_node_pos = computePos(_frame->width(), start_node.x, start_node.y);
+    const long start_node_pos = computePos(_graph->width(), start_node.x, start_node.y);
 
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         og,
         _classCosts->get(),
         _physicalParams->get(),
@@ -264,7 +264,7 @@ int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, f
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    float4 p = check_kinematic_new_path(_frame->getCudaPtr(), _frameData->getCudaPtr(), _physicalParams->get(), _searchSpaceParams->get(), og, _classCosts->get(), _ogCoordinateStart->get(), {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    float4 p = check_kinematic_new_path(_graph->getCudaPtr(), _graphData->getCudaPtr(), _physicalParams->get(), _searchSpaceParams->get(), og, _classCosts->get(), _ogCoordinateStart->get(), {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
 
     if (p.x < 0 || p.y < 0)
         return int2{-1, -1};
@@ -277,17 +277,17 @@ int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, f
     long pos = computePos(width(), x, z);
     long pos_end = computePos(width(), end_x, end_z);
 
-    if (checkInGraphCuda(_frame->getCudaPtr(), pos_end))
+    if (checkInGraphCuda(_graph->getCudaPtr(), pos_end))
     {
         // return {-1, -1};
         //  printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        setNodeDeriveCount(_frame->getCudaPtr(), pos, 1);
+        set(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+        setNodeDeriveCount(_graph->getCudaPtr(), pos, 1);
     }
     else
     {
-        set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
-        incNodeDeriveCount(_frame->getCudaPtr(), pos);
+        set(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+        incNodeDeriveCount(_graph->getCudaPtr(), pos);
     }
 
     return {end_x, end_z};
@@ -301,8 +301,8 @@ bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int go
     float maxSteering = _physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD];
 
     return canConnectToGoalUsingHermite(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         search_frame->getCudaPtr(),
         search_frame->getCudaClassCostsPtr(),
         search_frame->getCudaFrameParamsPtr(),

@@ -105,7 +105,7 @@ void CudaGraph::__dealocRegionDensity()
 
 void CudaGraph::computeGraphRegionDensity()
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
     int density_size = _searchSpaceParams->get()[FRAME_DENSITY_SIZE];
 
@@ -115,7 +115,7 @@ void CudaGraph::computeGraphRegionDensity()
     }
 
     __CUDA_count_nodes_in_density_region<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(),
+        _graph->getCudaPtr(),
         _searchSpaceParams->get(),
         _region_node_count->get());
 
@@ -247,15 +247,15 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
 
 void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_nodeCollision->get() = false;
 
     __CUDA_smart_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         og,
         _region_node_count->get(),
         _node_mean,

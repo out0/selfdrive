@@ -127,7 +127,7 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost(
 
 int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     CudaPtr<int2> bestNode(1);
@@ -138,8 +138,8 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
     *cost.get() = 99999999999;
 
     __CUDA_KERNEL_findBestNodeWithHeading_bestCost<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         og,
         _searchSpaceParams->get(),
         _classCosts->get(),
@@ -154,8 +154,8 @@ int2 CudaGraph::findBestNode(float3 *og, angle heading, float radius, int x, int
         return {-1, -1};
 
     __CUDA_KERNEL_findBestNodeWithHeading_firstNodeWithCost<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         og,
         _searchSpaceParams->get(),
         _classCosts->get(),
@@ -216,7 +216,7 @@ __global__ void __CUDA_KERNEL_checkGoalReached(
 
 bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     if (*_goalReached->get())
@@ -225,8 +225,8 @@ bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float dis
      //printf("check goal: %d, %d\n", goal.x, goal.y);
 
     __CUDA_KERNEL_checkGoalReached<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         og,
         _searchSpaceParams->get(),
         _classCosts->get(),

@@ -33,8 +33,8 @@ __global__ void __CUDA_solveGraphCollision_erase_trees(int4 *graph, int *params,
     if (ptype == GRAPH_TYPE_NULL)
         return;
 
-    int z = pos / width;
-    int x = pos - z * width;
+    // int z = pos / width;
+    // int x = pos - z * width;
     int curr = pos;
 
     for (int i = 0; i <= numNodesInGraph; i++)
@@ -85,15 +85,15 @@ void CudaGraph::solveCollisions()
     if (numNodesInGraph <= 2)
         return;
 
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    __CUDA_solveGraphCollision_erase_trees<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _searchSpaceParams->get(), numNodesInGraph);
+    __CUDA_solveGraphCollision_erase_trees<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _searchSpaceParams->get(), numNodesInGraph);
 
     cudaDeviceSynchronize();
 
-    __CUDA_solveGraphCollision_set_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _searchSpaceParams->get());
+    __CUDA_solveGraphCollision_set_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _searchSpaceParams->get());
 
     cudaDeviceSynchronize();
 

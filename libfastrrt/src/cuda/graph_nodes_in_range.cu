@@ -35,12 +35,12 @@ __global__ static void __CUDA_KERNEL_count_elements_in_range(int4 *graph, int wi
 
 unsigned int CudaGraph::__countInRange(int xp, int zp, float radius_sqr)
 {
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_parallelCount->get() = 0;
-    __CUDA_KERNEL_count_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), _frame->width(), _frame->height(), GRAPH_TYPE_NODE, xp, zp, radius_sqr, _parallelCount->get());
+    __CUDA_KERNEL_count_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), _graph->width(), _graph->height(), GRAPH_TYPE_NODE, xp, zp, radius_sqr, _parallelCount->get());
     cudaDeviceSynchronize();
 
     return *_parallelCount->get();
@@ -75,7 +75,7 @@ std::pair<int2 *, int> CudaGraph::__listNodesInRange(int type, int x, int z, flo
 {
     unsigned int c = __countInRange(x, z, radius_sqr);
 
-    int size = _frame->width() * _frame->height();
+    int size = _graph->width() * _graph->height();
 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
@@ -99,9 +99,9 @@ std::pair<int2 *, int> CudaGraph::__listNodesInRange(int type, int x, int z, flo
     *listPos = 0;
 
     __CUDA_KERNEL_list_elements_in_range<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _frame->getCudaPtr(), 
-        _frame->width(), 
-        _frame->height(), 
+        _graph->getCudaPtr(), 
+        _graph->width(), 
+        _graph->height(), 
         type,
         x,
         z,

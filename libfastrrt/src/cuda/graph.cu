@@ -216,19 +216,19 @@ __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, in
 }
 float CudaGraph::getDirectCost(int x, int z)
 {
-    return getDirectCostCuda(_frameData->getCudaPtr(), computePos(_frame->width(), x, z));
+    return getDirectCostCuda(_graphData->getCudaPtr(), computePos(_graph->width(), x, z));
 }
 
 void CudaGraph::setType(int x, int z, int type)
 {
-    long pos = computePos(_frame->width(), x, z);
-    setTypeCuda(_frame->getCudaPtr(), pos, type);
+    long pos = computePos(_graph->width(), x, z);
+    setTypeCuda(_graph->getCudaPtr(), pos, type);
 }
 
 CudaGraph::CudaGraph(int width, int height)
 {
-    _frame = std::make_shared<CudaGrid<int4>>(width, height);
-    _frameData = std::make_unique<CudaGrid<float4>>(width, height);
+    _graph = std::make_shared<CudaGrid<int4>>(width, height);
+    _graphData = std::make_unique<CudaGrid<float4>>(width, height);
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _physicalParams = nullptr;
     _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);
@@ -260,10 +260,10 @@ CudaGraph::~CudaGraph()
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)
 {
     _physicalParams = std::make_unique<CudaPtr<double>>(8);
-    this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_W] = _frame->width() / perceptionWidthSize_m;
-    this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _frame->width();
-    this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_H] = _frame->height() / perceptionHeightSize_m;
-    this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _frame->height();
+    this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_W] = _graph->width() / perceptionWidthSize_m;
+    this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
+    this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_H] = _graph->height() / perceptionHeightSize_m;
+    this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_H] = perceptionHeightSize_m / _graph->height();
     this->_physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
     this->_physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
     this->_physicalParams->get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
@@ -331,26 +331,26 @@ void CudaGraph::add(int x, int z, angle heading, int parent_x, int parent_z, flo
 {
     if (!__checkLimits(x, z))
         return;
-    long pos = computePos(_frame->width(), x, z);
+    long pos = computePos(_graph->width(), x, z);
 
     if (parent_x != -1 && parent_z != -1)
-        incNodeDeriveCount(_frame->getCudaPtr(), computePos(_frame->width(), parent_x, parent_z));
+        incNodeDeriveCount(_graph->getCudaPtr(), computePos(_graph->width(), parent_x, parent_z));
 
-    set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_NODE, true);
+    set(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_NODE, true);
 }
 void CudaGraph::addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost)
 {
     if (!__checkLimits(x, z))
         return;
-    long pos = computePos(_frame->width(), x, z);
-    set(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_TEMP, true);
+    long pos = computePos(_graph->width(), x, z);
+    set(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos, heading.rad(), parent_x, parent_z, cost, GRAPH_TYPE_TEMP, true);
 }
 
 bool CudaGraph::__checkLimits(int x, int z)
 {
-    if (x < 0 || x >= _frame->width())
+    if (x < 0 || x >= _graph->width())
         return false;
-    if (z < 0 || z >= _frame->height())
+    if (z < 0 || z >= _graph->height())
         return false;
 
     return true;
@@ -360,7 +360,7 @@ void CudaGraph::remove(int x, int z)
 {
     if (!__checkLimits(x, z))
         return;
-    setTypeCuda(_frame->getCudaPtr(), computePos(_frame->width(), x, z), GRAPH_TYPE_NULL);
+    setTypeCuda(_graph->getCudaPtr(), computePos(_graph->width(), x, z), GRAPH_TYPE_NULL);
 }
 
 __global__ static void __CUDA_KERNEL_clear(int4 *graph, int width, int height)
@@ -385,7 +385,7 @@ void CudaGraph::clear()
     int size = width() * height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    __CUDA_KERNEL_clear<<<numBlocks, THREADS_IN_BLOCK>>>(_frame->getCudaPtr(), width(), height());
+    __CUDA_KERNEL_clear<<<numBlocks, THREADS_IN_BLOCK>>>(_graph->getCudaPtr(), width(), height());
 
     CUDA(cudaDeviceSynchronize());
     *_goalReached->get() = false;
@@ -398,16 +398,16 @@ bool CudaGraph::checkInGraph(int x, int z)
     if (!__checkLimits(x, z))
         return false;
 
-    long pos = computePos(_frame->width(), x, z);
-    return checkInGraphCuda(_frame->getCudaPtr(), pos);
+    long pos = computePos(_graph->width(), x, z);
+    return checkInGraphCuda(_graph->getCudaPtr(), pos);
 }
 
 void CudaGraph::setParent(int x, int z, int parent_x, int parent_z)
 {
     if (!__checkLimits(x, z))
         return;
-    long pos = computePos(_frame->width(), x, z);
-    setParentCuda(_frame->getCudaPtr(), pos, parent_x, parent_z);
+    long pos = computePos(_graph->width(), x, z);
+    setParentCuda(_graph->getCudaPtr(), pos, parent_x, parent_z);
 }
 
 int2 CudaGraph::getParent(int x, int z)
@@ -415,14 +415,14 @@ int2 CudaGraph::getParent(int x, int z)
     if (!__checkLimits(x, z) || getType(x, z) == GRAPH_TYPE_NULL)
         return {-1, -1};
 
-    long pos = computePos(_frame->width(), x, z);
-    return getParentCuda(_frame->getCudaPtr(), pos);
+    long pos = computePos(_graph->width(), x, z);
+    return getParentCuda(_graph->getCudaPtr(), pos);
 }
 
 angle CudaGraph::getHeading(int x, int z)
 {
-    long pos = computePos(_frameData->width(), x, z);
-    return angle::rad(getHeadingCuda(_frameData->getCudaPtr(), pos));
+    long pos = computePos(_graphData->width(), x, z);
+    return angle::rad(getHeadingCuda(_graphData->getCudaPtr(), pos));
 }
 
 void CudaGraph::setHeading(int x, int z, angle heading)
@@ -430,8 +430,8 @@ void CudaGraph::setHeading(int x, int z, angle heading)
     if (!__checkLimits(x, z))
         return;
 
-    long pos = computePos(_frameData->width(), x, z);
-    setHeadingCuda(_frameData->getCudaPtr(), pos, heading.rad());
+    long pos = computePos(_graphData->width(), x, z);
+    setHeadingCuda(_graphData->getCudaPtr(), pos, heading.rad());
 }
 
 float CudaGraph::getCost(int x, int z)
@@ -439,16 +439,16 @@ float CudaGraph::getCost(int x, int z)
     if (!__checkLimits(x, z))
         return -1;
 
-    long pos = computePos(_frameData->width(), x, z);
-    return getCostCuda(_frameData->getCudaPtr(), pos);
+    long pos = computePos(_graphData->width(), x, z);
+    return getCostCuda(_graphData->getCudaPtr(), pos);
 }
 void CudaGraph::setCost(int x, int z, float cost)
 {
     if (!__checkLimits(x, z))
         return;
 
-    long pos = computePos(_frameData->width(), x, z);
-    setCostCuda(_frameData->getCudaPtr(), pos, cost);
+    long pos = computePos(_graphData->width(), x, z);
+    setCostCuda(_graphData->getCudaPtr(), pos, cost);
 }
 
 int CudaGraph::getType(int x, int z)
@@ -456,8 +456,8 @@ int CudaGraph::getType(int x, int z)
     if (!__checkLimits(x, z))
         return -1;
 
-    long pos = computePos(_frame->width(), x, z);
-    return getTypeCuda(_frame->getCudaPtr(), pos);
+    long pos = computePos(_graph->width(), x, z);
+    return getTypeCuda(_graph->getCudaPtr(), pos);
 }
 
 void CudaGraph::dumpGraph(const char *filename)
@@ -469,14 +469,14 @@ void CudaGraph::dumpGraph(const char *filename)
         return;
     }
 
-    int4 *fptr = _frame->getCudaPtr();
-    float4 *fptrData = _frameData->getCudaPtr();
+    int4 *fptr = _graph->getCudaPtr();
+    float4 *fptrData = _graphData->getCudaPtr();
 
-    for (int z = 0; z < _frame->height(); z++)
+    for (int z = 0; z < _graph->height(); z++)
     {
-        for (int x = 0; x < _frame->width(); x++)
+        for (int x = 0; x < _graph->width(); x++)
         {
-            long pos = z * _frame->width() + x;
+            long pos = z * _graph->width() + x;
             fprintf(fp, "%d %d %d %f %f %f\n", fptr[pos].x, fptr[pos].y, fptr[pos].z,
                     fptrData[pos].x, fptrData[pos].y, fptrData[pos].z);
         }
@@ -495,14 +495,14 @@ void CudaGraph::readfromDump(const char *filename)
         return;
     }
 
-    int4 *fptr = _frame->getCudaPtr();
-    float4 *fptrData = _frameData->getCudaPtr();
+    int4 *fptr = _graph->getCudaPtr();
+    float4 *fptrData = _graphData->getCudaPtr();
 
-    for (int z = 0; z < _frame->height(); z++)
+    for (int z = 0; z < _graph->height(); z++)
     {
-        for (int x = 0; x < _frame->width(); x++)
+        for (int x = 0; x < _graph->width(); x++)
         {
-            long pos = z * _frame->width() + x;
+            long pos = z * _graph->width() + x;
             fscanf(fp, "%d %d %d %f %f %f\n", &fptr[pos].x, &fptr[pos].y, &fptr[pos].z,
                    &fptrData[pos].x, &fptrData[pos].y, &fptrData[pos].z);
         }
@@ -514,17 +514,17 @@ void CudaGraph::readfromDump(const char *filename)
 
 int CudaGraph::getChildCount(int x, int z)
 {
-    return getNodeDeriveCount(_frame->getCudaPtr(), computePos(_frame->width(), x, z));
+    return getNodeDeriveCount(_graph->getCudaPtr(), computePos(_graph->width(), x, z));
 }
 
 void CudaGraph::setCollision(int x, int z, int new_parent_x, int new_parent_z, angle new_heading, float new_cost)
 {
-    long pos = computePos(_frame->width(), x, z);
-    int2 currentParent = getParentCuda(_frame->getCudaPtr(), pos);
-    long currentParentPos = computePos(_frame->width(), currentParent.x, currentParent.y);
+    long pos = computePos(_graph->width(), x, z);
+    int2 currentParent = getParentCuda(_graph->getCudaPtr(), pos);
+    long currentParentPos = computePos(_graph->width(), currentParent.x, currentParent.y);
 
-    if (setCollisionCuda(_frame->getCudaPtr(), _frameData->getCudaPtr(), pos, new_heading.rad(), new_parent_x, new_parent_z, new_cost))
+    if (setCollisionCuda(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos, new_heading.rad(), new_parent_x, new_parent_z, new_cost))
     {
-        decNodeDeriveCount(_frame->getCudaPtr(), currentParentPos);
+        decNodeDeriveCount(_graph->getCudaPtr(), currentParentPos);
     }
 }

@@ -311,8 +311,8 @@ bool CudaGraph::checkFeasibleConnection(float3 *og, int2 init, int2 end, int vel
     double pathCost = 0;
 
     return check_kinematic_connection_start_end(
-        _frame->getCudaPtr(),
-        _frameData->getCudaPtr(),
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
         og,
         _physicalParams->get(),
         _searchSpaceParams->get(),
