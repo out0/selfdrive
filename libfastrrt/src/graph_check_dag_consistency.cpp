@@ -19,17 +19,19 @@ void CudaGraph::__printInconsistentChain(int3 n, int maxLoop)
         int2 parent = getParent(p.x, p.y);
         if (parent.x == -1)
             return;
-        if (getType(parent.x, parent.y) == GRAPH_TYPE_COLLISION) {
+        if (getType(parent.x, parent.y) == GRAPH_TYPE_COLLISION)
+        {
             printf("->(%d, %d) [C]", parent.x, parent.y);
         }
-        else printf("->(%d, %d)", parent.x, parent.y);
+        else
+            printf("->(%d, %d)", parent.x, parent.y);
         p.x = parent.x;
         p.y = parent.y;
     }
     printf("\n");
 }
 
-bool CudaGraph::checkGraphIsConsistent()
+bool CudaGraph::checkGraphIsConsistent(bool print_inconsistency)
 {
     int maxLoop = count(GRAPH_TYPE_NODE) + 4;
     std::vector<int3> nodes = listAll();
@@ -46,17 +48,19 @@ bool CudaGraph::checkGraphIsConsistent()
             int2 parent = getParent(p.x, p.y);
             if (sameNode(p, parent))
             {
-                __printInconsistentChain(n, maxLoop);
+                if (print_inconsistency)
+                    __printInconsistentChain(n, maxLoop);
                 return false;
             }
             if (parent.x == -1)
                 break;
 
             int parentType = getType(parent.x, parent.y);
-            
+
             if (parentType != GRAPH_TYPE_NODE && parentType != GRAPH_TYPE_COLLISION && parentType != GRAPH_TYPE_CONNECT_TO_GOAL)
             {
-                printf("[GRAPH check] %d, %d is connected to the node (%d, %d) which is not a node: %d\n", p.x, p.y, parent.x, parent.y, getType(parent.x, parent.y));
+                if (print_inconsistency)
+                    printf("[GRAPH check] %d, %d is connected to the node (%d, %d) which is not a node: %d\n", p.x, p.y, parent.x, parent.y, getType(parent.x, parent.y));
                 return false;
             }
             p.x = parent.x;
@@ -64,7 +68,8 @@ bool CudaGraph::checkGraphIsConsistent()
         }
         if (i <= 0)
         {
-            __printInconsistentChain(n, maxLoop);
+            if (print_inconsistency)
+                __printInconsistentChain(n, maxLoop);
             return false;
         }
     }

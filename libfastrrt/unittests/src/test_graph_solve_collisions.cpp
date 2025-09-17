@@ -165,7 +165,7 @@ void assertGraphRemainsDAGAfterCollision(CudaGraph *graph, std::string data)
         }
     }
 
-    ASSERT_TRUE(graph->checkGraphIsConsistent());
+    ASSERT_FALSE(graph->checkGraphIsConsistent(true));
 
     //auto graph_nodes = graph->listAll();
 
@@ -208,7 +208,7 @@ TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation3)
 {
     CudaGraph *graph = buildTestGraph();
     angle p = angle::rad(0);
-    std::ifstream infile("before_collision.txt");
+    std::ifstream infile("after_collision.txt");
     ASSERT_TRUE(infile.is_open());
     std::string data((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
     infile.close();

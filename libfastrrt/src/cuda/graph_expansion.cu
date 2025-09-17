@@ -68,19 +68,7 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, float4 *graphDat
 
 //__device__ host__ void 
 
-__device__ __host__ bool checkCyclicReference(int4 *graph, int width, int height, long pos, int candidate_x, int candidate_z) {
-    long curr = pos;
-    long i = width * height;
 
-    while (i-- >= 0) {
-        int2 parent = getParentCuda(graph, curr);
-        if (parent.x == -1) return false;
-        if (parent.x == candidate_x && parent.y == candidate_z) return true;
-        curr = computePos(width, parent.x, parent.y);
-    }
-    return true;
-    
-}
 
 __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading, int *bestCostDirectConnect)
 {
@@ -156,10 +144,10 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     }
     
     if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE) {
-        if (checkCyclicReference(graph, width, height, pos, end_x, end_z)) {
-            atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_COLLISION, GRAPH_TYPE_NODE);
-            return;
-        }
+        // if (checkCyclicReference(graph, width, height, pos, end_x, end_z)) {
+        //     atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_COLLISION, GRAPH_TYPE_NODE);
+        //     return;
+        // }
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
         *nodeCollision = true;
         decNodeDeriveCount(graph, pos);
@@ -248,14 +236,14 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
 
     CUDA(cudaDeviceSynchronize());
 
-    dumpNodesToFile("before_collision.txt");
+    //dumpNodesToFile("before_collision.txt");
 
     if (*_nodeCollision->get())
     {
-        printf("Collision detected, solving...\n");
+       // printf("Collision detected, solving...\n");
 
         solveCollisions();
-        dumpNodesToFile("after_collision.txt");
+       // dumpNodesToFile("after_collision.txt");
     }
 }
 

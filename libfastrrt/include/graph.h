@@ -44,6 +44,7 @@ class CudaGraph
 private:
     std::shared_ptr<CudaGrid<int4>> _graph;
     std::shared_ptr<CudaGrid<float4>> _graphData;
+    std::shared_ptr<CudaGrid<float4>> _graphCollision;
     bool __checkLimits(int x, int z);
     
     cptr<float3> _ogCoordinateStart;
@@ -239,7 +240,7 @@ public:
 
     /// @brief Returns true if the GRAPH is DAG consistent. This is usually be used for testing and debugging, as bugfree operation should always be DAG consistent
     /// @return 
-    bool checkGraphIsConsistent();
+    bool checkGraphIsConsistent(bool print_inconsistency = true);
 
     /// @brief Returns the number of childs of the node x, z
     /// @param x 

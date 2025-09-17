@@ -229,6 +229,8 @@ CudaGraph::CudaGraph(int width, int height)
 {
     _graph = std::make_shared<CudaGrid<int4>>(width, height);
     _graphData = std::make_unique<CudaGrid<float4>>(width, height);
+    _graphCollision = std::make_unique<CudaGrid<float4>>(width, height);
+
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _physicalParams = nullptr;
     _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);

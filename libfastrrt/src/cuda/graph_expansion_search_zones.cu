@@ -212,23 +212,14 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     if (end_pos == pos)
         return;
 
-    if (checkInGraphCuda(graph, end_pos))
-    {
-        // printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        
-        // If n threads reach this, the last one will be its owner. That is not a problem.
-        // the losing threads will not increment derive count and can try again
-        if (setCollisionCuda(graph, graphData, end_pos, end_heading, x, z, end_cost)) {
-            *nodeCollision = true;
-            decNodeDeriveCount(graph, pos);
-        }
-    }
-    else
-    {
+    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP) == GRAPH_TYPE_NULL) {
+        // A new node is being added to the graph
+
         incNodeDeriveCount(graph, pos);
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
 
-        float max_curvature = 0.25;
+        //float max_curvature = 0.25;
+        float max_curvature = -1;
         float connect_cost = canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, max_curvature, x, z, goal_x, goal_z, goal_heading);
 
         if (connect_cost > 0)
@@ -238,10 +229,17 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
             atomicMin(bestCostDirectConnect, TO_INT(1000 * connect_cost));
             printf("[CUDA] %d, %d can connect to the goal %d, %d with cost = %f\n", end_x, end_z, goal_x, goal_z, connect_cost);
         }
-
-#ifdef CHECK_NO_COLLISION
-        assertDAGconsistency(graph, graphData, width, height, end_pos);
-#endif
+        return;
+    }
+    
+    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE) {
+        // if (checkCyclicReference(graph, width, height, pos, end_x, end_z)) {
+        //     atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_COLLISION, GRAPH_TYPE_NODE);
+        //     return;
+        // }
+        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+        *nodeCollision = true;
+        decNodeDeriveCount(graph, pos);
     }
 }
 
@@ -279,7 +277,7 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
 
     if (*_nodeCollision->get())
     {
-        printf("solving graph collision\n");
+        //printf("solving graph collision\n");
         solveCollisions();
     }
 }

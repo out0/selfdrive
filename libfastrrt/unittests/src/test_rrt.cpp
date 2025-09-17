@@ -110,7 +110,7 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
         if (n.x < 0 || n.x >= width) continue;
         cv::Vec3b &pixel = cimg.at<cv::Vec3b>(n.z, n.x);
 
-        switch (n.z)
+        switch (n.nodeType)
         {
         case GRAPH_TYPE_NODE:
             pixel[0] = 255;
@@ -169,7 +169,7 @@ TEST(TestRRT, TestSearch)
     float distToGoal = 20.0;
 
     frame.copyFrom(res.second);
-    frame.processSafeDistanceZone({22, 40}, false);
+    frame.processSafeDistanceZone({11, 20}, false);
     
 
     std::vector<float> p = classCosts;
@@ -189,13 +189,13 @@ TEST(TestRRT, TestSearch)
 
     Waypoint goal(128, 0, angle::rad(0));
     Waypoint start(128, 128, angle::rad(0));
-    rrt.setPlanData(frame, start, goal, 1, {22, 40});
+    rrt.setPlanData(frame, start, goal, 1, {11, 20});
     frame.processDistanceToGoal(goal.x(), goal.z());
 
     rrt.search_init();
 
     int i = 0;
-    while (!rrt.goalReached() && rrt.loop())
+    while (!rrt.goalReached() && rrt.loop(true))
     {
         logGraph(&rrt, &frame, "output1.png", ++i);
     }
@@ -231,6 +231,10 @@ TEST(TestRRT, TestSearch)
 
     ASSERT_LE(dx * dx + dz * dz, 400);
     ASSERT_TRUE(rrt.goalReached());
+
+    path = rrt.getPlannedPath();
+
+    exportPathTo(frame.getCudaPtr(), img.cols, img.rows, path, "output2.png");
 
     delete[] ptr;
 }

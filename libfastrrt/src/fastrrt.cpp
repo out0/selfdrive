@@ -106,7 +106,7 @@ bool FastRRT::loop(bool smart)
     // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
 
-    _graph.dumpNodesToFile("before_error_1.txt");
+    //_graph.dumpNodesToFile("before_error_1.txt");
     if (smart)
     {
         _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0, {_goal.x(), _goal.z()}, _goal.heading());
@@ -117,11 +117,11 @@ bool FastRRT::loop(bool smart)
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
-    _graph.dumpNodesToFile("before_error_2.txt");
+    //_graph.dumpNodesToFile("before_error_2.txt");
     _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
     
     if (!_graph.checkGraphIsConsistent()) {
-        _graph.dumpNodesToFile("error.txt");
+        //_graph.dumpNodesToFile("error.txt");
         printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
         return false;
     }
@@ -159,22 +159,23 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
         return res;
 
     // res.push_back(*_goal);
-    printf ("[getPlannedPath] findBestNode (init)\n");
+    //printf ("[getPlannedPath] findBestNode (init)\n");
     int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), TO_RAD * 10);
-    printf ("[getPlannedPath] findBestNode = %d, %d\n", n.x, n.y);
-    // long i = 0;
+    //printf ("[getPlannedPath] findBestNode = %d, %d\n", n.x, n.y);
+    
+    long i = 0;
     
     while (n.x != -1 && n.y != -1)
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
-        printf ("[getPlannedPath] parent %d, %d\n", n.x, n.y);
+       // printf ("[getPlannedPath] parent %d, %d\n", n.x, n.y);
 
-        // if (i >= 1000000)
-        // {
-        //     printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
-        //     //break;
-        // }
+        if (i++ >= 1000000)
+        {
+            printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
+            //break;
+        }
         // i++;
     }
 
