@@ -13,6 +13,20 @@
 #include <vector>
 #include <memory>
 
+class GraphNode {
+public:    
+    int x;
+    int z;
+    float heading_rad{};
+    int nodeType;
+    int parent_x{};
+    int parent_z{};
+    float connectToEndCost{};
+    float cost{};
+
+    GraphNode(int x, int z, int type) : x(x), z(z), nodeType(type) {}
+    GraphNode() : x(0), z(0), heading_rad(0.0f), nodeType(0), parent_x(0), parent_z(0), connectToEndCost(0.0f), cost(0.0f) {}
+};
 
 #define GRAPH_TYPE_NULL 0
 #define GRAPH_TYPE_NODE 1
@@ -55,7 +69,7 @@ private:
     float _node_mean;
     int _directOptimPos;
 
-    void __printInconsistentChain(int2 n, int maxLoop);
+    void __printInconsistentChain(int3 n, int maxLoop);
     
     
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
@@ -71,7 +85,7 @@ public:
     CudaGraph(int width, int height);
     ~CudaGraph();
 
-    void __computeGraphRegionDensity();
+    void computeGraphRegionDensity();
 
     void computeRepulsiveFieldAPF(float3 *og, float Kr, int radius);
     void computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal);
@@ -162,7 +176,7 @@ public:
     /// @param maxSteeringAngle
     /// @param maxPathSize
     /// @param velocity_m_s
-    void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 goal, angle goal_heading);
+    void expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 start_node, int2 goal, angle goal_heading);
 
     void smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading);
 
@@ -225,7 +239,7 @@ public:
 
     /// @brief Returns true if the GRAPH is DAG consistent. This is usually be used for testing and debugging, as bugfree operation should always be DAG consistent
     /// @return 
-    bool checkGraphIsDAG();
+    bool checkGraphIsConsistent();
 
     /// @brief Returns the number of childs of the node x, z
     /// @param x 
@@ -234,6 +248,10 @@ public:
     int getChildCount(int x, int z);
 
     void setCollision(int x, int z, int new_parent_x, int new_parent_z, angle new_heading, float new_cost);
+
+    float getDirectCost(int x, int z);
+
+    void dumpNodesToFile(const char *filename);
 };
 
 #endif

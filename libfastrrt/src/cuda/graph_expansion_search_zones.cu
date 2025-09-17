@@ -103,7 +103,7 @@ void CudaGraph::__dealocRegionDensity()
     _region_node_count = nullptr;
 }
 
-void CudaGraph::__computeGraphRegionDensity()
+void CudaGraph::computeGraphRegionDensity()
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -157,7 +157,7 @@ void CudaGraph::__computeGraphRegionDensity()
 extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
 #define MIN_PATH_SIZE 5.0
 
-extern __device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int width, int height, long pos);
+extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
 
 __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision, int goal_x, int goal_z, float goal_heading, int *bestCostDirectConnect)
 {
@@ -240,7 +240,7 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
         }
 
 #ifdef CHECK_NO_COLLISION
-        assertNoCollision(graph, graphData, width, height, end_pos);
+        assertDAGconsistency(graph, graphData, width, height, end_pos);
 #endif
     }
 }
@@ -275,7 +275,7 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
 
     CUDA(cudaDeviceSynchronize());
 
-    __computeGraphRegionDensity();
+    computeGraphRegionDensity();
 
     if (*_nodeCollision->get())
     {

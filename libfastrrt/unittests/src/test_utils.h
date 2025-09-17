@@ -14,9 +14,18 @@ void exportGraph(CudaGraph *graph, const char *filename, std::vector<int2> *path
 
 CudaPtr<float3> createEmptySearchFrame(int width, int height);
 
-SearchFrame * createEmptySearchFramePtr(int width, int height);
-
+SearchFrame *createEmptySearchFramePtr(int width, int height);
 
 void assertInt2Equal(int2 a, int2 b);
 
+CudaGraph *buildTestGraph();
+
+// Export graph nodes to a file
+void exportGraphNodesToFile(const std::vector<GraphNode> &nodes, const std::string &filename);
+
+// Import graph nodes from a file
+std::vector<GraphNode> importGraphNodesFromFile(const std::string &filename);
+
+
+std::vector<GraphNode> importGraphNodesFromString(const std::string& data);
 #endif

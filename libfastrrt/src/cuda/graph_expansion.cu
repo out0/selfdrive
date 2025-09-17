@@ -2,12 +2,14 @@
 #include <driveless/cuda_basic.h>
 #include <driveless/cuda_params.h>
 #include "../../include/graph.h"
+#include <fstream>
 
 #define CHECK_NO_COLLISION 1
 
 extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
+extern __device__ __host__ inline void setHeadingCuda(float4 *graphData, long pos, float heading);
 extern __device__ __host__ void setTypeCuda(int4 *graph, long pos, int type);
 extern __device__ __host__ int getTypeCuda(int4 *graph, long pos);
 extern __device__ __host__ int2 getParentCuda(int4 *graph, long pos);
@@ -25,7 +27,7 @@ extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ bool canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
 extern __device__ __host__ float getDirectCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
-extern __device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int width, int height, long pos);
+extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
 extern __device__ __host__ void decNodeDeriveCount(int4 *graph, long pos);
 
 __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
@@ -64,7 +66,23 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, float4 *graphDat
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
 
-__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, int2 goal, float goal_heading, int *bestCostDirectConnect)
+//__device__ host__ void 
+
+__device__ __host__ bool checkCyclicReference(int4 *graph, int width, int height, long pos, int candidate_x, int candidate_z) {
+    long curr = pos;
+    long i = width * height;
+
+    while (i-- >= 0) {
+        int2 parent = getParentCuda(graph, curr);
+        if (parent.x == -1) return false;
+        if (parent.x == candidate_x && parent.y == candidate_z) return true;
+        curr = computePos(width, parent.x, parent.y);
+    }
+    return true;
+    
+}
+
+__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading, int *bestCostDirectConnect)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int width = searchParams[FRAME_PARAM_WIDTH];
@@ -114,15 +132,13 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     if (end_pos == pos)
         return;
 
-    if (checkInGraphCuda(graph, end_pos))
-    {
-       if (setCollisionCuda(graph, graphData, end_pos, end_heading, x, z, end_cost)) {
-            *nodeCollision = true;
-            decNodeDeriveCount(graph, pos);
-        }
-    }
-    else
-    {
+    if (end_pos == start_node_pos)
+        return;
+
+
+    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP) == GRAPH_TYPE_NULL) {
+        // A new node is being added to the graph
+
         incNodeDeriveCount(graph, pos);
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
 
@@ -136,11 +152,18 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
             atomicMin(bestCostDirectConnect, TO_INT(1000 * connect_cost));
             printf("[CUDA] %d, %d can connect to the goal %d, %d with cost = %f\n", end_x, end_z, goal.x, goal.y, connect_cost);
         }
+        return;
     }
-
-    #ifdef CHECK_NO_COLLISION
-    assertNoCollision(graph, graphData, width, height, end_pos);
-    #endif
+    
+    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE) {
+        if (checkCyclicReference(graph, width, height, pos, end_x, end_z)) {
+            atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_COLLISION, GRAPH_TYPE_NODE);
+            return;
+        }
+        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+        *nodeCollision = true;
+        decNodeDeriveCount(graph, pos);
+    }
 }
 
 void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
@@ -168,12 +191,42 @@ void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
     setTypeCuda(_frame->getCudaPtr(), pos, GRAPH_TYPE_NODE);
 }
 
-void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 goal, angle goal_heading)
+void CudaGraph::dumpNodesToFile(const char *filename)
+{
+    std::ofstream ofs(filename);
+    if (!ofs.is_open())
+        return;
+    std::vector<int3> nodes = listAll();
+
+    for (int3 n : nodes)
+    {
+        GraphNode g(n.x, n.y, n.z);
+        int2 parent = getParent(n.x, n.y);
+        int parent_x = parent.x;
+        int parent_z = parent.y;
+        float heading_rad = getHeading(n.x, n.y).rad();
+        float cost = getCost(n.x, n.y);
+        float connectToEndCost = getDirectCost(n.x, n.z);
+        ofs << n.x << " "
+            << n.y << " "
+            << heading_rad << " "
+            << n.z << " "
+            << parent_x << " "
+            << parent_z << " "
+            << connectToEndCost << " "
+            << cost << "\n";
+    }
+
+    ofs.close();
+}
+
+void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 start_node, int2 goal, angle goal_heading)
 {
     int size = _frame->width() * _frame->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     *_nodeCollision->get() = false;
+    const long start_node_pos = computePos(_frame->width(), start_node.x, start_node.y);
 
     __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
@@ -188,16 +241,21 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         velocity_m_s,
         frontierExpansion,
         _nodeCollision->get(),
+        start_node_pos,
         goal,
         goal_heading.rad(),
         _bestCostDirectConnect->get());
 
     CUDA(cudaDeviceSynchronize());
 
+    dumpNodesToFile("before_collision.txt");
+
     if (*_nodeCollision->get())
     {
-        // printf("Collision detected, solving...\n");
+        printf("Collision detected, solving...\n");
+
         solveCollisions();
+        dumpNodesToFile("after_collision.txt");
     }
 }
 

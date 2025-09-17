@@ -105,17 +105,26 @@ bool FastRRT::loop(bool smart)
 
     // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
+
+    _graph.dumpNodesToFile("before_error_1.txt");
     if (smart)
     {
         _graph.smartExpansion(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, _last_expanded_node_count == 0, {_goal.x(), _goal.z()}, _goal.heading());
     }
     else
     {
-        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, {_goal.x(), _goal.z()}, _goal.heading());
+        _graph.expandTree(_ptr, _goal.heading(), _maxPathSize, _planningVelocity_m_s, expandFrontier, {_start.x(), _start.z()}, {_goal.x(), _goal.z()}, _goal.heading());
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
+    _graph.dumpNodesToFile("before_error_2.txt");
     _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
+    
+    if (!_graph.checkGraphIsConsistent()) {
+        _graph.dumpNodesToFile("error.txt");
+        printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
+        return false;
+    }
     if (goalReached())
     {
         // printf ("shrinking graph...\n");
@@ -192,9 +201,26 @@ std::vector<Waypoint> FastRRT::interpolatePlannedPath(std::vector<Waypoint> path
     return interpolate(path, _graph.width(), _graph.height());
 }
 
-std::vector<int3> FastRRT::exportGraphNodes()
+
+
+std::vector<GraphNode> FastRRT::exportGraphNodes()
 {
-    return _graph.listAll();
+    std::vector<int3> nodes =  _graph.listAll();
+    std::vector<GraphNode> res;
+    res.reserve(nodes.size());
+
+    for (int3 n : nodes) {
+        GraphNode g(n.x, n.y, n.z);
+        int2 parent = _graph.getParent(n.x, n.y);
+        g.parent_x = parent.x;
+        g.parent_z = parent.y;
+        g.heading_rad = _graph.getHeading(n.x, n.y).rad();
+        g.cost = _graph.getCost(n.x, n.y);
+        g.connectToEndCost = _graph.getDirectCost(n.x, n.z);
+        res.push_back(g);
+    }
+
+    return res;
 }
 
 extern std::vector<Waypoint> interpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2);
@@ -212,7 +238,7 @@ std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal)
         goal);
 }
 
-void FastRRT::__computeGraphRegionDensity()
+void FastRRT::computeGraphRegionDensity()
 {
-    _graph.__computeGraphRegionDensity();
+    _graph.computeGraphRegionDensity();
 }

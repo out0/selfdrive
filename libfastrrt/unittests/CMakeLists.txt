@@ -66,17 +66,17 @@ add_executable(
   ../src/cuda/path_feasible.cu
   ../src/cuda/random_number_gen.cu
   ../src/cuda/graph.cu
-  ../src/cuda/graph_list.cu
-  ../src/cuda/graph_node_derivation.cu
   ../src/cuda/graph_best_node.cu
-  ../src/cuda/graph_nodes_in_range.cu
-  ../src/cuda/graph_optimization.cu
   ../src/cuda/graph_costs.cu
-  ../src/cuda/cuda_grid.cu
-  ../src/cuda/apf.cu
-  ../src/cuda/graph_smart_expansion.cu
   ../src/cuda/graph_collision.cu
   ../src/cuda/graph_hermite_connection.cu
+  ../src/cuda/graph_expansion.cu
+  ../src/cuda/graph_expansion_search_zones.cu
+  ../src/cuda/graph_list.cu
+  ../src/cuda/graph_nodes_in_range.cu
+  ../src/cuda/graph_optimization.cu
+  ../src/cuda/cuda_grid.cu
+  ../src/cuda/apf.cu
   ../src/fastrrt.cpp
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp
@@ -93,11 +93,11 @@ add_executable(
   # src/test_graph_node_derivation.cpp
   # src/test_kinematics.cpp
   # src/test_graph_best_node.cpp
-  # src/test_rrt.cpp
   # src/test_optimize_path.cpp
   # src/test_graph_can_connect_hermite.cpp
   # src/test_graph_dag_consistency.cpp
   src/test_graph_solve_collisions.cpp
+  # src/test_rrt.cpp
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

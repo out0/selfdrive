@@ -90,8 +90,8 @@ extern "C"
         for (auto n : nodes)
         {
             res[i] = n.x;
-            res[i + 1] = n.y;
-            res[i + 2] = n.z;
+            res[i + 1] = n.z;
+            res[i + 2] = n.nodeType;
             i += 3;
         }
 
@@ -173,6 +173,6 @@ extern "C"
 
     void compute_region_debug_performance(void *ptr) {
         FastRRT *rrt = (FastRRT *)ptr;
-        rrt->__computeGraphRegionDensity();
+        rrt->computeGraphRegionDensity();
     }
 };

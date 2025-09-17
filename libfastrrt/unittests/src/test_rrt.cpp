@@ -11,6 +11,7 @@
 #include <driveless/search_frame.h>
 // #include <driveless/cubic_interpolator.h>
 #include <driveless/waypoint.h>
+#include <string>
 
 #define PHYS_SIZE 34.641016151377535
 
@@ -80,7 +81,7 @@ void exportPathTo(float3* f, int width, int height, std::vector<Waypoint> &path,
     delete[] dest;
 }
 
-void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
+void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
 {
     int width = frame->width();
     int height = frame->height();
@@ -101,13 +102,13 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
 
     delete[] dest;
 
-    std::vector<int3> nodes = rrt->exportGraphNodes();
+    std::vector<GraphNode> nodes = rrt->exportGraphNodes();
 
     for (auto n : nodes)
     {
-        if (n.y < 0 || n.y >= height) continue;
+        if (n.z < 0 || n.z >= height) continue;
         if (n.x < 0 || n.x >= width) continue;
-        cv::Vec3b &pixel = cimg.at<cv::Vec3b>(n.y, n.x);
+        cv::Vec3b &pixel = cimg.at<cv::Vec3b>(n.z, n.x);
 
         switch (n.z)
         {
@@ -132,6 +133,12 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file)
     }
 
     cv::imwrite(file, cimg);
+    std::string s = "log/graph_nodes_" + std::to_string(i) + ".txt";
+
+   
+    // Usage in logGraph
+    exportGraphNodesToFile(nodes, s);
+
 }
 
 #define TIMEOUT -1
@@ -187,9 +194,10 @@ TEST(TestRRT, TestSearch)
 
     rrt.search_init();
 
+    int i = 0;
     while (!rrt.goalReached() && rrt.loop())
     {
-        logGraph(&rrt, &frame, "output1.png");
+        logGraph(&rrt, &frame, "output1.png", ++i);
     }
 
     ASSERT_TRUE(rrt.goalReached());

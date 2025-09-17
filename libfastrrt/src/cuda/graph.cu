@@ -75,7 +75,7 @@ __device__ __host__ bool setCollisionCuda(int4 *graph, float4 *graphData, long p
 {
 // Sets the value of graph[pos].z to GRAPH_TYPE_COLLISION if graph[pos].z is GRAPH_TYPE_NODE
 #ifdef __CUDA_ARCH__
-    if (!atomicCAS(&(graph[pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE)
+    if (atomicCAS(&(graph[pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) != GRAPH_TYPE_NODE)
         return false;
 #else
     if (graph[pos].z != GRAPH_TYPE_NODE)
@@ -194,7 +194,7 @@ __device__ __host__ float getDirectCostCuda(float4 *graphData, long pos)
     return graphData[pos].w;
 }
 
-__device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int width, int height, long pos)
+__device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos)
 {
     long curr_pos = pos;
     long i = width * height;
@@ -212,7 +212,11 @@ __device__ __host__ void assertNoCollision(int4 *graph, float4 *graphData, int w
     int x = pos - z * width;
 
     int2 parent = getParentCuda(graph, pos);
-    printf("[CUDA ERROR] Collision detected when starting in %d, %d, parents %d, %d\n", x, z, parent.x, parent.y);
+    printf("[CUDA ERROR] DAG is inconsistent on %d, %d, parents %d, %d\n", x, z, parent.x, parent.y);
+}
+float CudaGraph::getDirectCost(int x, int z)
+{
+    return getDirectCostCuda(_frameData->getCudaPtr(), computePos(_frame->width(), x, z));
 }
 
 void CudaGraph::setType(int x, int z, int type)

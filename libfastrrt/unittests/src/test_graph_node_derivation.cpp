@@ -10,24 +10,6 @@
 
 #define PHYS_SIZE 34.641016151377535
 
-CudaGraph *buildTestGraph()
-{
-    CudaGraph *g = new CudaGraph(256, 256);
-    angle maxSteering = angle::deg(40);
-    std::vector<float> costs = {
-        {0},
-        {1},
-        {2},
-        {3},
-        {4},
-        {5}};
-
-    g->setPhysicalParams(256, 256, maxSteering, 5.412658773);
-    g->setClassCosts(costs);
-    g->setSearchParams({0, 0}, {-1, -1}, {-1, -1});
-    return g;
-}
-
 TEST(TestGraphNodeDerivation, StraightDerivationInXcoord)
 {
     MapPose location(0, 0, 0, angle::deg(0));
