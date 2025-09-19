@@ -4,7 +4,7 @@ from pydriveless import EgoVehicle
 from .session import CarlaSession
 from .. sensors.gps import CarlaGPS, GpsData
 from .. sensors.imu import CarlaIMU, IMUData
-from .. sensors.camera import BevCameraSemantic
+from .. sensors.camera import BevCameraSemantic, BevCamera
 from .. sensors.odometer import CarlaOdometer
 
 class VehicleState:
@@ -37,6 +37,7 @@ class CarlaEgoVehicle(EgoVehicle):
     _imu: CarlaIMU
     _odometer: CarlaOdometer
     _bev_semantic: BevCameraSemantic
+    _bev_rgb: BevCamera
     
     def __init__(self, session: CarlaSession, vehicle: any):
         super().__init__()
@@ -44,6 +45,10 @@ class CarlaEgoVehicle(EgoVehicle):
         self._vehicle = vehicle
         self._state = None
         self._odometer = CarlaOdometer(vehicle)
+        self._bev_semantic = None
+        self._bev_rgb = None
+        self._imu = None
+        self._gps = None
         self.__clear_state()
 
     def __clear_state(self) -> None:
@@ -55,7 +60,7 @@ class CarlaEgoVehicle(EgoVehicle):
         x = pose.x
         y = pose.y
         z = pose.z
-        yaw = pose.heading.rad()
+        yaw = pose.heading.deg()
         t = carla.libcarla.Transform(carla.libcarla.Location(x, y, z), carla.libcarla.Rotation(0, yaw, 0))
         self._vehicle.set_transform(t)
 
@@ -119,12 +124,25 @@ class CarlaEgoVehicle(EgoVehicle):
     def init_semantic_bev_camera(self, width: int = 256, height: int = 256) -> BevCameraSemantic:
         self._bev_semantic = BevCameraSemantic(self._session, self._vehicle, width, height)
         return self._bev_semantic
-    
+
+    def init_rgb_bev_camera(self, width: int = 256, height: int = 256) -> BevCameraSemantic:
+        self._bev_rgb = BevCamera(self._session, self._vehicle, width, height)
+        return self._bev_rgb
+
+
     def destroy(self) -> None:
         if self._bev_semantic is not None:
             self._bev_semantic.destroy()
+
+        if self._bev_rgb is not None:
+            self._bev_rgb.destroy()
+
         if self._imu is not None:
             self._imu.destroy()
         if self._gps is not None:
             self._gps.destroy()
-        self._vehicle.destroy()
+        
+        try:
+            self._vehicle.destroy()
+        except:
+            return

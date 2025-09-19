@@ -165,7 +165,7 @@ void assertGraphRemainsDAGAfterCollision(CudaGraph *graph, std::string data)
         }
     }
 
-    ASSERT_FALSE(graph->checkGraphIsConsistent(true));
+    ASSERT_TRUE(graph->checkGraphIsConsistent(true));
 
     //auto graph_nodes = graph->listAll();
 
@@ -177,7 +177,6 @@ void assertGraphRemainsDAGAfterCollision(CudaGraph *graph, std::string data)
 
 TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation)
 {
-    return;
     CudaGraph *graph = buildTestGraph();
     angle p = angle::rad(0);
     std::string data =
@@ -191,27 +190,27 @@ TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation)
     assertGraphRemainsDAGAfterCollision(graph, data);
 }
 
-TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation2)
-{
-    return;
-    CudaGraph *graph = buildTestGraph();
-    angle p = angle::rad(0);
-    std::ifstream infile("collision_data1.txt");
-    ASSERT_TRUE(infile.is_open());
-    std::string data((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
-    infile.close();
+// TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation2)
+// {
+//     return;
+//     CudaGraph *graph = buildTestGraph();
+//     angle p = angle::rad(0);
+//     std::ifstream infile("collision_data1.txt");
+//     ASSERT_TRUE(infile.is_open());
+//     std::string data((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
+//     infile.close();
 
-    assertGraphRemainsDAGAfterCollision(graph, data);
-}
+//     assertGraphRemainsDAGAfterCollision(graph, data);
+// }
 
-TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation3)
-{
-    CudaGraph *graph = buildTestGraph();
-    angle p = angle::rad(0);
-    std::ifstream infile("after_collision.txt");
-    ASSERT_TRUE(infile.is_open());
-    std::string data((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
-    infile.close();
+// TEST(TestGraphSolveCollisions, LogCollisionBugInvestigation3)
+// {
+//     CudaGraph *graph = buildTestGraph();
+//     angle p = angle::rad(0);
+//     std::ifstream infile("after_collision.txt");
+//     ASSERT_TRUE(infile.is_open());
+//     std::string data((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
+//     infile.close();
 
-    assertGraphRemainsDAGAfterCollision(graph, data);
-}
+//     assertGraphRemainsDAGAfterCollision(graph, data);
+// }

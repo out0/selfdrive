@@ -49,7 +49,7 @@ class TestFastRRTFrenetix(unittest.TestCase):
             vehicle_length_m=VEHICLE_LENGTH_M,
             timeout_ms=TIMEOUT,
             path_costs=np.array([-1, 0, 0, 0, 0], dtype=np.float32),
-            max_path_size_px=120.0,
+            max_path_size_px=40.0,
             dist_to_goal_tolerance_px=20.0
         )
         

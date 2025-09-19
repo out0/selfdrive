@@ -150,3 +150,4 @@ class BevCameraSemantic(BevCameraBase):
     def __init__(self, session: CarlaSession, vehicle_obj: any, width: int, height: int, fps: int = 30):
         super().__init__(session, vehicle_obj, width, height, fps, camera_type="sensor.camera.semantic_segmentation")
 
+
