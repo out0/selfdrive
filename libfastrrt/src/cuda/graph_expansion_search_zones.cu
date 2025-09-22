@@ -212,14 +212,15 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     if (end_pos == pos)
         return;
 
+    float max_curvature = (2*tanf(maxSteeringAngle)) / physicalParams[PHYSICAL_PARAMS_LR];
+    //printf ("max_curvature = %f\n", max_curvature);
+
     if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP) == GRAPH_TYPE_NULL) {
         // A new node is being added to the graph
 
         incNodeDeriveCount(graph, pos);
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
 
-        //float max_curvature = 0.25;
-        float max_curvature = -1;
         float connect_cost = canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, max_curvature, x, z, goal_x, goal_z, goal_heading);
 
         if (connect_cost > 0)

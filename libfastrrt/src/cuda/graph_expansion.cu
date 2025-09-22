@@ -93,6 +93,9 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
 
     float heading = getHeadingCuda(graphData, pos);
     double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
+    float max_curvature = (2*tanf(maxSteeringAngle)) / physicalParams[PHYSICAL_PARAMS_LR];
+
+    printf ("max_curvature = %f\n", max_curvature);
 
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
     double pathSize = 0;
@@ -130,7 +133,7 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
         incNodeDeriveCount(graph, pos);
         set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
 
-        float max_curvature = 0.25;
+        
         float connect_cost = canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, max_curvature, x, z, goal.x, goal.y, goal_heading);
 
         if (connect_cost > 0)

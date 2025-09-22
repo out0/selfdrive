@@ -82,8 +82,8 @@ class TestFastRRTFrenetix(unittest.TestCase):
 
         while not rrt.goal_reached() and rrt.loop(True):
             loop_count += 1
-            #nodes = rrt.export_graph_nodes()
-            #TestUtils.output_path_result(frame, nodes, "output1.png", goal)
+            nodes = rrt.export_graph_nodes()
+            TestUtils.output_path_result(frame, nodes, "output1.png", goal)
         end_time = time.time()
         execution_time = end_time - start_time
         

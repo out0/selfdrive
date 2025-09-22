@@ -28,12 +28,13 @@ def show_curve(frame: np.ndarray, path: np.ndarray, pos: int):
     #     frame[p.z, p.x, :] = [255, 255, 255]
 
 
-    points = HermiteCurve.interpolate(1000, 1000, (p1.x, p1.z, p1.heading.rad()), (p2.x, p2.z, p2.heading.rad()))
+    points = HermiteCurve.interpolate(1000, 1000, (p1.x, p1.z, p1.heading.rad()), (p2.x, p2.z, p2.heading.rad()), max_curvature=0.63)
+    if points is None:
+        print ("Could not interpolate")
+        return
+    
     for p in points:
-        if p[3]:
-            frame[p[1], p[0], :] = [0, 0, 255]
-        else:
-            frame[p[1], p[0], :] = [255, 255, 255]
+        frame[p[1], p[0], :] = [255, 255, 255]
 
     cv2.imwrite("output1.png", frame)
 
