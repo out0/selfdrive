@@ -62,7 +62,6 @@ add_library(
   src/cuda/graph_expansion.cu
   src/cuda/graph_nodes_in_range.cu
   src/cuda/graph_costs.cu
-  src/cuda/cuda_grid.cu
   src/cuda/apf.cu
   src/cuda/graph_expansion_search_zones.cu
   src/cuda/graph_collision.cu

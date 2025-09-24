@@ -227,9 +227,9 @@ void CudaGraph::setType(int x, int z, int type)
 
 CudaGraph::CudaGraph(int width, int height)
 {
-    _graph = std::make_shared<CudaGrid<int4>>(width, height);
-    _graphData = std::make_unique<CudaGrid<float4>>(width, height);
-    _graphCollision = std::make_unique<CudaGrid<float4>>(width, height);
+    _graph = std::make_shared<CudaFrame<int4>>(width, height);
+    _graphData = std::make_unique<CudaFrame<float4>>(width, height);
+    _graphCollision = std::make_unique<CudaFrame<float4>>(width, height);
 
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _physicalParams = nullptr;

@@ -3,11 +3,10 @@
 #ifndef __GRAPH_DRIVELESS_H
 #define __GRAPH_DRIVELESS_H
 
-#include "cuda_grid.h"
-
 #include <driveless/search_frame.h>
 #include <driveless/angle.h>
 #include <driveless/cuda_ptr.h>
+#include <driveless/cuda_frame.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <vector>
@@ -42,9 +41,9 @@ typedef float3 pose;
 class CudaGraph
 {
 private:
-    std::shared_ptr<CudaGrid<int4>> _graph;
-    std::shared_ptr<CudaGrid<float4>> _graphData;
-    std::shared_ptr<CudaGrid<float4>> _graphCollision;
+    std::shared_ptr<CudaFrame<int4>> _graph;
+    std::shared_ptr<CudaFrame<float4>> _graphData;
+    std::shared_ptr<CudaFrame<float4>> _graphCollision;
     bool __checkLimits(int x, int z);
     
     cptr<float3> _ogCoordinateStart;
@@ -137,11 +136,11 @@ public:
     {
         return _graph->width();
     }
-    std::shared_ptr<CudaGrid<int4>> getFramePtr()
+    std::shared_ptr<CudaFrame<int4>> getFramePtr()
     {
         return _graph;
     }
-    std::shared_ptr<CudaGrid<float4>> getFrameDataPtr()
+    std::shared_ptr<CudaFrame<float4>> getFrameDataPtr()
     {
         return _graphData;
     }

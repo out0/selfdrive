@@ -75,7 +75,6 @@ add_executable(
   ../src/cuda/graph_list.cu
   ../src/cuda/graph_nodes_in_range.cu
   ../src/cuda/graph_optimization.cu
-  ../src/cuda/cuda_grid.cu
   ../src/cuda/apf.cu
   ../src/fastrrt.cpp
   ../src/python_bind.cpp
@@ -87,8 +86,6 @@ add_executable(
   src/test_utils.cpp
   src/unittests.cpp
   src/test_apf.cpp
-  src/test_cuda_grid.cpp
-  src/test_cuda_grid.cu
   src/test_graph.cpp
   src/test_graph_node_derivation.cpp
   src/test_kinematics.cpp
