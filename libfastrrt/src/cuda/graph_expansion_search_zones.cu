@@ -212,8 +212,10 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     if (end_pos == pos)
         return;
 
-    float max_curvature = (2*tanf(maxSteeringAngle)) / physicalParams[PHYSICAL_PARAMS_LR];
+    float max_curvature = physicalParams[PHYSICAL_MAX_CURVATURE];
+    max_curvature = -1;
     //printf ("max_curvature = %f\n", max_curvature);
+    
 
     if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP) == GRAPH_TYPE_NULL) {
         // A new node is being added to the graph
@@ -229,8 +231,8 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
             setDirectCostCuda(graphData, end_pos, connect_cost);
             atomicMin(bestCostDirectConnect, TO_INT(1000 * connect_cost));
             printf("[CUDA] %d, %d can connect to the goal %d, %d with cost = %f\n", end_x, end_z, goal_x, goal_z, connect_cost);
+            return;
         }
-        return;
     }
     
     if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE) {

@@ -93,9 +93,9 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
 
     float heading = getHeadingCuda(graphData, pos);
     double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-    float max_curvature = (2*tanf(maxSteeringAngle)) / physicalParams[PHYSICAL_PARAMS_LR];
+    float max_curvature = physicalParams[PHYSICAL_MAX_CURVATURE];
 
-    printf ("max_curvature = %f\n", max_curvature);
+//    printf ("max_curvature = %f\n", max_curvature);
 
     double steeringAngle = generateRandomNeg(state, pos, maxSteeringAngle);
     double pathSize = 0;

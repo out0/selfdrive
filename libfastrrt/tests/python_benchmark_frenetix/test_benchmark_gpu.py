@@ -23,6 +23,7 @@ class TestFastRRTFrenetix(unittest.TestCase):
         
         frame = SearchFrame (
             width=img.shape[1],
+            
             height=img.shape[0],
             lower_bound=(-1, -1),
             upper_bound=(-1, -1),

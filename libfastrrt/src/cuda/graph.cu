@@ -261,7 +261,7 @@ CudaGraph::~CudaGraph()
 
 void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)
 {
-    _physicalParams = std::make_unique<CudaPtr<double>>(8);
+    _physicalParams = std::make_unique<CudaPtr<double>>(9);
     this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_W] = _graph->width() / perceptionWidthSize_m;
     this->_physicalParams->get()[PHYSICAL_PARAMS_INV_RATE_W] = perceptionWidthSize_m / _graph->width();
     this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_H] = _graph->height() / perceptionHeightSize_m;
@@ -269,6 +269,10 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     this->_physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_RAD] = maxSteeringAngle.rad();
     this->_physicalParams->get()[PHYSICAL_PARAMS_MAX_STEERING_DEG] = maxSteeringAngle.deg();
     this->_physicalParams->get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
+
+    const float t = tanf(maxSteeringAngle.rad());
+    this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (vehicleLength * sqrtf(4  + t));
+
 }
 
 void CudaGraph::setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound)
