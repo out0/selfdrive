@@ -27,6 +27,7 @@ private:
     int _classCount;
     bool _safeZoneChecked;
     bool _safeZoneVectorialChecked;
+    bool _distanceToGoalProcessed;
     std::pair<int, int> _minDistanceChecked;
 
     std::pair<int, int> checkTraversableAngleBitPairCheck(float heading_rad);
@@ -46,6 +47,14 @@ public:
     inline bool isSafeZoneChecked()
     {
         return _safeZoneChecked;
+    }
+    inline bool isVectorialSafeZoneChecked()
+    {
+        return _safeZoneVectorialChecked;
+    }
+    inline bool isDistanceToGoalProcessed()
+    {
+        return _distanceToGoalProcessed;
     }
     // inline std::pair<int, int> minDistance()
     // {

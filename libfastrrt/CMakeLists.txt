@@ -66,6 +66,7 @@ add_library(
   src/cuda/graph_expansion_search_zones.cu
   src/cuda/graph_collision.cu
   src/cuda/graph_hermite_connection.cu
+  src/cuda/graph_direct_goal_connection.cu
   src/fastrrt.cpp
   src/python_bind.cpp
   src/python_cuda_graph_bind.cpp

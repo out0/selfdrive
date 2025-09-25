@@ -15,7 +15,7 @@ extern __device__ __host__ bool check_graph_connection_with_hermite(
     float velocity_m_s,
     float &path_cost);
 
-double computeHeading(int x1, int z1, int x2, int z2)
+__device__ __host__ double computeHeading(int x1, int z1, int x2, int z2)
 {
     double dz = z2 - z1;
     double dx = x2 - x1;
@@ -25,9 +25,9 @@ double computeHeading(int x1, int z1, int x2, int z2)
 
     double v1 = 0;
     if (dz != 0)
-        v1 = atan2(-dz, dx);
+        v1 = atan2f(-dz, dx);
     else
-        v1 = atan2(0, dx);
+        v1 = atan2f(0, dx);
 
     return HALF_PI - v1;
 }

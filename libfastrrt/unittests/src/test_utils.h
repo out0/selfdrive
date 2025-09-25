@@ -3,6 +3,7 @@
 
 #include "../../include/graph.h"
 #include <driveless/cuda_ptr.h>
+#include <driveless/search_frame.h>
 #include <gtest/gtest.h>
 
 extern bool _ASSERT_DEQ(double a, double b, int tolerance = 4);
@@ -18,7 +19,8 @@ SearchFrame *createEmptySearchFramePtr(int width, int height);
 
 void assertInt2Equal(int2 a, int2 b);
 
-CudaGraph *buildTestGraph();
+CudaGraph *buildTestGraph(int min_dist_x = 0, int min_dist_z = 0);
+SearchFrame *buildTestSearchFrame();
 
 // Export graph nodes to a file
 void exportGraphNodesToFile(const std::vector<GraphNode> &nodes, const std::string &filename);

@@ -123,7 +123,7 @@ void assertInt2Equal(int2 a, int2 b)
     }
 }
 
-CudaGraph *buildTestGraph()
+CudaGraph *buildTestGraph(int min_dist_x, int min_dist_z)
 {
     CudaGraph *g = new CudaGraph(256, 256);
     angle maxSteering = angle::deg(40);
@@ -133,19 +133,43 @@ CudaGraph *buildTestGraph()
         {2},
         {3},
         {4},
-        {5}};
+        {-1}};
 
     g->setPhysicalParams(256, 256, maxSteering, 5.412658773);
     g->setClassCosts(costs);
-    g->setSearchParams({0, 0}, {-1, -1}, {-1, -1});
+    g->setSearchParams({min_dist_x, min_dist_z}, {-1, -1}, {-1, -1});
     return g;
 }
-// Export graph nodes to a file
-void exportGraphNodesToFile(const std::vector<GraphNode>& nodes, const std::string& filename) {
-    std::ofstream ofs(filename);
-    if (!ofs.is_open()) return;
+SearchFrame *buildTestSearchFrame()
+{
+    SearchFrame *f = new SearchFrame(256, 256, {-1, -1}, {-1, -1});
+    std::vector<float> costs = {
+        {0},
+        {1},
+        {2},
+        {3},
+        {4},
+        {-1}};
 
-    for (const auto& n : nodes) {
+    float *ptr = new float[256 * 256 * 3];
+    for (int i = 0; i < 256*256*3; i++)
+        ptr[i] = 0;
+
+    f->setClassCosts(costs);
+    f->copyFrom(ptr);
+    delete []ptr;
+    return f;
+}
+
+// Export graph nodes to a file
+void exportGraphNodesToFile(const std::vector<GraphNode> &nodes, const std::string &filename)
+{
+    std::ofstream ofs(filename);
+    if (!ofs.is_open())
+        return;
+
+    for (const auto &n : nodes)
+    {
         ofs << n.x << " "
             << n.z << " "
             << n.heading_rad << " "
@@ -159,14 +183,16 @@ void exportGraphNodesToFile(const std::vector<GraphNode>& nodes, const std::stri
 }
 
 // Import graph nodes from a file
-std::vector<GraphNode> importGraphNodesFromFile(const std::string& filename) {
+std::vector<GraphNode> importGraphNodesFromFile(const std::string &filename)
+{
     std::vector<GraphNode> nodes;
     std::ifstream ifs(filename);
-    if (!ifs.is_open()) return nodes;
+    if (!ifs.is_open())
+        return nodes;
 
     GraphNode n;
-    while (ifs >> n.x >> n.z >> n.heading_rad >> n.nodeType
-               >> n.parent_x >> n.parent_z >> n.connectToEndCost >> n.cost) {
+    while (ifs >> n.x >> n.z >> n.heading_rad >> n.nodeType >> n.parent_x >> n.parent_z >> n.connectToEndCost >> n.cost)
+    {
         nodes.push_back(n);
     }
     ifs.close();
@@ -175,13 +201,14 @@ std::vector<GraphNode> importGraphNodesFromFile(const std::string& filename) {
 
 #include <sstream>
 
-std::vector<GraphNode> importGraphNodesFromString(const std::string& data) {
+std::vector<GraphNode> importGraphNodesFromString(const std::string &data)
+{
     std::vector<GraphNode> nodes;
     std::istringstream iss(data);
 
     GraphNode n;
-    while (iss >> n.x >> n.z >> n.heading_rad >> n.nodeType
-               >> n.parent_x >> n.parent_z >> n.connectToEndCost >> n.cost) {
+    while (iss >> n.x >> n.z >> n.heading_rad >> n.nodeType >> n.parent_x >> n.parent_z >> n.connectToEndCost >> n.cost)
+    {
         nodes.push_back(n);
     }
     return nodes;

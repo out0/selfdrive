@@ -12,8 +12,9 @@
 #include <vector>
 #include <memory>
 
-class GraphNode {
-public:    
+class GraphNode
+{
+public:
     int x;
     int z;
     float heading_rad{};
@@ -44,8 +45,9 @@ private:
     std::shared_ptr<CudaFrame<int4>> _graph;
     std::shared_ptr<CudaFrame<float4>> _graphData;
     std::shared_ptr<CudaFrame<float4>> _graphCollision;
+    std::shared_ptr<CudaFrame<float3>> _graphGoalDirectConnection;
     bool __checkLimits(int x, int z);
-    
+
     cptr<float3> _ogCoordinateStart;
     cptr<unsigned int> _parallelCount;
     cptr<bool> _newNodesAdded;
@@ -58,28 +60,24 @@ private:
     cptr<curandState> _randState;
     cptr<int> _bestCostDirectConnect;
 
-
     void __initializeRandomGenerator();
     std::pair<int2 *, int> __listNodes(int type);
     std::pair<int3 *, int> __listAllNodes();
-    
+
     void __initializeRegionDensity();
     void __dealocRegionDensity();
-    
+
     float _node_mean;
     int _directOptimPos;
 
     void __printInconsistentChain(int3 n, int maxLoop);
-    
-    
+
     unsigned int __countInRange(int xp, int zp, float radius_sqr);
     std::pair<int2 *, int> __listNodesInRange(int type, int x, int z, float radius);
 
-
-   
     int __optimizePathDirectConnect(float3 *og, float distanceToGoalTolerance, float velocity_m_s, std::vector<float4> res);
     std::vector<float4> __getPlannedPath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance);
-    void __optimizePath(float3 *og,  int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s, int directOptimPos);
+    void __optimizePath(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s, int directOptimPos);
 
 public:
     CudaGraph(int width, int height);
@@ -91,34 +89,35 @@ public:
     void computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal);
 
     void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
-    double * getPhysicalParams() {
+    double *getPhysicalParams()
+    {
         return _physicalParams->get();
     }
 
     void setSearchParams(std::pair<int, int> minDistance, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
-    int * getSearchParams() {
+    int *getSearchParams()
+    {
         return _searchSpaceParams->get();
     }
 
     void setClassCosts(float *costs, int count);
     void setClassCosts(std::vector<float> costs);
-    float * getClassCosts() {
+    float *getClassCosts()
+    {
         return _classCosts->get();
     }
-    unsigned int getClassCount() {
+    unsigned int getClassCount()
+    {
         return _classCosts->count();
     }
 
-
     void add(int x, int z, angle heading, int parent_x, int parent_z, float cost);
     void addTemporary(int x, int z, angle heading, int parent_x, int parent_z, float cost);
-    
-    
+
     void setCoordinateStart(int x, int z, angle heading);
     void setCoordinateStart(int x, int z);
     void addStart(int x, int z, angle heading);
-    float3* getCoordinateStart();
-
+    float3 *getCoordinateStart();
 
     void remove(int x, int z);
     void clear();
@@ -145,13 +144,14 @@ public:
         return _graphData;
     }
 
-   
+    std::shared_ptr<CudaFrame<float3>> getDirectConnectionDataPtr()
+    {
+        return _graphGoalDirectConnection;
+    }
 
     // int2 getCenter() {
     //     return _gridCenter;
     // }
-
-
 
     bool checkInGraph(int x, int z);
     void setParent(int x, int z, int parent_x, int parent_z);
@@ -171,7 +171,7 @@ public:
     /// @param heading
     /// @return final node of the path
     int2 derivateNode(float3 *og, angle steeringAngle, double pathSize, float velocity_m_s, int x, int z);
-    
+
     /// @brief Derivates all nodes in graph with a random steering angle and pathSize, for the specified maxSteeringAngle, maxPathSize, and velocity_m_s.
     /// @param maxSteeringAngle
     /// @param maxPathSize
@@ -199,24 +199,22 @@ public:
     /// @return
     int2 findBestNode(float3 *og, angle heading, float radius, int x, int z, float maxHeadingError);
 
-
     /// @brief Checks if there is a feasible connection between start and end, at the given velocity and max steering angle
-    /// @param searchFrame 
-    /// @param start 
-    /// @param end 
-    /// @param velocity_m_s 
-    /// @param maxSteeringAngle 
-    /// @return 
+    /// @param searchFrame
+    /// @param start
+    /// @param end
+    /// @param velocity_m_s
+    /// @param maxSteeringAngle
+    /// @return
     bool checkFeasibleConnection(float3 *og, int2 start, int2 end, int velocity_m_s);
 
     /// @brief Returns true if any node in the graph is at a distance equals or lower than distanceToGoalTolerance and is feasible on the given heading.
-    /// @param searchFrame 
-    /// @param goal 
-    /// @param heading 
-    /// @param distanceToGoalTolerance 
-    /// @return 
+    /// @param searchFrame
+    /// @param goal
+    /// @param heading
+    /// @param distanceToGoalTolerance
+    /// @return
     bool checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError);
-
 
     // /// @brief Optimizes the graph with the added new nodes, changing node parents for total cost reduction (RRT*)
     // /// @param searchFrame
@@ -225,7 +223,7 @@ public:
 
     void optimizeGraph(float3 *og, int2 goal, angle goalHeading, float distanceToGoalTolerance, float velocity_m_s);
 
-//    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
+    //    void optimizeNode(float3 *og, int x, int z, float radius, float velocity_m_s, int numNodesInGraph);
 
     void dumpGraph(const char *filename);
 
@@ -238,13 +236,13 @@ public:
     bool canConnectToGoal(SearchFrame *frame, int x, int z, int goal_x, int goal_z, int goal_heading);
 
     /// @brief Returns true if the GRAPH is DAG consistent. This is usually be used for testing and debugging, as bugfree operation should always be DAG consistent
-    /// @return 
+    /// @return
     bool checkGraphIsConsistent(bool print_inconsistency = true);
 
     /// @brief Returns the number of childs of the node x, z
-    /// @param x 
-    /// @param z 
-    /// @return 
+    /// @param x
+    /// @param z
+    /// @return
     int getChildCount(int x, int z);
 
     void setCollision(int x, int z, int new_parent_x, int new_parent_z, angle new_heading, float new_cost);
@@ -252,6 +250,32 @@ public:
     float getDirectCost(int x, int z);
 
     void dumpNodesToFile(const char *filename);
+
+    /// @brief Finds the cells that can direcly connect to the goal using hermite. Accounts for collision detection and max curvature.
+    /// @param frame
+    /// @param goal_x
+    /// @param goal_z
+    /// @param goal_heading
+    void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading);
+
+    /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
+    /// @param x 
+    /// @param z 
+    /// @return 
+    bool isDirectlyConnectedToGoal(int x, int z);
+
+    /// @brief Returns the cost of cell x,z direcly connected to the goal (via processDirectGoalConnection)
+    /// @param x 
+    /// @param z 
+    /// @return 
+    float directConnectionToGoalCost(int x, int z);
+
+    /// @brief Returns the heading of cell x,z direcly connected to the goal (via processDirectGoalConnection)
+    /// @param x 
+    /// @param z 
+    /// @return 
+    float directConnectionToGoalHeding(int x, int z);
+
 };
 
 #endif

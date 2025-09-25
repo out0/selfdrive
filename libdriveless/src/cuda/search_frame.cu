@@ -14,6 +14,7 @@ SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, 
     _classCount = 0;
     _safeZoneChecked = false;
     _safeZoneVectorialChecked = false;
+    _distanceToGoalProcessed = false;
 
     _params = std::make_unique<CudaPtr<int>>(11);
     _bestValue = std::make_unique<CudaPtr<int>>(1);

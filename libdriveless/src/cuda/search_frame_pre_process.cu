@@ -390,6 +390,7 @@ void SearchFrame::processDistanceToGoal(int x, int z)
 
     __CUDA_distance_to_goal<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), x, z);
     CUDA(cudaDeviceSynchronize());
+    _distanceToGoalProcessed = true;
 }
 
 float SearchFrame::getDistanceToGoal(int x, int z)

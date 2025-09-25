@@ -230,7 +230,7 @@ CudaGraph::CudaGraph(int width, int height)
     _graph = std::make_shared<CudaFrame<int4>>(width, height);
     _graphData = std::make_unique<CudaFrame<float4>>(width, height);
     _graphCollision = std::make_unique<CudaFrame<float4>>(width, height);
-
+    _graphGoalDirectConnection = std::make_unique<CudaFrame<float3>>(width, height);
     _parallelCount = std::make_unique<CudaPtr<unsigned int>>(1);
     _physicalParams = nullptr;
     _searchSpaceParams = std::make_unique<CudaPtr<int>>(10);
