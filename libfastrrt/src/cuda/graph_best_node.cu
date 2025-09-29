@@ -35,8 +35,8 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
 
     int width = params[FRAME_PARAM_WIDTH];
     int height = params[FRAME_PARAM_HEIGHT];
-    int minDistX = params[FRAME_PARAM_MIN_DIST_X] / 2;
-    int minDistZ = params[FRAME_PARAM_MIN_DIST_Z] / 2;
+    int minDistX = params[FRAME_PARAM_MIN_DIST_X];
+    int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
 
     if (pos >= width * height)
         return;

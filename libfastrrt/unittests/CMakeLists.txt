@@ -77,6 +77,7 @@ add_executable(
   ../src/cuda/graph_optimization.cu
   ../src/cuda/apf.cu
   ../src/cuda/graph_direct_goal_connection.cu
+  ../src/cuda/graph_check_goal_reached.cu
   ../src/fastrrt.cpp
   ../src/python_bind.cpp
   ../src/python_cuda_graph_bind.cpp

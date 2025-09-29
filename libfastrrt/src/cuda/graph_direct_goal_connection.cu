@@ -8,7 +8,6 @@ extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ float getIntrinsicCost(float4 *graphData, int width, int x, int z);
 extern __device__ __host__ double computeHeading(int x1, int z1, int x2, int z2);
-
 __device__ __host__ bool check_bit(int traversability, int bit)
 {
     return (traversability & bit) > 0;
@@ -199,22 +198,36 @@ void CudaGraph::processDirectGoalConnection(SearchFrame *frame, int goal_x, int 
     CUDA(cudaDeviceSynchronize());
 }
 
+__device__ __host__ bool is_directly_connected_to_goal(float3 *goalDirectConnectionData, int width, int x, int z) {
+    long pos = computePos(width, x, z);
+    return goalDirectConnectionData[pos].x > 0;
+}
+
 bool CudaGraph::isDirectlyConnectedToGoal(int x, int z)
 {
-    long pos = computePos(_graph->width(), x, z);
-    return _graphGoalDirectConnection->getCudaPtr()[pos].x > 0;
+    return is_directly_connected_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z);
+}
+
+__device__ __host__ float get_cost_direct_connection_to_goal(float3 *goalDirectConnectionData, int width, int x, int z) {
+    long pos = computePos(width, x, z);
+    return goalDirectConnectionData[pos].z;
 }
 
 float CudaGraph::directConnectionToGoalCost(int x, int z)
 {
-    long pos = computePos(_graph->width(), x, z);
-    if (_graphGoalDirectConnection->getCudaPtr()[pos].x < 0)
-        return 9999999999;
-    return _graphGoalDirectConnection->getCudaPtr()[pos].z;
+    if (!is_directly_connected_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z))
+        return -1;
+    
+    return get_cost_direct_connection_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z);
 }
 
-float CudaGraph::directConnectionToGoalHeding(int x, int z)
+__device__ __host__ float get_heading_direct_connection_to_goal(float3 *goalDirectConnectionData, int width, int x, int z) {
+    long pos = computePos(width, x, z);
+    return goalDirectConnectionData[pos].y;
+}
+
+angle CudaGraph::directConnectionToGoalHeding(int x, int z)
 {
-    long pos = computePos(_graph->width(), x, z);
-    return _graphGoalDirectConnection->getCudaPtr()[pos].y;
+    float h = get_heading_direct_connection_to_goal(_graphGoalDirectConnection->getCudaPtr(), _graph->width(), x, z);
+    return angle::rad(h);
 }

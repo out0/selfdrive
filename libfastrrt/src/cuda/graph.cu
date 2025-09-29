@@ -271,7 +271,7 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     this->_physicalParams->get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
 
     const float t = tanf(maxSteeringAngle.rad());
-    this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (vehicleLength * sqrtf(4  + t));
+    this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4  + t));
 
 }
 

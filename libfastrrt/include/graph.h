@@ -274,8 +274,10 @@ public:
     /// @param x 
     /// @param z 
     /// @return 
-    float directConnectionToGoalHeding(int x, int z);
+    angle directConnectionToGoalHeding(int x, int z);
 
+
+    int2 findBestGoalDirectConnection(float3 *og, angle heading, float radius, bool isSafeZoneChecked);
 };
 
 #endif
