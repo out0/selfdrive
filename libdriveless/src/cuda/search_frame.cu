@@ -27,6 +27,8 @@ SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, 
     _params->get()[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
     _params->get()[FRAME_PARAM_CENTER_X] = TO_INT(width / 2);
     _params->get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
+    _params->get()[FRAME_PARAM_MIN_DIST_X] = 0;
+    _params->get()[FRAME_PARAM_MIN_DIST_Z] = 0;
 }
 
 SearchFrame::~SearchFrame()
@@ -147,7 +149,11 @@ bool SearchFrame::isTraversable(int x, int z, angle heading, bool precision_chec
                 return check_bit(traversability, pair.first) && check_bit(traversability, pair.second);
         }
     }
-    return __computeFeasibleForAngle(getCudaPtr(), getCudaFrameParamsPtr(), getCudaClassCostsPtr(), _minDistanceChecked.first, _minDistanceChecked.second, x, z, heading.rad());
+
+    int min_dist_x = _params->get()[FRAME_PARAM_MIN_DIST_X];
+    int min_dist_z = _params->get()[FRAME_PARAM_MIN_DIST_Z];
+
+    return __computeFeasibleForAngle(getCudaPtr(), getCudaFrameParamsPtr(), getCudaClassCostsPtr(), min_dist_x, min_dist_z, x, z, heading.rad());
 }
 
 double SearchFrame::getCost(int x, int z)

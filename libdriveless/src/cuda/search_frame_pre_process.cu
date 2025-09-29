@@ -323,25 +323,26 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
     int size = width() * height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    _minDistanceChecked.first = 0.5 * minDistance.first;
-    _minDistanceChecked.second = 0.5 * minDistance.second;
+    _params->get()[FRAME_PARAM_MIN_DIST_X] = 0.5 * minDistance.first;
+    _params->get()[FRAME_PARAM_MIN_DIST_Z] = 0.5 * minDistance.second;
 
-    int half_minDist_px = TO_INT(sqrtf(_minDistanceChecked.first * _minDistanceChecked.first + _minDistanceChecked.second * _minDistanceChecked.second));
+    int min_x = _params->get()[FRAME_PARAM_MIN_DIST_X];
+    int min_z = _params->get()[FRAME_PARAM_MIN_DIST_Z];
 
-    __CUDA_safe_distance_prepare<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), half_minDist_px);
+    int minDist_px = TO_INT(sqrtf(min_x * min_x + min_z * min_z));
+
+    __CUDA_safe_distance_prepare<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), minDist_px);
     CUDA(cudaDeviceSynchronize());
 
-    __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), half_minDist_px);
+    __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), minDist_px);
     CUDA(cudaDeviceSynchronize());
 
     _safeZoneChecked = true;
 
     if (computeVectorized)
     {
-
-        __CUDA_safe_distance_vector_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), _minDistanceChecked.first, _minDistanceChecked.second);
+        __CUDA_safe_distance_vector_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), min_x, min_z);
         CUDA(cudaDeviceSynchronize());
-
         _safeZoneVectorialChecked = true;
     }
 }

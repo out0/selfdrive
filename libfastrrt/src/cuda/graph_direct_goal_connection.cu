@@ -21,6 +21,9 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
     const int minDistX = searchSpaceParams[FRAME_PARAM_MIN_DIST_X];
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
 
+    if (x == 127 && z == 100)
+        printf ("checkDirectConnectionToGoal: minDistX, minDistZ = %d, %d\n", minDistX, minDistZ);
+
     const long pos = computePos(width, x, z);
 
     float distance = 0.0;
@@ -106,8 +109,9 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
             float k = abs(ddx * dd2z - ddz * dd2x) / pow(ddx * ddx + ddz * ddz, 3 / 2);
             if (k > max_curvature)
             {
-                // printf("[CUDA] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
-                //        x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
+                // if (z == 100)
+                //     printf("[CUDA] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
+                //         x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
                 return -1;
             }
         }
@@ -123,14 +127,17 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading))
         {
-            // printf("[CUDA] %d,%d,%f --> %d,%d,%f collision\n",
-            //        x, z, local_heading, goal_x, goal_z, goal_heading);
+            if (z == 100)
+            printf("[CUDA] %d,%d,%f --> %d,%d,%f collision\n", x, z, local_heading, goal_x, goal_z, goal_heading);
             return -1;
         }
     }
 
-    if (numPoints <= 0)
+    if (numPoints <= 0) {
+        if (z == 100) 
+            printf("[CUDA] %d,%d,%f --> %d,%d,%f numPoints <= 0\n", x, z, local_heading, goal_x, goal_z, goal_heading);
         return -1;
+    }
     return nodeCost;
 }
 
@@ -172,6 +179,8 @@ void CudaGraph::processDirectGoalConnection(SearchFrame *frame, int goal_x, int 
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
     float max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
+
+    printf ("minx, minz = %d, %d\n",_searchSpaceParams->get()[FRAME_PARAM_MIN_DIST_X], _searchSpaceParams->get()[FRAME_PARAM_MIN_DIST_Z]);
 
     __CUDA_direct_connection<<<numBlocks, THREADS_IN_BLOCK>>>(
         _graph->getCudaPtr(),

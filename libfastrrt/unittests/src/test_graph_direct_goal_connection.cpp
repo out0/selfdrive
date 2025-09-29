@@ -9,6 +9,7 @@
 #include <driveless/cuda_ptr.h>
 #include <driveless/search_frame.h>
 #include "test_utils.h"
+#include <opencv2/opencv.hpp>
 
 #define PHYS_SIZE 34.641016151377535
 
@@ -35,11 +36,10 @@ long computeFloatPos(int width, int x, int z)
     return 3 * (width * z + x);
 }
 
-
 TEST(TestGraphGoalDirectConnection, NarrowSpace)
 {
-    int min_x = 0;
-    int min_z = 0;
+    int min_x = 2;
+    int min_z = 2;
     CudaGraph *graph = buildTestGraph(min_x, min_z);
     angle p = angle::rad(0);
 
@@ -51,6 +51,14 @@ TEST(TestGraphGoalDirectConnection, NarrowSpace)
         {3},
         {4},
         {-1}};
+
+    std::vector<std::tuple<int, int, int>> colors = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {255, 255, 255}};
 
     int row = 100;
 
@@ -64,19 +72,36 @@ TEST(TestGraphGoalDirectConnection, NarrowSpace)
         ptr[pos] = 5;
     }
 
-    for (int x = 0; x < 256; x++)
-    {
-        long pos = computeFloatPos(256, x, row);
-        ptr[pos] = 0;
-    }
+    ptr[computeFloatPos(256, 127, row)] = 0;
+    ptr[computeFloatPos(256, 128, row)] = 0;
+    ptr[computeFloatPos(256, 129, row)] = 0;
 
     f->setClassCosts(costs);
+    f->setClassColors(colors);
     f->copyFrom(ptr);
     delete[] ptr;
 
     graph->addStart(128, 128, p); // A
     f->processDistanceToGoal(128, 0);
     f->processSafeDistanceZone({min_x, min_z}, false);
+
+    uchar *dest = new uchar[3 * f->width() * f->height()];
+    f->exportToColorFrame(dest);
+    // Save dest as output.png using OpenCV
+    cv::Mat img(f->height(), f->width(), CV_8UC3, dest);
+    for (int z = 0; z < f->height(); z++)
+        for (int x = 0; x < f->width(); x++)
+        {
+            long pos = 3 * (f->width() * z + x);
+            if (!f->isTraversable(x, z))
+            {
+                dest[pos] = 128;
+                dest[pos + 1] = 128;
+                dest[pos + 2] = 128;
+            }
+        }
+
+    cv::imwrite("output.png", img);
 
     graph->processDirectGoalConnection(f, 128, 0, angle::rad(0.0));
 
@@ -85,7 +110,7 @@ TEST(TestGraphGoalDirectConnection, NarrowSpace)
         if (graph->isDirectlyConnectedToGoal(i, row))
             printf("%d,%d\n", i, row);
     }
-        
+
     //     if (i == 112)
     //     {
     //         ASSERT_TRUE(graph->isDirectlyConnectedToGoal(i, row));

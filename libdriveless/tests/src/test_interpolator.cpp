@@ -8,7 +8,7 @@ TEST(TestInterpolator, HermiteCurveStraight)
     Waypoint p1(50, 99, angle::deg(0));
     Waypoint p2(50, 0, angle::deg(0));
 
-    auto curve = Interpolator::hermite(100, 100, p1, p2);
+    auto curve = Interpolator::hermite(100, 100, p1, p2, -1);
     ASSERT_EQ(curve.size(), 99);
 
     int last_z = -1;
@@ -43,7 +43,7 @@ TEST(TestInterpolator, HermiteCurvesReach)
     {
         Waypoint p2(x, 0, angle::deg(0));
 
-        auto curve = Interpolator::hermite(100, 100, p1, p2);
+        auto curve = Interpolator::hermite(100, 100, p1, p2, -1);
         ASSERT_TRUE(curve.size() >= 50);
         auto last = curve[curve.size() - 1];
         ASSERT_EQ(last.x(), x);

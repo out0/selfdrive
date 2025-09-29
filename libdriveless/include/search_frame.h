@@ -28,8 +28,6 @@ private:
     bool _safeZoneChecked;
     bool _safeZoneVectorialChecked;
     bool _distanceToGoalProcessed;
-    std::pair<int, int> _minDistanceChecked;
-
     std::pair<int, int> checkTraversableAngleBitPairCheck(float heading_rad);
 
     // std::vector<bool> checkFeasiblePathCPU(std::vector<Waypoint> path, bool computeHeadings);

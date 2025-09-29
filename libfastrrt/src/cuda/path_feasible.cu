@@ -26,7 +26,9 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
 
     if (isAllAngleFeasible(frame, pos))
     {
-        //printf("computeFeasibleForAngle: feasible for all at %d, %d\n", x, z);
+        if (x == 127 && z == 100)
+            printf("computeFeasibleForAngle: feasible for all at %d, %d\n", x, z);
+
         return true;
     }
 
@@ -61,8 +63,13 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
 
             if (classCost[segmentation_class] < 0)
             {
-                //printf("(%d, %d) invalid on %d, %d segmentation_class: %d (x param = %f) class cost %f\n", x, z, xl, zl, segmentation_class, frame[zl * width + xl].x, classCost[segmentation_class]);
+                if (x == 127 && z == 100)
+                    printf("(%d, %d) invalid on %d, %d segmentation_class: %d (x param = %f) class cost %f\n", x, z, xl, zl, segmentation_class, frame[zl * width + xl].x, classCost[segmentation_class]);
                 return false;
+            }
+
+            if (x == 127 && z == 100) {
+                printf ("%d, %d feasible while checking %d, %d minDistX: %d, minDistZ: %d\n", x, z, xl, zl, minDistX, minDistZ);
             }
         }
 
