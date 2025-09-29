@@ -85,30 +85,40 @@ TEST(TestGraphGoalDirectConnection, NarrowSpace)
     f->processDistanceToGoal(128, 0);
     f->processSafeDistanceZone({min_x, min_z}, false);
 
-    uchar *dest = new uchar[3 * f->width() * f->height()];
-    f->exportToColorFrame(dest);
-    // Save dest as output.png using OpenCV
-    cv::Mat img(f->height(), f->width(), CV_8UC3, dest);
-    for (int z = 0; z < f->height(); z++)
-        for (int x = 0; x < f->width(); x++)
-        {
-            long pos = 3 * (f->width() * z + x);
-            if (!f->isTraversable(x, z))
-            {
-                dest[pos] = 128;
-                dest[pos + 1] = 128;
-                dest[pos + 2] = 128;
-            }
-        }
+    // uchar *dest = new uchar[3 * f->width() * f->height()];
+    // f->exportToColorFrame(dest);
+    // // Save dest as output.png using OpenCV
+    // cv::Mat img(f->height(), f->width(), CV_8UC3, dest);
+    // for (int z = 0; z < f->height(); z++)
+    //     for (int x = 0; x < f->width(); x++)
+    //     {
+    //         long pos = 3 * (f->width() * z + x);
+    //         if (!f->isTraversable(x, z))
+    //         {
+    //             dest[pos] = 128;
+    //             dest[pos + 1] = 128;
+    //             dest[pos + 2] = 128;
+    //         }
+    //     }
 
-    cv::imwrite("output.png", img);
+    // cv::imwrite("output.png", img);
 
     graph->processDirectGoalConnection(f, 128, 0, angle::rad(0.0));
 
     for (int i = 0; i < 256; i++)
     {
-        if (graph->isDirectlyConnectedToGoal(i, row))
-            printf("%d,%d\n", i, row);
+        if (i == 128)
+        {
+            ASSERT_TRUE(graph->isDirectlyConnectedToGoal(i, row));
+        }
+        else
+        {
+            ASSERT_FALSE(graph->isDirectlyConnectedToGoal(i, row));
+        }
+
+
+        // if (graph->isDirectlyConnectedToGoal(i, row))
+        //     printf("%d,%d\n", i, row);
     }
 
     //     if (i == 112)
