@@ -4,8 +4,6 @@
 #include "../../include/graph.h"
 #include <fstream>
 
-#define CHECK_NO_COLLISION 1
-
 extern __device__ __host__ float4 check_kinematic_new_path(int4 *graph, float4 *graphData, double *physicalParams, int *searchSpaceParams, float3 *frame, float *classCosts, float3 *ogStart, int2 start, float steeringAngle, float pathSize, float velocity_m_s);
 extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
@@ -35,7 +33,7 @@ __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
     return a.x == b.x && a.y == b.y;
 }
 
-__global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, float4 *graphData, int *bestCostDirectConnect, int goal_x, int goal_z, float goal_heading, bool *goalReached, int width, int height)
+__global__ void __CUDA_accept_derived_nodes(int4 *graph, float4 *graphData, int *bestCostDirectConnect, int goal_x, int goal_z, float goal_heading, bool *goalReached, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -65,12 +63,32 @@ __global__ void __CUDA_KERNEL_acceptDerivatedPaths(int4 *graph, float4 *graphDat
 
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
+void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
+{
+    int size = _graph->width() * _graph->height();
+    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-//__device__ host__ void 
+    __CUDA_accept_derived_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
+        _bestCostDirectConnect->get(),
+        goal.x,
+        goal.y,
+        goal_heading,
+        _goalReached->get(),
+        _graph->width(),
+        _graph->height());
+
+    CUDA(cudaDeviceSynchronize());
+}
+void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
+{
+    long pos = computePos(_graph->width(), lastNode.x, lastNode.y);
+    setTypeCuda(_graph->getCudaPtr(), pos, GRAPH_TYPE_NODE);
+}
 
 
-
-__global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading, int *bestCostDirectConnect)
+__global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading, int *bestCostDirectConnect)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int width = searchParams[FRAME_PARAM_WIDTH];
@@ -157,59 +175,6 @@ __global__ void __CUDA_KERNEL_randomlyDerivateNodes(curandState *state, int4 *gr
     }
 }
 
-void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
-{
-    int size = _graph->width() * _graph->height();
-    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
-    __CUDA_KERNEL_acceptDerivatedPaths<<<numBlocks, THREADS_IN_BLOCK>>>(
-        _graph->getCudaPtr(),
-        _graphData->getCudaPtr(),
-        _bestCostDirectConnect->get(),
-        goal.x,
-        goal.y,
-        goal_heading,
-        _goalReached->get(),
-        _graph->width(),
-        _graph->height());
-
-    CUDA(cudaDeviceSynchronize());
-}
-
-void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
-{
-    long pos = computePos(_graph->width(), lastNode.x, lastNode.y);
-    setTypeCuda(_graph->getCudaPtr(), pos, GRAPH_TYPE_NODE);
-}
-
-void CudaGraph::dumpNodesToFile(const char *filename)
-{
-    std::ofstream ofs(filename);
-    if (!ofs.is_open())
-        return;
-    std::vector<int3> nodes = listAll();
-
-    for (int3 n : nodes)
-    {
-        GraphNode g(n.x, n.y, n.z);
-        int2 parent = getParent(n.x, n.y);
-        int parent_x = parent.x;
-        int parent_z = parent.y;
-        float heading_rad = getHeading(n.x, n.y).rad();
-        float cost = getCost(n.x, n.y);
-        float connectToEndCost = getDirectCost(n.x, n.z);
-        ofs << n.x << " "
-            << n.y << " "
-            << heading_rad << " "
-            << n.z << " "
-            << parent_x << " "
-            << parent_z << " "
-            << connectToEndCost << " "
-            << cost << "\n";
-    }
-
-    ofs.close();
-}
 
 void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool frontierExpansion, int2 start_node, int2 goal, angle goal_heading)
 {
@@ -219,7 +184,7 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
     *_nodeCollision->get() = false;
     const long start_node_pos = computePos(_graph->width(), start_node.x, start_node.y);
 
-    __CUDA_KERNEL_randomlyDerivateNodes<<<numBlocks, THREADS_IN_BLOCK>>>(
+    __CUDA_random_node_expansion<<<numBlocks, THREADS_IN_BLOCK>>>(
         _randState->get(),
         _graph->getCudaPtr(),
         _graphData->getCudaPtr(),
@@ -299,4 +264,33 @@ bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int go
         search_frame->getCudaFrameParamsPtr(),
         maxSteering,
         x, z, goal_x, goal_z, goal_heading);
+}
+
+void CudaGraph::dumpNodesToFile(const char *filename)
+{
+    std::ofstream ofs(filename);
+    if (!ofs.is_open())
+        return;
+    std::vector<int3> nodes = listAll();
+
+    for (int3 n : nodes)
+    {
+        GraphNode g(n.x, n.y, n.z);
+        int2 parent = getParent(n.x, n.y);
+        int parent_x = parent.x;
+        int parent_z = parent.y;
+        float heading_rad = getHeading(n.x, n.y).rad();
+        float cost = getCost(n.x, n.y);
+        float connectToEndCost = getDirectCost(n.x, n.z);
+        ofs << n.x << " "
+            << n.y << " "
+            << heading_rad << " "
+            << n.z << " "
+            << parent_x << " "
+            << parent_z << " "
+            << connectToEndCost << " "
+            << cost << "\n";
+    }
+
+    ofs.close();
 }

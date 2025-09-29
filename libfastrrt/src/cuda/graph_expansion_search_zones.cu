@@ -23,6 +23,10 @@ extern __device__ __host__ void decNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ int getNodeDeriveCount(int4 *graph, long pos);
 extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int count);
 extern __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
+extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
+extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
+#define MIN_PATH_SIZE 5.0
+
 
 #define BLOCK_SIZE 128
 #define CHECK_NO_COLLISION 1
@@ -152,12 +156,6 @@ void CudaGraph::computeGraphRegionDensity()
         // printf("density region (%d, %d): %d\n", density_x, density_z, _region_node_count[i]);
     }
 }
-
-// extern __device__ void prepare_path_candidate_for_parallel_check(float3 *frame, int4 *graph, float4 *graphData, float *classCosts, double *physicalParams, int width, int height, int2 start, int2 end, float pathSize);
-extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
-#define MIN_PATH_SIZE 5.0
-
-extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
 
 __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision, int goal_x, int goal_z, float goal_heading, int *bestCostDirectConnect)
 {

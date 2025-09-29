@@ -94,8 +94,8 @@ __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *grap
         {
             float k = abs(ddx * dd2z - ddz * dd2x) / pow(ddx * ddx + ddz * ddz, 3 / 2);
             if (k > max_curvature) {
-                printf ("[CUDA] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
-                x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
+                // printf ("[CUDA] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
+                // x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
                 return -2;
             }
         }
@@ -105,8 +105,8 @@ __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *grap
         last_z = cz;
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading)) {
-            printf ("[CUDA] %d,%d,%f --> %d,%d,%f collision\n",
-                x, z, local_heading, goal_x, goal_z, goal_heading);
+            // printf ("[CUDA] %d,%d,%f --> %d,%d,%f collision\n",
+            //     x, z, local_heading, goal_x, goal_z, goal_heading);
             return -1;
         }
     }
