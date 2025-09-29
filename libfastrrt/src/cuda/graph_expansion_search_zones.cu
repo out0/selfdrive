@@ -25,6 +25,7 @@ extern __device__ __host__ void setNodeDeriveCount(int4 *graph, long pos, int co
 extern __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_steering_rad, int x, int z, int goal_x, int goal_z, float goal_heading);
 extern __device__ __host__ void setDirectCostCuda(float4 *graphData, long pos, float cost);
 extern __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, int width, int height, long pos);
+extern __device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad, float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float velocity_m_s, bool *nodeCollision);
 #define MIN_PATH_SIZE 5.0
 
 
@@ -189,59 +190,7 @@ __global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, flo
     if (pathSize <= 0)
         pathSize = MIN_PATH_SIZE;
 
-    // printf("[cuda] path size: %f, max: %f\n", pathSize, maxPathSize);
-    // printf("[cuda] heading %f, steeringAngle: %f, max steeringAngle: %f\n", heading, steeringAngle, maxSteeringAngle);
-    // printf("velocity_m_s: %f\n", velocity_m_s);
-
-    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
-
-    // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
-
-    if (end.x < 0 || end.y < 0)
-        return;
-
-    int end_x = TO_INT(end.x);
-    int end_z = TO_INT(end.y);
-    float end_cost = end.z;
-    float end_heading = end.w;
-
-    long end_pos = computePos(width, end_x, end_z);
-
-    if (end_pos == pos)
-        return;
-
-    float max_curvature = physicalParams[PHYSICAL_MAX_CURVATURE];
-    max_curvature = -1;
-    //printf ("max_curvature = %f\n", max_curvature);
-    
-
-    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP) == GRAPH_TYPE_NULL) {
-        // A new node is being added to the graph
-
-        incNodeDeriveCount(graph, pos);
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
-
-        float connect_cost = canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, max_curvature, x, z, goal_x, goal_z, goal_heading);
-
-        if (connect_cost > 0)
-        {
-            set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_CONNECT_TO_GOAL, true);
-            setDirectCostCuda(graphData, end_pos, connect_cost);
-            atomicMin(bestCostDirectConnect, TO_INT(1000 * connect_cost));
-            printf("[CUDA] %d, %d can connect to the goal %d, %d with cost = %f\n", end_x, end_z, goal_x, goal_z, connect_cost);
-            return;
-        }
-    }
-    
-    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE) {
-        // if (checkCyclicReference(graph, width, height, pos, end_x, end_z)) {
-        //     atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_COLLISION, GRAPH_TYPE_NODE);
-        //     return;
-        // }
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        *nodeCollision = true;
-        decNodeDeriveCount(graph, pos);
-    }
+    expand_node(graph, graphData, frame, pos, x, z, steeringAngle, pathSize, classCosts, searchParams, physicalParams, ogStart, velocity_m_s, nodeCollision);
 }
 
 void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, int2 goal, angle goal_heading)

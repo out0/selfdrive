@@ -88,6 +88,59 @@ void CudaGraph::acceptDerivedNode(int2 start, int2 lastNode)
 }
 
 
+__device__ __host__ bool change_graph_type_if_current_value_equals_expected_value(int4 *graph, long pos, int expected_value, int new_value) {
+
+#ifdef __CUDA_ARCH__
+    return atomicCAS(&(graph[pos].z), expected_value, new_value) == expected_value;
+#else
+    if (graph[pos].z == expected_value) {
+        graph[pos].z = new_value;
+        return true;
+    }
+    return false;
+#endif
+}
+
+__device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *frame, long pos, int x, int z, float steeringAngle_rad, 
+    float pathSize, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float velocity_m_s, bool *nodeCollision)
+{
+    int width = searchParams[FRAME_PARAM_WIDTH];
+
+    float heading = getHeadingCuda(graphData, pos);
+
+    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle_rad, pathSize, velocity_m_s);
+
+    // printf("end expansion: %f, %f, heading: %f, cost: %f\n", end.x, end.y, end.w, end.z);
+
+    if (end.x < 0 || end.y < 0)
+        return {-1, -1};
+
+    int end_x = TO_INT(end.x);
+    int end_z = TO_INT(end.y);
+    float end_cost = end.z;
+    float end_heading = end.w;
+
+    long end_pos = computePos(width, end_x, end_z);
+
+    if (end_pos == pos)
+        return {-1, -1};
+
+    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP)) {
+        // A new node is being added to the graph
+        incNodeDeriveCount(graph, pos);
+        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
+    }
+    
+    if (change_graph_type_if_current_value_equals_expected_value(graph, end_pos, GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION)) {
+        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
+        *nodeCollision = true;
+        decNodeDeriveCount(graph, pos);
+    }
+
+    return {TO_INT(end.x), TO_INT(end.y)};
+}
+
+
 __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading, int *bestCostDirectConnect)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -111,7 +164,6 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
 
     float heading = getHeadingCuda(graphData, pos);
     double maxSteeringAngle = physicalParams[PHYSICAL_PARAMS_MAX_STEERING_RAD];
-    float max_curvature = physicalParams[PHYSICAL_MAX_CURVATURE];
 
 //    printf ("max_curvature = %f\n", max_curvature);
 
@@ -123,56 +175,7 @@ __global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, fl
         pathSize = generateRandom(state, pos, 5.0, maxPathSize);
     }
 
-    // TODO: support reverse by using a random variable and a flag to add a 180 degree turn on current heading before generating the kinematic path
-    //       the problem with reverse is that we need an extra information (flag?) that tells that the movement is reverse in the graph.
-
-    float4 end = check_kinematic_new_path(graph, graphData, physicalParams, searchParams, frame, classCosts, ogStart, {x, z}, steeringAngle, pathSize, velocity_m_s);
-
-    if (end.x < 0 || end.y < 0)
-        return;
-
-    int end_x = TO_INT(end.x);
-    int end_z = TO_INT(end.y);
-    float end_cost = end.z;
-    float end_heading = end.w;
-
-    long end_pos = computePos(width, end_x, end_z);
-
-    if (end_pos == pos)
-        return;
-
-    if (end_pos == start_node_pos)
-        return;
-
-
-    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NULL, GRAPH_TYPE_TEMP) == GRAPH_TYPE_NULL) {
-        // A new node is being added to the graph
-
-        incNodeDeriveCount(graph, pos);
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
-
-        
-        float connect_cost = canConnectToGoalUsingHermite(graph, graphData, frame, classCosts, searchParams, max_curvature, x, z, goal.x, goal.y, goal_heading);
-
-        if (connect_cost > 0)
-        {
-            set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_CONNECT_TO_GOAL, true);
-            setDirectCostCuda(graphData, end_pos, connect_cost);
-            atomicMin(bestCostDirectConnect, TO_INT(1000 * connect_cost));
-            printf("[CUDA] %d, %d can connect to the goal %d, %d with cost = %f\n", end_x, end_z, goal.x, goal.y, connect_cost);
-        }
-        return;
-    }
-    
-    if (atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_NODE, GRAPH_TYPE_COLLISION) == GRAPH_TYPE_NODE) {
-        // if (checkCyclicReference(graph, width, height, pos, end_x, end_z)) {
-        //     atomicCAS(&(graph[end_pos].z), GRAPH_TYPE_COLLISION, GRAPH_TYPE_NODE);
-        //     return;
-        // }
-        set(graph, graphData, end_pos, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        *nodeCollision = true;
-        decNodeDeriveCount(graph, pos);
-    }
+    expand_node(graph, graphData, frame, pos, x, z, steeringAngle, pathSize, classCosts, searchParams, physicalParams, ogStart, velocity_m_s, nodeCollision);
 }
 
 
@@ -220,33 +223,21 @@ int2 CudaGraph::derivateNode(float3 *og, angle steeringAngle, double pathSize, f
     if (!checkInGraph(x, z))
         return int2{-1, -1};
 
-    float4 p = check_kinematic_new_path(_graph->getCudaPtr(), _graphData->getCudaPtr(), _physicalParams->get(), _searchSpaceParams->get(), og, _classCosts->get(), _ogCoordinateStart->get(), {x, z}, steeringAngle.rad(), pathSize, velocity_m_s);
+    long pos = computePos(_graph->width(), x, z);
 
-    if (p.x < 0 || p.y < 0)
-        return int2{-1, -1};
-
-    int end_x = static_cast<int>(p.x);
-    int end_z = static_cast<int>(p.y);
-    float end_cost = p.z;
-    float end_heading = p.w;
-
-    long pos = computePos(width(), x, z);
-    long pos_end = computePos(width(), end_x, end_z);
-
-    if (checkInGraphCuda(_graph->getCudaPtr(), pos_end))
-    {
-        // return {-1, -1};
-        //  printf ("[derive collision] %d, %d, %f + %f -> %d, %d, %f (rad: %f) size: %f\n", x, z, startHeading, steeringAngle, end.x, end.y, endHeading, getHeadingCuda(graphData, computePos(width, end.x, end.y)), pathSize);
-        set(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_COLLISION, true);
-        setNodeDeriveCount(_graph->getCudaPtr(), pos, 1);
-    }
-    else
-    {
-        set(_graph->getCudaPtr(), _graphData->getCudaPtr(), pos_end, end_heading, x, z, end_cost, GRAPH_TYPE_TEMP, true);
-        incNodeDeriveCount(_graph->getCudaPtr(), pos);
-    }
-
-    return {end_x, end_z};
+    return expand_node(
+        _graph->getCudaPtr(),
+        _graphData->getCudaPtr(),
+        og,
+        pos, x, z,
+        steeringAngle.rad(),
+        pathSize,
+        _classCosts->get(),
+        _searchSpaceParams->get(),
+        _physicalParams->get(),
+        _ogCoordinateStart->get(),
+        velocity_m_s,
+        _nodeCollision->get());
 }
 
 bool CudaGraph::canConnectToGoal(SearchFrame *search_frame, int x, int z, int goal_x, int goal_z, int goal_heading)
