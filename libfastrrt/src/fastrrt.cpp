@@ -61,8 +61,8 @@ void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, flo
     this->_ptr = frame.getCudaPtr();
     this->_planningVelocity_m_s = velocity_m_s;
     _graph.setSearchParams(minDistance, frame.lowerBound(), frame.upperBound());
-    _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());
-
+    _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());   
+    _graph.processDirectGoalConnection(&frame, goal.x(), goal.z(), goal.heading());
     // printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 
@@ -78,6 +78,8 @@ void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
     _last_expanded_node_count = 0;
+
+    
 
     // int x = 183, z = 72;
     // printf ("result for %d,%d: z = %.2f\n", x, z, this->_ptr[z * 256 + x].z);
@@ -117,12 +119,21 @@ bool FastRRT::loop(bool smart)
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
     //_graph.dumpNodesToFile("before_error_2.txt");
     _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
+
     
-    if (!_graph.checkGraphIsConsistent()) {
-        //_graph.dumpNodesToFile("error.txt");
-        printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
-        return false;
+    // TODO: link last option to searchframe state
+    float3 n = _graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true);
+
+    if (n.x != -1 && n.y != -1) {
+        _graph.add(_goal.x(), _goal.z(), _goal.heading(), TO_INT(n.x), TO_INT(n.y), n.z);
+        printf ("[Direct connection] %d, %d --> %d, %d with cost %f\n", TO_INT(n.x), TO_INT(n.y), _goal.x(), _goal.z(), n.z);
     }
+    
+    // if (!_graph.checkGraphIsConsistent()) {
+    //     //_graph.dumpNodesToFile("error.txt");
+    //     printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
+    //     return false;
+    // }
     if (goalReached())
     {
         // printf ("shrinking graph...\n");

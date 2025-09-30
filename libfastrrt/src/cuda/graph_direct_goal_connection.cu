@@ -121,8 +121,16 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
 
         int traversability = TO_INT(frame[pos].z);
 
-        if (isSafeZoneChecked && check_bit(traversability, 0x100))
+        if (x == 124 && z == 112) {
+            printf ("last_x = %d, last_z = %d\n", last_x, last_z);
+        }
+
+        if (isSafeZoneChecked && check_bit(traversability, 0x100)) {
+            if (x == 124 && z == 112) {
+                printf ("SAFEZONE CHECKED last_x = %d, last_z = %d\n", last_x, last_z);
+            }
             continue;
+        }
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading))
         {
@@ -137,6 +145,12 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
         //     printf("[CUDA] %d,%d,%f --> %d,%d,%f numPoints <= 0\n", x, z, local_heading, goal_x, goal_z, goal_heading);
         return -1;
     }
+
+    if (last_x != goal_x && last_z != goal_z) {
+        return -1;
+    }
+
+    //printf("[CUDA] %d,%d connects to %d,%d,, goal %d, %d\n", x, z , last_x, last_z, goal_x, goal_z);
     return nodeCost;
 }
 
@@ -168,7 +182,7 @@ __global__ static void __CUDA_direct_connection(int4 *graph, float4 *graphData, 
     directConnectData[pos].z = cost;
 
     // temp
-    // printf ("%d, %d connects directly to goal %d, %d with heading %f deg\n", x, z, goal_x, goal_z, 180 * local_heading / PI);
+    //printf ("%d, %d connects directly to goal %d, %d with heading %f deg\n", x, z, goal_x, goal_z, 180 * local_heading / PI);
 }
 
 void CudaGraph::processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading)
@@ -192,8 +206,9 @@ void CudaGraph::processDirectGoalConnection(SearchFrame *frame, int goal_x, int 
         goal_x,
         goal_z,
         goal_heading.rad(),
-        frame->isSafeZoneChecked(),
-        frame->isDistanceToGoalProcessed());
+        false, false);
+        //frame->isSafeZoneChecked(),
+        //frame->isDistanceToGoalProcessed());
 
     CUDA(cudaDeviceSynchronize());
 }

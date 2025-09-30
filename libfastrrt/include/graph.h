@@ -277,7 +277,7 @@ public:
     angle directConnectionToGoalHeding(int x, int z);
 
 
-    int2 findBestGoalDirectConnection(float3 *og, angle heading, float radius, bool isSafeZoneChecked);
+    float3 findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
 };
 
 #endif

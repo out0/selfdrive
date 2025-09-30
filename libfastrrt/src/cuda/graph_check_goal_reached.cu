@@ -53,6 +53,7 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection_cost(
             if (!is_directly_connected_to_goal(directConnection, width, xp, zp))
                 continue;
 
+
             float local_intermediate_heading = get_heading_direct_connection_to_goal(directConnection, width, xp, zp);
 
             float cost = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
@@ -63,7 +64,7 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection_cost(
             cost += get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
 
             long long lcost = __float2ll_rd(100 * cost);
-            atomicMin(bestCost, cost);
+            atomicMin(bestCost, lcost);
             setTypeCuda(graph, pos, GRAPH_TYPE_PROCESSING);
         }
 }
@@ -117,15 +118,17 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection(
             cost += get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
 
             long long lcost = __float2ll_rd(100 * cost);
+            //printf ("%d, %d direct connection to goal - %d, %d bestCost: %f cost: %f\n", x, z, xp, zp, bestCost, lcost);
             if (lcost <= bestCost)
             {
                 node->x = x;
                 node->y = z;
             }
+            
         }
 }
 
-int2 CudaGraph::findBestGoalDirectConnection(float3 *og, angle heading, float radius, bool isSafeZoneChecked)
+float3 CudaGraph::findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked)
 {
     int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
@@ -171,6 +174,8 @@ int2 CudaGraph::findBestGoalDirectConnection(float3 *og, angle heading, float ra
 
     CUDA(cudaDeviceSynchronize());
 
-    return {bestNode.get()->x, bestNode.get()->y};
+    float best_cost = *cost.get() / 100;
+
+    return {(float)bestNode.get()->x, (float)bestNode.get()->y, best_cost};
 }
 

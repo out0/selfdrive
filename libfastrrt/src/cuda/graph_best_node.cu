@@ -52,16 +52,22 @@ __global__ void __CUDA_KERNEL_findBestNodeWithHeading_bestCost(
 
     const float dist = sqrtf(dx * dx + dz * dz);
 
-    if (dist > searchRadius)
+    if (dist > searchRadius) {
+        //printf ("%d, %d failed because of dist\n", x, z);
         return;
+    }
 
     float heading = getHeadingCuda(graphData, pos);
 
-    if (abs(heading - targetHeading_rad) > maxHeadingError_rad)
+    if (abs(heading - targetHeading_rad) > maxHeadingError_rad) {
+        //printf ("%d, %d failed because of heading error: %f vs %f\n", x, z, abs(heading - targetHeading_rad), maxHeadingError_rad);
         return;
+    }
 
-    if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading))
+    if (!__computeFeasibleForAngle(frame, params, classCost, minDistX, minDistZ, x, z, heading)) {
+        //printf ("%d, %d, %f failed because is unfeasible minDistX = %d, minDistZ = %d\n", x, z, heading, minDistX, minDistZ);
         return;
+    }
 
     long long cost = __compute_cost_findBestNode(dist, heading, getCostCuda(graphData, pos));
 
