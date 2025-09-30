@@ -30,6 +30,7 @@ private:
     int2 _bestNode;
     int _last_expanded_node_count;
     bool _hasPlanData;
+    angle _headingErrorTolerance;
 
     void __set_exec_started();
     long __get_exec_time_ms();
@@ -44,12 +45,9 @@ public:
             angle maxSteeringAngle,
             float vehicleLength,
             int timeout_ms,
-            // std::pair<int, int> minDistance,
-            // std::pair<int, int> lowerBound,
-            // std::pair<int, int> upperBound,
-            // std::vector<float> segmentationClassCost,
             float maxPathSize = 30.0,
-            float distToGoalTolerance = 5.0);
+            float distToGoalTolerance = 5.0,
+            angle headingErrorTolerance = angle::deg(10));
 
     void setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance);
 

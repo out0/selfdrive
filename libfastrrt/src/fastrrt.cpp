@@ -9,18 +9,16 @@ FastRRT::FastRRT(
     angle maxSteeringAngle,
     float vehicleLength,
     int timeout_ms,
-    // std::pair<int, int> minDistance,
-    // std::pair<int, int> lowerBound,
-    // std::pair<int, int> upperBound,
-    // std::vector<float> segmentationClassCost,
     float maxPathSize,
-    float distToGoalTolerance) : _graph(CudaGraph(width, height)),
+    float distToGoalTolerance,
+    angle headingErrorTolerance) : _graph(CudaGraph(width, height)),
                                  _distToGoalTolerance(distToGoalTolerance),
                                  _timeout_ms(timeout_ms),
                                  _maxPathSize(maxPathSize),
                                  _start(Waypoint(0, 0, angle::rad(0))),
                                  _goal(Waypoint(0, 0, angle::rad(0))),
-                                 _hasPlanData(false)
+                                 _hasPlanData(false),
+                                 _headingErrorTolerance(headingErrorTolerance)
 {
     // printf ("Parameters: \n");
     // printf ("width: %d, height: %d\n", width, height);
@@ -145,7 +143,7 @@ void FastRRT::path_optimize()
 bool FastRRT::goalReached()
 {
     int2 goal = {_goal.x(), _goal.z()};
-    return _graph.checkGoalReached(_ptr, goal, _goal.heading(), _distToGoalTolerance, TO_RAD * 10);
+    return _graph.checkGoalReached(_ptr, goal, _goal.heading(), _distToGoalTolerance, _headingErrorTolerance.rad());
 }
 
 std::vector<Waypoint> FastRRT::getPlannedPath()

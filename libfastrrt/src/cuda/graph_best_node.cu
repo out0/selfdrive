@@ -206,12 +206,13 @@ __global__ void __CUDA_KERNEL_checkGoalReached(
     if (compute_euclidean_2d_dist(s, e) > distToGoalTolerance)
         return;
     
-    printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance);
-
     float heading = getHeadingCuda(graphData, pos);
 
     if (abs(heading - goalHeading) <= maxHeadingError)
         *goalReached = true;
+
+    //printf ("goal reached candidate: %d, %d --> %d, %d,  dist: %f < %f heading error: %f, max: %f\n", x, z, goalX, goalZ, compute_euclidean_2d_dist(s, e), distToGoalTolerance, abs(heading - goalHeading), maxHeadingError);
+
 }
 
 bool CudaGraph::checkGoalReached(float3 *og, int2 goal, angle heading, float distanceToGoalTolerance, float maxHeadingError)

@@ -103,6 +103,7 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
     delete[] dest;
 
     std::vector<GraphNode> nodes = rrt->exportGraphNodes();
+    //printf ("exporting %d nodes\n", nodes.size());
 
     for (auto n : nodes)
     {
@@ -165,7 +166,7 @@ TEST(TestRRT, TestSearch)
     frame.setClassCosts(classCosts);
     frame.setClassColors(classColors);
 
-    float maxPathSize = 20.0;
+    float maxPathSize = 40.0;
     float distToGoal = 20.0;
 
     frame.copyFrom(res.second);
@@ -195,9 +196,9 @@ TEST(TestRRT, TestSearch)
     rrt.search_init();
 
     int i = 0;
-    while (!rrt.goalReached() && rrt.loop(true))
+    while (!rrt.goalReached() && rrt.loop(false))
     {
-        logGraph(&rrt, &frame, "output1.png", ++i);
+        //logGraph(&rrt, &frame, "output1.png", ++i);
     }
 
     ASSERT_TRUE(rrt.goalReached());

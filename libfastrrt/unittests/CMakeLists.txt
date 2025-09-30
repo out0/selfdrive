@@ -97,7 +97,7 @@ add_executable(
   src/test_graph_dag_consistency.cpp
   src/test_graph_solve_collisions.cpp
   src/test_graph_direct_goal_connection.cpp
-  #src/test_rrt.cpp
+  src/test_rrt.cpp
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

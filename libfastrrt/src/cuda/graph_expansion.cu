@@ -117,6 +117,11 @@ __device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *fra
 
     int end_x = TO_INT(end.x);
     int end_z = TO_INT(end.y);
+
+    if (end_x == ogStart->x && end_z == ogStart->y) {
+        return {-1, -1};
+    }
+
     float end_cost = end.z;
     float end_heading = end.w;
 
