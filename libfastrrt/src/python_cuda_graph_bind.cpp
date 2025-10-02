@@ -87,7 +87,7 @@ extern "C"
     {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *f = (SearchFrame *)searchFramePtr;
-        graph->derivateNode(f->getCudaPtr(), angle::rad(steering_angle), static_cast<double>(path_size), velocity, x, z); 
+        graph->derivateNode(f->getCudaPtr(), angle::rad(steering_angle), static_cast<double>(path_size), velocity, x, z);
     }
 
     void accept_derived_nodes(void *ptr, int goal_x, int goal_z, float goal_heading)
@@ -105,43 +105,76 @@ extern "C"
         CudaGraph *graph = (CudaGraph *)ptr;
         return graph->getHeading(x, z).rad();
     }
-    void clear(void *ptr) {
+    void clear(void *ptr)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
         graph->clear();
     }
 
-    float * list_all(void *ptr) {
+    float *list_all(void *ptr)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
         std::vector<int3> nodes = graph->listAll();
 
         float *res = new float[nodes.size() * 4 + 1];
         int pos = 1;
-        
+
         res[0] = 0.0 + nodes.size();
-        for (auto n : nodes) {
+        for (auto n : nodes)
+        {
             res[pos] = static_cast<float>(n.x);
-            res[pos+1] = static_cast<float>(n.y);
-            res[pos+2] = graph->getHeading(n.x, n.y).rad();
-            res[pos+3] = n.z;
+            res[pos + 1] = static_cast<float>(n.y);
+            res[pos + 2] = graph->getHeading(n.x, n.y).rad();
+            res[pos + 3] = n.z;
             pos += 4;
         }
 
         return res;
     }
 
-    void free_list_all(float *p) {
-        delete []p;
+    void free_list_all(float *p)
+    {
+        delete[] p;
     }
 
-    bool can_connect_to_goal_using_hermite(void *ptr, void *frame_ptr, int x, int z, int goal_x, int goal_z, float goal_heading) {
+    bool can_connect_to_goal_using_hermite(void *ptr, void *frame_ptr, int x, int z, int goal_x, int goal_z, float goal_heading)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
         SearchFrame *frame = (SearchFrame *)frame_ptr;
-        
+
         return graph->canConnectToGoal(frame, x, z, goal_x, goal_z, goal_heading);
     }
-    
-    void solve_collisions(void *ptr) {
+
+    void solve_collisions(void *ptr)
+    {
         CudaGraph *graph = (CudaGraph *)ptr;
         graph->solveCollisions();
+    }
+
+    void process_direct_goal_connection(void *ptr, void *frame_ptr, int goal_x, int goal_z, float goal_heading_rad, float max_curvature)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        SearchFrame *frame = (SearchFrame *)frame_ptr;
+
+        graph->processDirectGoalConnection(frame, goal_x, goal_z, angle::rad(goal_heading_rad), max_curvature);
+    }
+
+    bool is_directly_connected_to_goal(void *ptr, int x, int z)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        return graph->isDirectlyConnectedToGoal(x, z);
+    }
+
+    float direct_connection_to_goal_cost(void *ptr, int x, int z)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        return graph->directConnectionToGoalCost(x, z);
+    }
+
+    float direct_connection_to_goal_heading(void *ptr, int x, int z)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        angle a = graph->directConnectionToGoalHeading(x, z);
+        return a.rad();
     }
 }

@@ -180,6 +180,40 @@ class CudaGraph:
             ctypes.POINTER(ctypes.c_float)
         ]
 
+        CudaGraph.lib.process_direct_goal_connection.restype = None
+        CudaGraph.lib.process_direct_goal_connection.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_float,
+            ctypes.c_float
+        ]
+
+        CudaGraph.lib.is_directly_connected_to_goal.restype = ctypes.c_bool
+        CudaGraph.lib.is_directly_connected_to_goal.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int
+        ]
+
+        CudaGraph.lib.direct_connection_to_goal_cost.restype = ctypes.c_float
+        CudaGraph.lib.direct_connection_to_goal_cost.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int
+        ]
+
+        CudaGraph.lib.direct_connection_to_goal_heading.restype = ctypes.c_float
+        CudaGraph.lib.direct_connection_to_goal_heading.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int
+        ]
+
+
+      
+
 
     def compute_apf_repulsion(self, cuda_ptr: SearchFrame, kr: float, radius: int):
         CudaGraph.lib.compute_apf_repulsion(
@@ -241,3 +275,16 @@ class CudaGraph:
 
     def solve_collisions(self) -> None:
         CudaGraph.lib.solve_collisions(self.__ptr)
+
+    def process_direct_goal_connection (self, search_frame: SearchFrame, goal_x: int, goal_z: int, goal_heading: angle, max_curvature: float = -1) -> None:
+        CudaGraph.lib.process_direct_goal_connection(self.__ptr, search_frame.get_cuda_ptr(), goal_x, goal_z, goal_heading.rad(), max_curvature)
+
+    def is_directly_connected_to_goal(self, x: int, z: int) -> bool:
+        return CudaGraph.lib.is_directly_connected_to_goal(self.__ptr, x, z)
+
+    def direct_connection_to_goal_cost(self, x: int, z: int) -> float:
+        return CudaGraph.lib.direct_connection_to_goal_cost(self.__ptr, x, z);  
+
+    def direct_connection_to_goal_heading(self, x: int, z: int) -> angle:
+        heading_rad = CudaGraph.lib.direct_connection_to_goal_heading(self.__ptr, x, z)
+        return angle.new_rad(heading_rad)

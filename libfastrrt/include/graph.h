@@ -256,7 +256,7 @@ public:
     /// @param goal_x
     /// @param goal_z
     /// @param goal_heading
-    void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading);
+    void processDirectGoalConnection(SearchFrame *frame, int goal_x, int goal_z, angle goal_heading, float max_curvature = -1);
 
     /// @brief Returns true if the cell x,z can direcly connect to the goal (via processDirectGoalConnection)
     /// @param x 
@@ -274,7 +274,7 @@ public:
     /// @param x 
     /// @param z 
     /// @return 
-    angle directConnectionToGoalHeding(int x, int z);
+    angle directConnectionToGoalHeading(int x, int z);
 
 
     float3 findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);

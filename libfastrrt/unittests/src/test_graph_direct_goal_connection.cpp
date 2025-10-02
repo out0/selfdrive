@@ -116,9 +116,85 @@ TEST(TestGraphGoalDirectConnection, NarrowSpace)
             ASSERT_FALSE(graph->isDirectlyConnectedToGoal(i, row));
         }
 
-
         // if (graph->isDirectlyConnectedToGoal(i, row))
         //     printf("%d,%d\n", i, row);
+    }
+
+    //     if (i == 112)
+    //     {
+    //         ASSERT_TRUE(graph->isDirectlyConnectedToGoal(i, row));
+    //     }
+    //     else
+    //     {
+    //         ASSERT_FALSE(graph->isDirectlyConnectedToGoal(i, row));
+    //     }
+    // }
+}
+
+TEST(TestGraphGoalDirectConnection, GoalIsUnfeasible)
+{
+    int min_x = 2;
+    int min_z = 2;
+    CudaGraph *graph = buildTestGraph(min_x, min_z);
+    angle p = angle::rad(0);
+
+    SearchFrame *f = new SearchFrame(256, 256, {-1, -1}, {-1, -1});
+    std::vector<float> costs = {
+        {-1},
+        {1},
+        {2},
+        {3},
+        {4},
+        {5}};
+
+    std::vector<std::tuple<int, int, int>> colors = {
+        {255, 255, 255},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}};
+
+    int row = 100;
+
+    float *ptr = new float[256 * 256 * 3];
+    for (int i = 0; i < 256 * 256 * 3; i++)
+        ptr[i] = 1;
+
+    ptr[computeFloatPos(256, 128, 0)] = 0;
+
+    f->setClassCosts(costs);
+    f->setClassColors(colors);
+    f->copyFrom(ptr);
+    delete[] ptr;
+
+    graph->addStart(128, 128, p); // A
+    f->processDistanceToGoal(128, 0);
+    f->processSafeDistanceZone({min_x, min_z}, false);
+
+    // uchar *dest = new uchar[3 * f->width() * f->height()];
+    // f->exportToColorFrame(dest);
+    // // Save dest as output.png using OpenCV
+    // cv::Mat img(f->height(), f->width(), CV_8UC3, dest);
+    // for (int z = 0; z < f->height(); z++)
+    //     for (int x = 0; x < f->width(); x++)
+    //     {
+    //         long pos = 3 * (f->width() * z + x);
+    //         if (!f->isTraversable(x, z))
+    //         {
+    //             dest[pos] = 128;
+    //             dest[pos + 1] = 128;
+    //             dest[pos + 2] = 128;
+    //         }
+    //     }
+
+    // cv::imwrite("output.png", img);
+
+    graph->processDirectGoalConnection(f, 128, 0, angle::rad(0.0));
+
+    for (int i = 0; i < 256; i++)
+    {
+        ASSERT_FALSE(graph->isDirectlyConnectedToGoal(i, row));
     }
 
     //     if (i == 112)

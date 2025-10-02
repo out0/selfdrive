@@ -62,7 +62,7 @@ void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, flo
     this->_planningVelocity_m_s = velocity_m_s;
     _graph.setSearchParams(minDistance, frame.lowerBound(), frame.upperBound());
     _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());   
-    _graph.processDirectGoalConnection(&frame, goal.x(), goal.z(), goal.heading());
+    _graph.processDirectGoalConnection(&frame, goal.x(), goal.z(), goal.heading(), 0.8);
     // printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 
