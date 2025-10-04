@@ -22,7 +22,7 @@ CudaGraph *buildTestGraphHermite()
         {4},
         {5}};
 
-    g->setPhysicalParams(256, 256, maxSteering, 5.412658773);
+    g->setPhysicalParams(256, 256, maxSteering, 5.412658773, -1);
     g->setClassCosts(costs);
     g->setSearchParams({0, 0}, {-1, -1}, {-1, -1});
     return g;

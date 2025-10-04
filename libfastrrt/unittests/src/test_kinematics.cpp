@@ -60,7 +60,7 @@ TEST(TestKinematics, TestCheckKinematicPath)
         {3},
         {4},
         {5}};
-    g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
+    g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773, -1);
     g.setClassCosts(costs);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
@@ -83,7 +83,7 @@ TEST(TestKinematics, TestCheckKinematicPathShapeZeroHeading)
         {3},
         {4},
         {5}};
-    g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773);
+    g.setPhysicalParams(PHYS_SIZE, PHYS_SIZE, maxSteering, 5.412658773, -1);
     g.setClassCosts(costs);
     g.setSearchParams({0, 0}, {-1, -1}, {-1, -1});
 
