@@ -15,14 +15,16 @@ extern "C"
         int upperBound_x, int upperBound_z,
         float *classCosts,
         float maxPathSize,
-        float distToGoalTolerance)
+        float distToGoalTolerance,
+        float max_curvature)
     {
 
         std::vector<float> costs;
         int count = static_cast<int>(classCosts[0]);
         costs.reserve(count);
-        
-        for (int i = 1; i <= count; i++) {
+
+        for (int i = 1; i <= count; i++)
+        {
             costs.push_back(classCosts[i]);
         }
 
@@ -34,7 +36,9 @@ extern "C"
             vehicleLength,
             timeout_ms,
             maxPathSize,
-            distToGoalTolerance);
+            distToGoalTolerance,
+            angle::deg(10),
+            max_curvature);
     }
 
     void fastrrt_destroy(void *ptr)
@@ -170,9 +174,22 @@ extern "C"
         return convertPath(path);
     }
 
-
-    void compute_region_debug_performance(void *ptr) {
+    void compute_region_debug_performance(void *ptr)
+    {
         FastRRT *rrt = (FastRRT *)ptr;
         rrt->computeGraphRegionDensity();
     }
-};
+
+    void save_current_graph_state(void *ptr, const char *filename)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        rrt->saveCurrentGraphState(std::string(filename));
+    }
+
+    void load_graph_state(void *ptr, const char *filename)
+    {
+        FastRRT *rrt = (FastRRT *)ptr;
+        rrt->loadGraphState(std::string(filename));
+    };
+
+}

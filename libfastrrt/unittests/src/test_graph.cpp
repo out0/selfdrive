@@ -23,7 +23,7 @@ TEST(TestGraph, TestCreateDelete)
 TEST(TestGraph, TestPhysicalParams)
 {
     CudaGraph g(100, 100);
-    g.setPhysicalParams(11.1, 11.2, angle::deg(21), 11.3);
+    g.setPhysicalParams(11.1, 11.2, angle::deg(21), 11.3, -1);
     double *p = g.getPhysicalParams();
 
     ASSERT_FLOAT_EQ(100/11.1, p[PHYSICAL_PARAMS_RATE_W]);

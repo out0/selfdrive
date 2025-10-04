@@ -23,7 +23,8 @@ class CudaGraph:
                  lower_bound_z: int,
                  upper_bound_x: int,
                  upper_bound_z: int,
-                 path_costs: np.ndarray
+                 path_costs: np.ndarray,
+                 max_curvature: float = -1
                  ):
 
         CudaGraph.setup_cpp_lib()
@@ -44,7 +45,8 @@ class CudaGraph:
             lower_bound_z,
             upper_bound_x,
             upper_bound_z,
-            costs)
+            costs,
+            max_curvature)
 
         self.__width = width
         self.__height = height
@@ -81,6 +83,7 @@ class CudaGraph:
             ctypes.c_int,  # upperBound_z
             # segmentationClassCost
             np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1),
+            ctypes.c_float # max_curvature
         ]
 
         CudaGraph.lib.cudagraph_destroy.restype = None
@@ -126,6 +129,18 @@ class CudaGraph:
             ctypes.c_int,     # parent_z
             ctypes.c_float    # cost
         ]
+        
+        CudaGraph.lib.add_temporary.restype = None
+        CudaGraph.lib.add_temporary.argtypes = [
+            ctypes.c_void_p,  # graph ptr
+            ctypes.c_int,     # x
+            ctypes.c_int,     # z
+            ctypes.c_float,   # heading
+            ctypes.c_int,     # parent_x
+            ctypes.c_int,     # parent_z
+            ctypes.c_float    # cost
+        ]
+        
 
         CudaGraph.lib.derivate_node.restype = None
         CudaGraph.lib.derivate_node.argtypes = [
@@ -211,8 +226,51 @@ class CudaGraph:
             ctypes.c_int
         ]
 
+        CudaGraph.lib.dump_graph_to_file.restype = None
+        CudaGraph.lib.dump_graph_to_file.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_char_p
+        ]
+        
+        CudaGraph.lib.read_from_dump_file.restype = None
+        CudaGraph.lib.read_from_dump_file.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_char_p
+        ]
 
-      
+        CudaGraph.lib.get_parent.restype = ctypes.POINTER(ctypes.c_int)
+        CudaGraph.lib.get_parent.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,       # x
+            ctypes.c_int,       # z
+        ]
+        
+        CudaGraph.lib.free_parent_data.restype = None
+        CudaGraph.lib.free_parent_data.argtypes = [
+            ctypes.POINTER(ctypes.c_int)   # data_ptr
+        ]
+        
+        CudaGraph.lib.get_cost.restype = ctypes.c_float
+        CudaGraph.lib.get_cost.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_int,       # x
+            ctypes.c_int,       # z
+        ]
+        
+        CudaGraph.lib.count_all.restype = ctypes.c_int
+        CudaGraph.lib.count_all.argtypes = [
+            ctypes.c_void_p
+        ]
+
+    def get_parent(self, x: int, z: int) -> tuple[int, int]:
+        ptr = CudaGraph.lib.get_parent(self.__ptr, x, z)
+        res = (int(ptr[0]), int(ptr[1]))
+        CudaGraph.lib.free_parent_data(ptr)
+        return res
+
+    def get_cost(self, x: int, z: int) -> tuple[int, int]:
+        return CudaGraph.lib.get_cost(self.__ptr, x, z)
+
 
 
     def compute_apf_repulsion(self, cuda_ptr: SearchFrame, kr: float, radius: int):
@@ -238,6 +296,10 @@ class CudaGraph:
 
     def add(self, x: int, z: int, a: angle, parent_x: int, parent_z: int, cost: float) -> None:
         CudaGraph.lib.add(self.__ptr, x, z, a.rad(), parent_x, parent_z, cost)
+
+    def add_temporary(self, x: int, z: int, a: angle, parent_x: int, parent_z: int, cost: float) -> None:
+        CudaGraph.lib.add_temporary(self.__ptr, x, z, a.rad(), parent_x, parent_z, cost)
+
 
     def derivate_node(self, frame: SearchFrame, steering_angle: angle, path_size: int, velocity: float, parent_x: int, parent_z: int) -> None:
         CudaGraph.lib.derivate_node(self.__ptr, frame.get_cuda_ptr(
@@ -288,3 +350,21 @@ class CudaGraph:
     def direct_connection_to_goal_heading(self, x: int, z: int) -> angle:
         heading_rad = CudaGraph.lib.direct_connection_to_goal_heading(self.__ptr, x, z)
         return angle.new_rad(heading_rad)
+
+    def dump_graph_to_file (self, file: str) -> None:
+        CudaGraph.lib.dump_graph_to_file(self.__ptr, file.encode('utf-8'))
+        
+    def read_from_dump_file (self, file: str) -> None:
+        CudaGraph.lib.read_from_dump_file(self.__ptr, file.encode('utf-8'))
+
+    def get_parent(self, x: int, z: int) -> tuple[int, int]:
+        ptr = CudaGraph.lib.get_parent(self.__ptr, x, z)
+        res = (int(ptr[0]), int(ptr[1]))
+        CudaGraph.lib.free_parent_data(ptr)
+        return res
+
+    def get_cost(self, x: int, z: int) -> tuple[int, int]:
+        return CudaGraph.lib.get_cost(self.__ptr, x, z)
+
+    def count_all(self) -> int:
+        return CudaGraph.lib.count_all(self.__ptr)

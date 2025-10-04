@@ -58,7 +58,11 @@ private:
     cptr<unsigned int> _region_node_count;
     cptr<float> _classCosts;
     cptr<curandState> _randState;
-    cptr<int> _bestCostDirectConnect;
+
+    // find best node for direct connection
+    cptr<float4> _bestNodeDirectConnection;
+    cptr<long long> _bestNodeDirectConnectionCost;
+
 
     void __initializeRandomGenerator();
     std::pair<int2 *, int> __listNodes(int type);
@@ -88,7 +92,7 @@ public:
     void computeRepulsiveFieldAPF(float3 *og, float Kr, int radius);
     void computeAttractiveFieldAPF(float3 *og, float Ka, std::pair<int, int> goal);
 
-    void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength);
+    void setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength, float max_curvature);
     double *getPhysicalParams()
     {
         return _physicalParams->get();
@@ -277,7 +281,11 @@ public:
     angle directConnectionToGoalHeading(int x, int z);
 
 
-    float3 findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
+    bool findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked);
+
+    float4 bestGraphDirectConnectionParent();
+
+    float4 bestGraphDirectConnectionChild();
 };
 
 #endif

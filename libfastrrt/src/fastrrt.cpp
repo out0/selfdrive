@@ -11,14 +11,15 @@ FastRRT::FastRRT(
     int timeout_ms,
     float maxPathSize,
     float distToGoalTolerance,
-    angle headingErrorTolerance) : _graph(CudaGraph(width, height)),
-                                 _distToGoalTolerance(distToGoalTolerance),
-                                 _timeout_ms(timeout_ms),
-                                 _maxPathSize(maxPathSize),
-                                 _start(Waypoint(0, 0, angle::rad(0))),
-                                 _goal(Waypoint(0, 0, angle::rad(0))),
-                                 _hasPlanData(false),
-                                 _headingErrorTolerance(headingErrorTolerance)
+    angle headingErrorTolerance,
+    float max_curvature) : _graph(CudaGraph(width, height)),
+                           _distToGoalTolerance(distToGoalTolerance),
+                           _timeout_ms(timeout_ms),
+                           _maxPathSize(maxPathSize),
+                           _start(Waypoint(0, 0, angle::rad(0))),
+                           _goal(Waypoint(0, 0, angle::rad(0))),
+                           _hasPlanData(false),
+                           _headingErrorTolerance(headingErrorTolerance)
 {
     // printf ("Parameters: \n");
     // printf ("width: %d, height: %d\n", width, height);
@@ -32,7 +33,7 @@ FastRRT::FastRRT(
     // printf ("maxPathSize = %f\n", maxPathSize);
     // printf ("distToGoalTolerance = %f\n", distToGoalTolerance);
 
-    _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength);
+    _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength, max_curvature);
     _ptr = nullptr;
 }
 
@@ -61,7 +62,7 @@ void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, flo
     this->_ptr = frame.getCudaPtr();
     this->_planningVelocity_m_s = velocity_m_s;
     _graph.setSearchParams(minDistance, frame.lowerBound(), frame.upperBound());
-    _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());   
+    _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());
     _graph.processDirectGoalConnection(&frame, goal.x(), goal.z(), goal.heading(), 0.8);
     // printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
@@ -78,8 +79,6 @@ void FastRRT::search_init(bool copyIntrinsicCostsFromFrame)
     _graph.clear();
     _graph.addStart(_start.x(), _start.z(), _start.heading());
     _last_expanded_node_count = 0;
-
-    
 
     // int x = 183, z = 72;
     // printf ("result for %d,%d: z = %.2f\n", x, z, this->_ptr[z * 256 + x].z);
@@ -105,7 +104,6 @@ bool FastRRT::loop(bool smart)
 
     // printf ("_last_expanded_node_count = %d\n", _last_expanded_node_count);
 
-
     //_graph.dumpNodesToFile("before_error_1.txt");
     if (smart)
     {
@@ -117,18 +115,33 @@ bool FastRRT::loop(bool smart)
     }
 
     _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
+
+    if (_last_expanded_node_count == 0)
+    {
+        if (_graph.countAll() == 0)
+        {
+            _graph.addStart(_start.x(), _start.z(), _start.heading());
+            return true;
+        }
+    }
+
     //_graph.dumpNodesToFile("before_error_2.txt");
     _graph.acceptDerivedNodes({_goal.x(), _goal.z()}, _goal.heading().rad());
 
-    
     // TODO: link last option to searchframe state
-    float3 n = _graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true);
+    if (_graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true))
+    {
+        float4 parent = _graph.bestGraphDirectConnectionParent();
+        float4 child = _graph.bestGraphDirectConnectionChild();
 
-    if (n.x != -1 && n.y != -1) {
-        _graph.add(_goal.x(), _goal.z(), _goal.heading(), TO_INT(n.x), TO_INT(n.y), n.z);
-        printf ("[Direct connection] %d, %d --> %d, %d with cost %f\n", TO_INT(n.x), TO_INT(n.y), _goal.x(), _goal.z(), n.z);
+        _graph.add(TO_INT(child.x), TO_INT(child.y), angle::rad(child.z), TO_INT(parent.x), TO_INT(parent.y), parent.w);
+        _graph.add(_goal.x(), _goal.z(), _goal.heading(), TO_INT(child.x), TO_INT(child.y), child.z);
+        printf("[Direct connection] %d, %d --> %d, %d --> %d, %d with cost %f\n",
+               TO_INT(parent.x), TO_INT(parent.y),
+               TO_INT(child.x), TO_INT(child.y),
+               _goal.x(), _goal.z(), parent.w);
     }
-    
+
     // if (!_graph.checkGraphIsConsistent()) {
     //     //_graph.dumpNodesToFile("error.txt");
     //     printf ("[FAST-RRT ERROR] The graph is not a DAG anymore\n");
@@ -168,22 +181,22 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
         return res;
 
     // res.push_back(*_goal);
-    //printf ("[getPlannedPath] findBestNode (init)\n");
+    // printf ("[getPlannedPath] findBestNode (init)\n");
     int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), TO_RAD * 10);
-    //printf ("[getPlannedPath] findBestNode = %d, %d\n", n.x, n.y);
-    
+    // printf ("[getPlannedPath] findBestNode = %d, %d\n", n.x, n.y);
+
     long i = 0;
-    
+
     while (n.x != -1 && n.y != -1)
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
-       // printf ("[getPlannedPath] parent %d, %d\n", n.x, n.y);
+        // printf ("[getPlannedPath] parent %d, %d\n", n.x, n.y);
 
         if (i++ >= 1000000)
         {
             printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
-            //break;
+            // break;
         }
         // i++;
     }
@@ -211,15 +224,14 @@ std::vector<Waypoint> FastRRT::interpolatePlannedPath(std::vector<Waypoint> path
     return interpolate(path, _graph.width(), _graph.height());
 }
 
-
-
 std::vector<GraphNode> FastRRT::exportGraphNodes()
 {
-    std::vector<int3> nodes =  _graph.listAll();
+    std::vector<int3> nodes = _graph.listAll();
     std::vector<GraphNode> res;
     res.reserve(nodes.size());
 
-    for (int3 n : nodes) {
+    for (int3 n : nodes)
+    {
         GraphNode g(n.x, n.y, n.z);
         int2 parent = _graph.getParent(n.x, n.y);
         g.parent_x = parent.x;
@@ -251,4 +263,15 @@ std::vector<Waypoint> FastRRT::idealGeometryCurveNoObstacles(Waypoint goal)
 void FastRRT::computeGraphRegionDensity()
 {
     _graph.computeGraphRegionDensity();
+}
+
+void FastRRT::saveCurrentGraphState(std::string filename)
+{
+    _graph.dumpGraph(filename.c_str());
+}
+
+void FastRRT::loadGraphState(std::string filename)
+{
+    _graph.readfromDump(filename.c_str());
+    _last_expanded_node_count = _graph.count(GRAPH_TYPE_TEMP);
 }

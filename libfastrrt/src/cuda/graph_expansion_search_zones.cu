@@ -158,7 +158,7 @@ void CudaGraph::computeGraphRegionDensity()
     }
 }
 
-__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision, int goal_x, int goal_z, float goal_heading, int *bestCostDirectConnect)
+__global__ void __CUDA_smart_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, unsigned int *region_count, int node_mean, float *classCosts, int *searchParams, double *physicalParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool expandFrontier, bool forceExpand, bool *nodeCollision, int goal_x, int goal_z, float goal_heading)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -218,8 +218,7 @@ void CudaGraph::smartExpansion(float3 *og, angle goalHeading, float maxPathSize,
         _nodeCollision->get(),
         goal.x,
         goal.y,
-        goal_heading.rad(),
-        _bestCostDirectConnect->get());
+        goal_heading.rad());
 
     CUDA(cudaDeviceSynchronize());
 

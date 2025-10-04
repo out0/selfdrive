@@ -14,13 +14,13 @@ extern "C"
         int minDistance_x, int minDistance_z,
         int lowerBound_x, int lowerBound_z,
         int upperBound_x, int upperBound_z,
-        float *segmentationClassCost)
+        float *segmentationClassCost, float max_curvature)
     {
         CudaGraph *g = new CudaGraph(width, height);
         g->setSearchParams({minDistance_x, minDistance_z},
                            {lowerBound_x, lowerBound_z},
                            {upperBound_x, upperBound_z});
-        g->setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, angle::deg(maxSteeringAngle_deg), vehicleLength);
+        g->setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, angle::deg(maxSteeringAngle_deg), vehicleLength, max_curvature);
 
         std::vector<float> costs;
         int count = segmentationClassCost[0];
@@ -82,6 +82,13 @@ extern "C"
         CudaGraph *graph = (CudaGraph *)ptr;
         graph->add(x, z, angle::rad(heading_rad), parent_x, parent_z, cost);
     }
+
+    void add_temporary(void *ptr, int x, int z, float heading_rad, int parent_x, int parent_z, float cost)
+    {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->addTemporary(x, z, angle::rad(heading_rad), parent_x, parent_z, cost);
+    }
+
 
     void derivate_node(void *ptr, void *searchFramePtr, float steering_angle, int path_size, float velocity, int x, int z)
     {
@@ -177,4 +184,39 @@ extern "C"
         angle a = graph->directConnectionToGoalHeading(x, z);
         return a.rad();
     }
+
+    void dump_graph_to_file (void *ptr, char *filename) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->dumpGraph(filename);
+    }
+
+    void read_from_dump_file (void *ptr, char *filename) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        graph->readfromDump(filename);
+        
+    }
+
+    int * get_parent(void *ptr, int x, int z) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        int2 p = graph->getParent(x, z);
+        int *data_ptr = new int[2];
+        data_ptr[0] = p.x;
+        data_ptr[1] = p.y;
+        return data_ptr;
+    }
+        
+    void free_parent_data(int *data_ptr) {
+        delete []data_ptr;
+    }
+        
+    float get_cost(void *ptr, int x, int z) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        return graph->getCost(x, z);
+    }
+
+    int count_all(void *ptr) {
+        CudaGraph *graph = (CudaGraph *)ptr;
+        return graph->countAll();
+    }
+
 }

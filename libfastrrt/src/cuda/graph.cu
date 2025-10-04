@@ -240,6 +240,10 @@ CudaGraph::CudaGraph(int width, int height)
     _searchSpaceParams->get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
     _classCosts = nullptr;
 
+
+    _bestNodeDirectConnection = std::make_unique<CudaPtr<float4>>(2);
+    _bestNodeDirectConnectionCost = std::make_unique<CudaPtr<long long>>(1);
+
     // TODO: make this method refresh randomness for each clear() in graph
     __initializeRandomGenerator();
 
@@ -247,7 +251,6 @@ CudaGraph::CudaGraph(int width, int height)
     _newNodesAdded = std::make_unique<CudaPtr<bool>>(1);
     _nodeCollision = std::make_unique<CudaPtr<bool>>(1);
     _ogCoordinateStart = std::make_unique<CudaPtr<float3>>(1);
-    _bestCostDirectConnect = std::make_unique<CudaPtr<int>>(1);
     __initializeRegionDensity();
     _directOptimPos = -1;
 
@@ -259,7 +262,7 @@ CudaGraph::~CudaGraph()
     __dealocRegionDensity();
 }
 
-void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength)
+void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionHeightSize_m, angle maxSteeringAngle, float vehicleLength, float max_curvature)
 {
     _physicalParams = std::make_unique<CudaPtr<double>>(9);
     this->_physicalParams->get()[PHYSICAL_PARAMS_RATE_W] = _graph->width() / perceptionWidthSize_m;
@@ -271,7 +274,11 @@ void CudaGraph::setPhysicalParams(float perceptionWidthSize_m, float perceptionH
     this->_physicalParams->get()[PHYSICAL_PARAMS_LR] = vehicleLength / 2;
 
     const float t = tanf(maxSteeringAngle.rad());
-    this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4  + t));
+
+    if (max_curvature < 0)
+        this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = 2 * t / (0.5 * vehicleLength * sqrtf(4  + t));
+    else
+        this->_physicalParams->get()[PHYSICAL_MAX_CURVATURE] = max_curvature;
 
 }
 
@@ -395,7 +402,6 @@ void CudaGraph::clear()
 
     CUDA(cudaDeviceSynchronize());
     *_goalReached->get() = false;
-    *_bestCostDirectConnect->get() = 999999999;
     *_nodeCollision->get() = false;
 }
 

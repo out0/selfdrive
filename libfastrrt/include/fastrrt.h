@@ -13,15 +13,13 @@
 
 // typedef float3* cudaPtr;
 
-
-
 class FastRRT
 {
 private:
     CudaGraph _graph;
     std::chrono::time_point<std::chrono::high_resolution_clock> _exec_start;
     long _timeout_ms;
-    float _maxPathSize; 
+    float _maxPathSize;
     float _distToGoalTolerance;
     Waypoint _start;
     Waypoint _goal;
@@ -36,7 +34,6 @@ private:
     long __get_exec_time_ms();
     bool __check_timeout();
     void __shrink_search_graph();
-    
 
 public:
     FastRRT(int width, int height,
@@ -47,7 +44,8 @@ public:
             int timeout_ms,
             float maxPathSize = 30.0,
             float distToGoalTolerance = 5.0,
-            angle headingErrorTolerance = angle::deg(10));
+            angle headingErrorTolerance = angle::deg(10),
+            float max_curvature = -1);
 
     void setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance);
 
@@ -67,6 +65,14 @@ public:
     std::vector<Waypoint> interpolatePlannedPath(std::vector<Waypoint> path);
     std::vector<Waypoint> idealGeometryCurveNoObstacles(Waypoint goal);
     void computeGraphRegionDensity();
+
+    /// @brief Saves the planner current Graph state, to be used when debugging the algorithm execution
+    /// @param filename
+    void saveCurrentGraphState(std::string filename);
+
+    /// @brief Loads planner current Graph state from file, to be used when debugging the algorithm execution
+    /// @param filename
+    void loadGraphState(std::string filename);
 };
 
 #endif

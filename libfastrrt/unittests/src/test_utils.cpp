@@ -135,7 +135,7 @@ CudaGraph *buildTestGraph(int min_dist_x, int min_dist_z)
         {4},
         {-1}};
 
-    g->setPhysicalParams(256, 256, maxSteering, 5.412658773);
+    g->setPhysicalParams(256, 256, maxSteering, 5.412658773, -1);
     g->setClassCosts(costs);
     g->setSearchParams({min_dist_x, min_dist_z}, {-1, -1}, {-1, -1});
     return g;

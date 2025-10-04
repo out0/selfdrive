@@ -16,7 +16,8 @@ class FastRRT:
                  timeout_ms: int,
                  path_costs: np.ndarray,
                  max_path_size_px: float = 30.0,
-                 dist_to_goal_tolerance_px: float = 5.0
+                 dist_to_goal_tolerance_px: float = 5.0,
+                 max_curvature: float = -1
                  ):
           
           FastRRT.setup_cpp_lib()
@@ -37,7 +38,8 @@ class FastRRT:
                  search_frame.upper_bound()[1],
                  costs,
                  max_path_size_px,
-                 dist_to_goal_tolerance_px)
+                 dist_to_goal_tolerance_px,
+                 max_curvature)
 
      def __del__(self) -> None:
           if hasattr(FastRRT, "lib"):
@@ -68,7 +70,8 @@ class FastRRT:
             ctypes.c_int,     # upperBound_z
             np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1), # segmentationClassCost
             ctypes.c_float,   # maxPathSize
-            ctypes.c_float    # distToGoalTolerance
+            ctypes.c_float,   # distToGoalTolerance
+            ctypes.c_float    # max_curvature
           ]
         
           FastRRT.lib.fastrrt_destroy.restype = None
@@ -157,6 +160,19 @@ class FastRRT:
           FastRRT.lib.compute_region_debug_performance.argtypes = [
                ctypes.c_void_p
           ]
+
+          FastRRT.lib.save_current_graph_state.restype = None
+          FastRRT.lib.save_current_graph_state.argtypes = [
+               ctypes.c_void_p,
+               ctypes.c_char_p     # filename
+          ]
+          
+          FastRRT.lib.load_graph_state.restype = None
+          FastRRT.lib.load_graph_state.argtypes = [
+               ctypes.c_void_p,
+               ctypes.c_char_p     # filename
+          ]          
+        
          
 
      def set_plan_data(self, cuda_ptr: SearchFrame, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float, min_dist: tuple[int, int]) -> bool:
@@ -245,3 +261,10 @@ class FastRRT:
 
      def compute_region_debug_performance(self) -> None:
           FastRRT.lib.compute_region_debug_performance(self.__ptr)
+          
+     def save_current_graph_state(self, filename: str):
+          FastRRT.lib.save_current_graph_state(self.__ptr, filename.encode('utf-8'))
+          
+     def load_graph_state(self, filename: str):
+          FastRRT.lib.load_graph_state(self.__ptr, filename.encode('utf-8'))
+

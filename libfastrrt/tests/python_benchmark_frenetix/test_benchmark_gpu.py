@@ -51,11 +51,13 @@ class TestFastRRTFrenetix(unittest.TestCase):
             timeout_ms=TIMEOUT,
             path_costs=np.array([-1, 0, 0, 0, 0], dtype=np.float32),
             max_path_size_px=40.0,
-            dist_to_goal_tolerance_px=20.0
+            dist_to_goal_tolerance_px=20.0,
+            max_curvature=0.34
         )
         
         start = (416, 686, angle.new_deg(90 + -0.039754376).rad())
-        goal = (296, 15, angle.new_deg(-8.9513413283239596).rad())
+        goal = (296, 15, angle.new_deg(-14).rad())
+        #goal = (296, 15, angle.new_deg(-8.9513413283239596).rad())
         
         rrt.set_plan_data(
             frame,
@@ -83,8 +85,9 @@ class TestFastRRTFrenetix(unittest.TestCase):
 
         while not rrt.goal_reached() and rrt.loop(True):
             loop_count += 1
-            nodes = rrt.export_graph_nodes()
-            TestUtils.output_path_result(frame, nodes, "output1.png", goal)
+            #rrt.save_current_graph_state(f"log/loop_{loop_count}.dat")
+            #nodes = rrt.export_graph_nodes()
+            #TestUtils.output_path_result(frame, nodes, "output1.png", goal)
         end_time = time.time()
         execution_time = end_time - start_time
         

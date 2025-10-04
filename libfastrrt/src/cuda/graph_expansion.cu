@@ -33,7 +33,7 @@ __device__ __host__ inline bool checkEquals(int2 &a, int2 &b)
     return a.x == b.x && a.y == b.y;
 }
 
-__global__ void __CUDA_accept_derived_nodes(int4 *graph, float4 *graphData, int *bestCostDirectConnect, int goal_x, int goal_z, float goal_heading, bool *goalReached, int width, int height)
+__global__ void __CUDA_accept_derived_nodes(int4 *graph, float4 *graphData, int goal_x, int goal_z, float goal_heading, bool *goalReached, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -44,22 +44,22 @@ __global__ void __CUDA_accept_derived_nodes(int4 *graph, float4 *graphData, int 
     {
         setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
     }
-    else if (getTypeCuda(graph, pos) == GRAPH_TYPE_CONNECT_TO_GOAL)
-    {
-        int z = pos / width;
-        int x = pos - z * width;
+    // else if (getTypeCuda(graph, pos) == GRAPH_TYPE_CONNECT_TO_GOAL)
+    // {
+    //     int z = pos / width;
+    //     int x = pos - z * width;
 
-        float currentDirectCost = getDirectCostCuda(graphData, pos);
-        if (*bestCostDirectConnect >= TO_INT(1000 * currentDirectCost))
-        {
-            printf("found the best node %d, %d to connect to the goal: %d, %d with cost %f\n", x, z, goal_x, goal_z, currentDirectCost);
-            long goalPos = computePos(width, goal_x, goal_z);
-            float parentCost = getCostCuda(graphData, pos);
-            set(graph, graphData, goalPos, goal_heading, x, z, parentCost + currentDirectCost, GRAPH_TYPE_NODE, true);
-            *goalReached = true;
-        }
-        setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
-    }
+    //     float currentDirectCost = getDirectCostCuda(graphData, pos);
+    //     if (*bestCostDirectConnect >= TO_INT(1000 * currentDirectCost))
+    //     {
+    //         printf("found the best node %d, %d to connect to the goal: %d, %d with cost %f\n", x, z, goal_x, goal_z, currentDirectCost);
+    //         long goalPos = computePos(width, goal_x, goal_z);
+    //         float parentCost = getCostCuda(graphData, pos);
+    //         set(graph, graphData, goalPos, goal_heading, x, z, parentCost + currentDirectCost, GRAPH_TYPE_NODE, true);
+    //         *goalReached = true;
+    //     }
+    //     setTypeCuda(graph, pos, GRAPH_TYPE_NODE);
+    // }
 
     // atomicCAS(&(graph[pos].z), GRAPH_TYPE_TEMP, GRAPH_TYPE_NODE);
 }
@@ -71,7 +71,6 @@ void CudaGraph::acceptDerivedNodes(int2 goal, float goal_heading)
     __CUDA_accept_derived_nodes<<<numBlocks, THREADS_IN_BLOCK>>>(
         _graph->getCudaPtr(),
         _graphData->getCudaPtr(),
-        _bestCostDirectConnect->get(),
         goal.x,
         goal.y,
         goal_heading,
@@ -146,7 +145,7 @@ __device__ __host__ int2 expand_node(int4 *graph, float4 *graphData, float3 *fra
 }
 
 
-__global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading, int *bestCostDirectConnect)
+__global__ void __CUDA_random_node_expansion(curandState *state, int4 *graph, float4 *graphData, float3 *frame, float *classCosts, double *physicalParams, int *searchParams, float3 *ogStart, float maxPathSize, float velocity_m_s, bool frontierExploration, bool *nodeCollision, long start_node_pos, int2 goal, float goal_heading)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int width = searchParams[FRAME_PARAM_WIDTH];
@@ -207,8 +206,7 @@ void CudaGraph::expandTree(float3 *og, angle goalHeading, float maxPathSize, flo
         _nodeCollision->get(),
         start_node_pos,
         goal,
-        goal_heading.rad(),
-        _bestCostDirectConnect->get());
+        goal_heading.rad());
 
     CUDA(cudaDeviceSynchronize());
 

@@ -53,7 +53,6 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection_cost(
             if (!is_directly_connected_to_goal(directConnection, width, xp, zp))
                 continue;
 
-
             float local_intermediate_heading = get_heading_direct_connection_to_goal(directConnection, width, xp, zp);
 
             float cost = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
@@ -80,7 +79,7 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection(
     float max_curvature,
     bool safeZoneChecked,
     long long bestCost,
-    int2 *node)
+    float4 *nodes)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -115,30 +114,33 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection(
             if (cost < 0)
                 continue;
 
-            cost += get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
+            float dir_cost = get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
+            cost += dir_cost;
 
             long long lcost = __float2ll_rd(100 * cost);
-            //printf ("%d, %d direct connection to goal - %d, %d bestCost: %f cost: %f\n", x, z, xp, zp, bestCost, lcost);
+            // printf ("%d, %d direct connection to goal - %d, %d bestCost: %f cost: %f\n", x, z, xp, zp, bestCost, lcost);
             if (lcost <= bestCost)
             {
-                node->x = x;
-                node->y = z;
+                nodes[0].x = x;
+                nodes[0].y = z;
+                nodes[0].z = heading;
+                nodes[0].w = cost;
+                nodes[1].x = xp;
+                nodes[1].y = zp;
+                nodes[1].z = local_intermediate_heading;
+                nodes[1].w = dir_cost;
             }
-            
         }
 }
 
-float3 CudaGraph::findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked)
+bool CudaGraph::findBestGoalDirectConnection(float3 *og, float radius, bool isSafeZoneChecked)
 {
     int size = _graph->width() * _graph->height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    CudaPtr<int2> bestNode(1);
-    CudaPtr<long long> cost(1);
-
-    bestNode.get()->x = -1;
-    bestNode.get()->y = -1;
-    *cost.get() = 99999999999;
+    _bestNodeDirectConnection->get()[0].x = -1;
+    _bestNodeDirectConnection->get()[0].y = -1;
+    *_bestNodeDirectConnectionCost->get() = 99999999999;
 
     float max_curvature = _physicalParams->get()[PHYSICAL_MAX_CURVATURE];
 
@@ -152,12 +154,12 @@ float3 CudaGraph::findBestGoalDirectConnection(float3 *og, float radius, bool is
         radius,
         max_curvature,
         isSafeZoneChecked,
-        cost.get());
+        _bestNodeDirectConnectionCost->get());
 
     CUDA(cudaDeviceSynchronize());
 
-    if (*cost.get() >= 99999999999)
-        return {-1, -1};
+    if (*_bestNodeDirectConnectionCost->get() >= 99999999999)
+        return false;
 
     __CUDA__check_goal_reached_with_direct_connection<<<numBlocks, THREADS_IN_BLOCK>>>(
         _graph->getCudaPtr(),
@@ -169,13 +171,23 @@ float3 CudaGraph::findBestGoalDirectConnection(float3 *og, float radius, bool is
         radius,
         max_curvature,
         isSafeZoneChecked,
-        *cost.get(),
-        bestNode.get());
+        *_bestNodeDirectConnectionCost->get(),
+        _bestNodeDirectConnection->get());
 
     CUDA(cudaDeviceSynchronize());
+    return true;
 
-    float best_cost = *cost.get() / 100;
+    // float best_cost = *cost.get() / 100;
 
-    return {(float)bestNode.get()->x, (float)bestNode.get()->y, best_cost};
+    // return {(float)bestNode.get()->x, (float)bestNode.get()->y, best_cost};
 }
 
+float4 CudaGraph::bestGraphDirectConnectionParent()
+{
+    return {_bestNodeDirectConnection->get()[0].x, _bestNodeDirectConnection->get()[0].y, _bestNodeDirectConnection->get()[0].z, _bestNodeDirectConnection->get()[0].w};
+}
+
+float4 CudaGraph::bestGraphDirectConnectionChild()
+{
+    return {_bestNodeDirectConnection->get()[1].x, _bestNodeDirectConnection->get()[1].y, _bestNodeDirectConnection->get()[1].z, _bestNodeDirectConnection->get()[1].w};
+}
