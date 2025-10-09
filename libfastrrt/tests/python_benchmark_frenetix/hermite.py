@@ -35,6 +35,8 @@ class HermiteCurve:
 
         curve = []
 
+        max_k = -1
+
         for i in range(0, num_points):
             t = i / (num_points - 1)
             t2 = t ** 2
@@ -87,13 +89,16 @@ class HermiteCurve:
 
             dd2x = d00 * p1[0] + d10 * tan1[0] + d01 * p2[0] + d11 * tan2[0];
             dd2z = d00 * p1[1] + d10 * tan1[1] + d01 * p2[1] + d11 * tan2[1];
-        
-            if (max_curvature > 0):
-                k = abs(ddx * dd2z - ddz * dd2x) / math.pow(ddx * ddx + ddz * ddz, 3 / 2)
-                if (k > max_curvature):
-                    return None
+            k = abs(ddx * dd2z - ddz * dd2x) / math.pow(ddx * ddx + ddz * ddz, 3 / 2)
+            max_k = max(max_k, k)
+
+            if (max_curvature > 0 and k > max_curvature):
+                print(f"the curvature {k} exceeds the maximum value {max_curvature}")
+                #return None
+
 
             curve.append((cx, cz, heading))
             lastp = (cx, cz)
 
+        print(f"curve {p1} --> {p2} has max curvature of {max_k}")
         return curve

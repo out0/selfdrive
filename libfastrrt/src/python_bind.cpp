@@ -75,10 +75,10 @@ extern "C"
         return rrt->loop(smartExpansion);
     }
 
-    void path_optimize(void *ptr)
+    bool path_optimize(void *ptr)
     {
         FastRRT *rrt = (FastRRT *)ptr;
-        rrt->path_optimize();
+        return rrt->path_optimize();
     }
 
     int *export_graph_nodes(void *ptr)

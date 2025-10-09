@@ -131,15 +131,26 @@ bool FastRRT::loop(bool smart)
     // TODO: link last option to searchframe state
     if (_graph.findBestGoalDirectConnection(_ptr, _distToGoalTolerance, true))
     {
-        float4 parent = _graph.bestGraphDirectConnectionParent();
-        float4 child = _graph.bestGraphDirectConnectionChild();
+        float4 parent_in_graph = _graph.bestGraphDirectConnectionParent();
+        // child
+        float4 child_in_expansion_candidates = _graph.bestGraphDirectConnectionChild();
 
-        _graph.add(TO_INT(child.x), TO_INT(child.y), angle::rad(child.z), TO_INT(parent.x), TO_INT(parent.y), parent.w);
-        _graph.add(_goal.x(), _goal.z(), _goal.heading(), TO_INT(child.x), TO_INT(child.y), child.z);
-        printf("[Direct connection] %d, %d --> %d, %d --> %d, %d with cost %f\n",
-               TO_INT(parent.x), TO_INT(parent.y),
-               TO_INT(child.x), TO_INT(child.y),
-               _goal.x(), _goal.z(), parent.w);
+        const int parent_x = TO_INT(parent_in_graph.x);
+        const int parent_z = TO_INT(parent_in_graph.y);
+        const float parent_base_cost = _graph.getCost(parent_x, parent_z);
+
+        _graph.add(TO_INT(child_in_expansion_candidates.x), TO_INT(child_in_expansion_candidates.y),
+                   angle::rad(child_in_expansion_candidates.z),
+                   parent_x, parent_z, parent_in_graph.w + parent_base_cost);
+
+        const int child_x = TO_INT(child_in_expansion_candidates.x);
+        const int child_z = TO_INT(child_in_expansion_candidates.y);
+        const float child_cost = child_in_expansion_candidates.z + parent_base_cost;
+
+        _graph.add(_goal.x(), _goal.z(), _goal.heading(), child_x, child_z, child_cost);
+
+        // printf("[Direct connection] %d, %d --> %d, %d --> %d, %d with cost %f\n",
+        //        parent_x, parent_z, child_x, child_z, _goal.x(), _goal.z(), child_cost);
     }
 
     // if (!_graph.checkGraphIsConsistent()) {
@@ -156,12 +167,19 @@ bool FastRRT::loop(bool smart)
     return true;
 }
 
-void FastRRT::path_optimize()
+bool FastRRT::path_optimize()
 {
     if (__check_timeout())
-        return;
+        return false;
 
-    _graph.optimizeGraph(_ptr, {_goal.x(), _goal.z()}, _goal.heading(), _distToGoalTolerance, _planningVelocity_m_s);
+    std::vector<Waypoint> res = getPlannedPath();
+
+    sptr<float4> path = _graph.convertPlannedPath(res);
+
+    //printf("[path optimize] size = %ld\n", res.size());
+
+    // TODO: check if the distances are trully checked (last bool)
+    return _graph.optimizePathLoop(_ptr, path, res.size(), _distToGoalTolerance, true);
 }
 
 bool FastRRT::goalReached()
@@ -180,34 +198,23 @@ std::vector<Waypoint> FastRRT::getPlannedPath()
     if (!goalReached())
         return res;
 
-    // res.push_back(*_goal);
-    // printf ("[getPlannedPath] findBestNode (init)\n");
-    int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), TO_RAD * 10);
-    // printf ("[getPlannedPath] findBestNode = %d, %d\n", n.x, n.y);
-
+    int2 n = _graph.findBestNode(_ptr, _goal.heading(), _distToGoalTolerance, _goal.x(), _goal.z(), _headingErrorTolerance.rad());
     long i = 0;
 
     while (n.x != -1 && n.y != -1)
     {
         res.push_back(Waypoint(n.x, n.y, _graph.getHeading(n.x, n.y)));
         n = _graph.getParent(n.x, n.y);
-        // printf ("[getPlannedPath] parent %d, %d\n", n.x, n.y);
 
         if (i++ >= 1000000)
         {
-            printf("looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
-            // break;
+            printf("[ERROR] looping too much (%d, %d) i = %ld\n", n.x, n.y, i);
+            res.clear();
+            return res;
         }
-        // i++;
     }
 
     std::reverse(res.begin(), res.end());
-
-    // for (auto p : res) {
-    //     printf("(%d, %d) - ", p.x(), p.z());
-    // }
-    // printf("\n");
-
     return res;
 }
 

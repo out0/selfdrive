@@ -6,8 +6,11 @@ extern __device__ __host__ long computePos(int width, int x, int z);
 extern __device__ __host__ float getHeadingCuda(float4 *graphData, long pos);
 extern __device__ __host__ float getCostCuda(float4 *graphData, long pos);
 extern __device__ __host__ float getIntrinsicCost(float4 *graphData, int width, int x, int z);
+extern __device__ __host__ bool set(int4 *graph, float4 *graphData, long pos, float heading, int parent_x, int parent_z, float cost, int type, bool override);
 
-__device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_curvature, int x, int z, int goal_x, int goal_z, float goal_heading)
+
+
+__device__ __host__ float cudaHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_curvature, int x, int z, int goal_x, int goal_z, float goal_heading, bool fillInterpolation, bool computeDistance)
 {
     // int numPoints = 2 * abs(max(int(p2.z() - p1.z()), int(p2.x() - p1.x()), 100));
     const int width = searchSpaceParams[FRAME_PARAM_WIDTH];
@@ -16,7 +19,14 @@ __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *grap
     const int minDistZ = searchSpaceParams[FRAME_PARAM_MIN_DIST_Z];
 
     const long pos = computePos(width, x, z);
-    const float distance = frame[pos].y;
+    float distance = frame[pos].y;
+    
+    if (computeDistance) {
+        const float dx = goal_x - x;
+        const float dz = goal_z - z;
+        distance = sqrtf(dx * dx + dz * dz);
+    }
+    
     int numPoints = TO_INT(distance);
 
     float local_heading = getHeadingCuda(graphData, pos);
@@ -28,8 +38,8 @@ __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *grap
     float2 tan1 = {distance * cosf(a1), distance * sinf(a1)};
     float2 tan2 = {distance * cosf(a2), distance * sinf(a2)};
 
-    int last_x = -1;
-    int last_z = -1;
+    int last_x = x;
+    int last_z = z;
 
     const float parentCost = getCostCuda(graphData, pos);
     float nodeCost = parentCost;
@@ -101,6 +111,21 @@ __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *grap
         }
 
         // Interpolated point
+        if (fillInterpolation) {
+            
+            // if (last_x == -1) {
+            //     set(graph, graphData, computePos(width, cx, cz), heading, x, z, nodeCost, GRAPH_TYPE_NODE, true);
+            //     printf ("adding %d, %d, %f with parent = %d, %d\n", cx, cz, heading, x, z);
+            // }
+            // else {
+                set(graph, graphData, computePos(width, cx, cz), heading, last_x, last_z, nodeCost, GRAPH_TYPE_NODE, true);
+                printf ("adding %d, %d, %f with parent = %d, %d\n", cx, cz, heading, last_x, last_z);
+            // }
+            last_x = cx;
+            last_z = cz;
+            continue;
+        }
+
         last_x = cx;
         last_z = cz;
 
@@ -115,3 +140,10 @@ __device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *grap
     return nodeCost;
 }
 
+__device__ __host__ float canConnectToGoalUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_curvature, int x, int z, int goal_x, int goal_z, float goal_heading) {
+    return cudaHermite(graph, graphData, frame, classCosts, searchSpaceParams, max_curvature, x, z, goal_x, goal_z, goal_heading, false, false);
+}
+
+__device__ __host__ float interpolateNodesUsingHermite(int4 *graph, float4 *graphData, float3 *frame, float *classCosts, int *searchSpaceParams, float max_curvature, int x, int z, int goal_x, int goal_z, float goal_heading) {
+    return cudaHermite(graph, graphData, frame, classCosts, searchSpaceParams, max_curvature, x, z, goal_x, goal_z, goal_heading, true, true);
+}

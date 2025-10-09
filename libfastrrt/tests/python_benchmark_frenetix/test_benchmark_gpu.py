@@ -97,22 +97,21 @@ class TestFastRRTFrenetix(unittest.TestCase):
             return False
         
         np.save('coarse_path.npy', path)
+        rrt.save_current_graph_state("coarse_path_state.dat")
         
         path = rrt.get_planned_path(interpolate=True)
         print (f"found path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
         TestUtils.output_path_result(frame, path, "output1.png", goal)
-
+        
         start_time = time.time()
-        rrt.path_optimize()
+        while rrt.path_optimize():
+            pass
         end_time = time.time()
         execution_time = end_time - start_time
-        print (f"optimze path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
-        
-        path = rrt.get_planned_path(interpolate=False)
-        np.save('optimized_path.npy', path)
-        
+
         path = rrt.get_planned_path(interpolate=True)
-        TestUtils.output_path_result(frame, path, "output1.png", goal)
+        print (f"optimizing path with {len(path)} waypoints in {1000*execution_time:.2f} ms")
+        TestUtils.output_path_result(frame, path, "output1_optim.png", goal)
 
     
 

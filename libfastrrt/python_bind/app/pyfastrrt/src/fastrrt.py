@@ -111,7 +111,7 @@ class FastRRT:
                ctypes.c_bool       # smartExpansion
           ]          
 
-          FastRRT.lib.path_optimize.restype = None
+          FastRRT.lib.path_optimize.restype = ctypes.c_bool
           FastRRT.lib.path_optimize.argtypes = [
                ctypes.c_void_p,
           ]          
@@ -196,8 +196,8 @@ class FastRRT:
      def loop(self, smart: bool) -> bool:
           return FastRRT.lib.loop(self.__ptr, smart)
         
-     def path_optimize(self) -> None:
-          FastRRT.lib.path_optimize(self.__ptr)
+     def path_optimize(self) -> bool:
+          return FastRRT.lib.path_optimize(self.__ptr)
      
      def goal_reached(self) -> bool:
           return FastRRT.lib.goal_reached(self.__ptr)     

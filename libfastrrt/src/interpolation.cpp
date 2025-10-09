@@ -125,7 +125,7 @@ std::vector<Waypoint> interpolate(std::vector<Waypoint> &controlPoints, int widt
     for (size_t i = 1; i < controlPoints.size(); i++)
     {
         Waypoint p2 = controlPoints[i];
-        printf ("interpolating %d, %d, %f --> %d, %d, %f\n", p1.x(), p1.z(), p1.heading().deg(), p2.x(), p2.z(), p2.heading().deg());
+        //printf ("interpolating %d, %d, %f --> %d, %d, %f\n", p1.x(), p1.z(), p1.heading().deg(), p2.x(), p2.z(), p2.heading().deg());
         std::vector<Waypoint> partialCurve = interpolateHermiteCurve(width, height, p1, p2);
         interpolatedPoints.insert(interpolatedPoints.end(), partialCurve.begin(), partialCurve.end());
         p1 = p2;

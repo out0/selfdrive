@@ -42,8 +42,8 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection_cost(
 
     float heading = getHeadingCuda(graphData, pos);
 
-    for (int zp = z - searchRadius; zp < z + searchRadius; zp++)
-        for (int xp = x - searchRadius; xp < x + searchRadius; xp++)
+    for (int zp = (z - searchRadius); zp < (z + searchRadius); zp++)
+        for (int xp = (x - searchRadius); xp < (x + searchRadius); xp++)
         {
             if (zp < 0 || zp >= height)
                 continue;
@@ -55,16 +55,17 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection_cost(
 
             float local_intermediate_heading = get_heading_direct_connection_to_goal(directConnection, width, xp, zp);
 
-            float cost = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
+            float cost_graph_node_to_precomputed_node_with_connection_to_goal = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
 
-            if (cost < 0)
+            if (cost_graph_node_to_precomputed_node_with_connection_to_goal < 0)
                 continue;
 
-            cost += get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
+            float total_cost = cost_graph_node_to_precomputed_node_with_connection_to_goal + get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
 
-            long long lcost = __float2ll_rd(100 * cost);
-            atomicMin(bestCost, lcost);
-            setTypeCuda(graph, pos, GRAPH_TYPE_PROCESSING);
+            long long lcost = __float2ll_rd(100 * total_cost);
+
+            if (atomicMin(bestCost, lcost) != lcost) // it means that the value was replaced
+                setTypeCuda(graph, pos, GRAPH_TYPE_PROCESSING);
         }
 }
 
@@ -99,36 +100,40 @@ __global__ void __CUDA__check_goal_reached_with_direct_connection(
 
     float heading = getHeadingCuda(graphData, pos);
 
-    for (int zp = z - searchRadius; zp < z + searchRadius; zp++)
-        for (int xp = x - searchRadius; xp < x + searchRadius; xp++)
+    for (int zp = (z - searchRadius); zp < (z + searchRadius); zp++)
+        for (int xp = (x - searchRadius); xp < (x + searchRadius); xp++)
         {
             if (zp < 0 || zp >= height)
                 continue;
             if (xp < 0 || xp >= width)
                 continue;
 
-            float local_intermediate_heading = get_heading_direct_connection_to_goal(directConnection, width, xp, zp);
-
-            float cost = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
-
-            if (cost < 0)
+            if (!is_directly_connected_to_goal(directConnection, width, xp, zp))
                 continue;
 
-            float dir_cost = get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
-            cost += dir_cost;
+            float local_intermediate_heading = get_heading_direct_connection_to_goal(directConnection, width, xp, zp);
 
-            long long lcost = __float2ll_rd(100 * cost);
+            float cost_graph_node_to_precomputed_node_with_connection_to_goal = checkDirectConnectionToGoal(graphData, frame, classCost, params, max_curvature, x, z, heading, xp, zp, local_intermediate_heading, safeZoneChecked, false);
+
+            if (cost_graph_node_to_precomputed_node_with_connection_to_goal < 0)
+                continue;
+
+            float total_cost = cost_graph_node_to_precomputed_node_with_connection_to_goal + get_cost_direct_connection_to_goal(directConnection, width, xp, zp);
+
+            long long lcost = __float2ll_rd(100 * total_cost);
             // printf ("%d, %d direct connection to goal - %d, %d bestCost: %f cost: %f\n", x, z, xp, zp, bestCost, lcost);
             if (lcost <= bestCost)
             {
+                //parent
                 nodes[0].x = x;
                 nodes[0].y = z;
                 nodes[0].z = heading;
-                nodes[0].w = cost;
+                nodes[0].w = cost_graph_node_to_precomputed_node_with_connection_to_goal;
+                //child
                 nodes[1].x = xp;
                 nodes[1].y = zp;
                 nodes[1].z = local_intermediate_heading;
-                nodes[1].w = dir_cost;
+                nodes[1].w = total_cost;
             }
         }
 }

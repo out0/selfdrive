@@ -214,6 +214,27 @@ __device__ __host__ void assertDAGconsistency(int4 *graph, float4 *graphData, in
     int2 parent = getParentCuda(graph, pos);
     printf("[CUDA ERROR] DAG is inconsistent on %d, %d, parents %d, %d\n", x, z, parent.x, parent.y);
 }
+
+
+__device__ __host__ double computeHeading(int x1, int z1, int x2, int z2)
+{
+    double dz = z2 - z1;
+    double dx = x2 - x1;
+
+    if (dx == 0 && dz == 0)
+        return 0;
+
+    double v1 = 0;
+    if (dz != 0)
+        v1 = atan2f(-dz, dx);
+    else
+        v1 = atan2f(0, dx);
+
+    return HALF_PI - v1;
+}
+
+
+
 float CudaGraph::getDirectCost(int x, int z)
 {
     return getDirectCostCuda(_graphData->getCudaPtr(), computePos(_graph->width(), x, z));
@@ -489,8 +510,8 @@ void CudaGraph::dumpGraph(const char *filename)
         for (int x = 0; x < _graph->width(); x++)
         {
             long pos = z * _graph->width() + x;
-            fprintf(fp, "%d %d %d %f %f %f\n", fptr[pos].x, fptr[pos].y, fptr[pos].z,
-                    fptrData[pos].x, fptrData[pos].y, fptrData[pos].z);
+            fprintf(fp, "%d %d %d %d %f %f %f %f\n", fptr[pos].x, fptr[pos].y, fptr[pos].z, fptr[pos].w,
+                    fptrData[pos].x, fptrData[pos].y, fptrData[pos].z, fptrData[pos].w);
         }
     }
 
@@ -515,8 +536,8 @@ void CudaGraph::readfromDump(const char *filename)
         for (int x = 0; x < _graph->width(); x++)
         {
             long pos = z * _graph->width() + x;
-            fscanf(fp, "%d %d %d %f %f %f\n", &fptr[pos].x, &fptr[pos].y, &fptr[pos].z,
-                   &fptrData[pos].x, &fptrData[pos].y, &fptrData[pos].z);
+            fscanf(fp, "%d %d %d %d %f %f %f %f\n", &fptr[pos].x, &fptr[pos].y, &fptr[pos].z, &fptr[pos].w,
+                   &fptrData[pos].x, &fptrData[pos].y, &fptrData[pos].z, &fptrData[pos].w);
         }
     }
 
@@ -540,3 +561,4 @@ void CudaGraph::setCollision(int x, int z, int new_parent_x, int new_parent_z, a
         decNodeDeriveCount(_graph->getCudaPtr(), currentParentPos);
     }
 }
+

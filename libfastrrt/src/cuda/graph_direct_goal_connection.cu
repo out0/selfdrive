@@ -39,8 +39,8 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
 
     int numPoints = TO_INT(distance);
 
-    float a1 = local_heading - PI / 2;
-    float a2 = goal_heading - PI / 2;
+    float a1 = local_heading - HALF_PI;
+    float a2 = goal_heading - HALF_PI;
 
     // Tangent vectors
     float2 tan1 = {distance * cosf(a1), distance * sinf(a1)};
@@ -105,12 +105,14 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
 
         if (max_curvature > 0)
         {
-            float k = abs(ddx * dd2z - ddz * dd2x) / pow(ddx * ddx + ddz * ddz, 3 / 2);
+            float k = abs(ddx * dd2z - ddz * dd2x) / pow(ddx * ddx + ddz * ddz, 1.5);
             if (k > max_curvature)
             {
                 // if (x == 128 && z == 128)
-                //      printf("[CUDA] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
-                //          x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
+                #ifndef __CUDA_ARCH__
+                     printf("[direct goal] %d,%d,%f --> %d,%d,%f max curvature excedded: %f (max %f)\n",
+                         x, z, local_heading, goal_x, goal_z, goal_heading, k, max_curvature);
+                #endif
                 return -1;
             }
         }
@@ -134,6 +136,10 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
 
         if (!__computeFeasibleForAngle(frame, searchSpaceParams, classCosts, minDistX, minDistZ, last_x, last_z, heading))
         {
+             #ifndef __CUDA_ARCH__
+             printf("[direct goal] %d,%d,%f --> %d,%d,%f not feasible\n",
+                         x, z, local_heading, goal_x, goal_z, goal_heading);
+            #endif
             // if (x == 128 && z == 128)
             //     printf("[CUDA] %d,%d,%f --> %d,%d,%f collision\n", x, z, local_heading, goal_x, goal_z, goal_heading);
             return -1;
@@ -147,6 +153,11 @@ __device__ __host__ float checkDirectConnectionToGoal(float4 *graphData, float3 
     }
 
     if (last_x != goal_x && last_z != goal_z) {
+        #ifndef __CUDA_ARCH__
+         printf("[direct goal] %d,%d,%f --> %d,%d,%f goal not reached\n",
+                         x, z, local_heading, goal_x, goal_z, goal_heading);
+
+        #endif
         return -1;
     }
 
