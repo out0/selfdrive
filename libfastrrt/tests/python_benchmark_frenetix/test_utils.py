@@ -261,7 +261,7 @@ class TestUtils:
             if 0 <= zi < h and 0 <= xi < w:
                 frame[zi, xi] = color
 
-    def output_path_result(frame: SearchFrame, path: np.ndarray, output: str, goal: tuple[int, int, float]) -> None:
+    def output_path_result(frame: SearchFrame, path: np.ndarray, output: str, goal: Waypoint) -> None:
         if path is None:
             return
         #f = frame.get_color_frame()
