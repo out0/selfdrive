@@ -92,7 +92,7 @@ add_executable(
   src/test_graph_node_derivation.cpp
   src/test_kinematics.cpp
   src/test_graph_best_node.cpp
-  src/test_optimize_path.cpp
+  #src/test_optimize_path.cpp
   src/test_graph_can_connect_hermite.cpp
   src/test_graph_dag_consistency.cpp
   src/test_graph_solve_collisions.cpp

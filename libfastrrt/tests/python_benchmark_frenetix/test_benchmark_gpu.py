@@ -1,6 +1,6 @@
 import unittest
 from pyfastrrt import FastRRT
-from pydriveless import SearchFrame, angle
+from pydriveless import SearchFrame, angle, EgoParams, SearchParams, Waypoint
 import time, math
 import cv2, numpy as np
 from test_utils import TestUtils
@@ -19,53 +19,50 @@ class TestFastRRTFrenetix(unittest.TestCase):
         
         img = np.array(cv2.imread("converted_bev_23.png"), dtype=np.float32)
 
-       
-        
-        frame = SearchFrame (
-            width=img.shape[1],
-            
-            height=img.shape[0],
-            lower_bound=(-1, -1),
-            upper_bound=(-1, -1),
-        )
-    
-        frame.set_class_costs(np.array([-1, 0, 0, 0, 0]))
-        frame.set_class_colors((np.array([
-            [0, 0, 0],
-            [128, 128, 128],
-            [0, 0, 255],
-            [255, 255, 255],
-            [255, 0, 0]
-        ])))
+        ego = EgoParams.init(img.shape[1], img.shape[0])\
+            .with_segmentation_class_costs(np.array([-1, 0, 0, 0, 0]))\
+            .with_segmentation_class_colors(np.array([
+                [0, 0, 0],
+                [128, 128, 128],
+                [0, 0, 255],
+                [255, 255, 255],
+                [255, 0, 0]
+            ]))\
+            .with_ego_lower_bound((-1, -1))\
+            .with_ego_upper_bound((-1, -1))\
+            .with_max_steering_angle(angle.new_deg(40))\
+            .with_max_curvature(0.34)\
+            .with_search_physical_size(PERCEPTION_WIDTH_M, PERCEPTION_HEIGHT_M)\
+            .with_vehicle_length(VEHICLE_LENGTH_M)\
+            .build()
+
+        goal=Waypoint(296, 15, angle.new_deg(-14))
+
+        frame = ego.new_search_frame()
         frame.set_frame_data(img)
+
+        search_params = ego.new_search_params(
+            start=Waypoint(416, 686, angle.new_deg(90 + -0.039754376)),
+            goal=Waypoint(296, 15, angle.new_deg(-14)))\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((2, 2))\
+            .with_velocity(1.0)\
+            .build()       
+        
+        
 
         TestUtils.print_distinc_classes(img)
 
         
-        rrt = FastRRT(
-            search_frame=frame,
-            perception_width_m=PERCEPTION_WIDTH_M,
-            perception_height_m=PERCEPTION_HEIGHT_M,
-            max_steering_angle_deg=MAX_STEERING_ANGLE,
-            vehicle_length_m=VEHICLE_LENGTH_M,
-            timeout_ms=TIMEOUT,
-            path_costs=np.array([-1, 0, 0, 0, 0], dtype=np.float32),
-            max_path_size_px=40.0,
-            dist_to_goal_tolerance_px=20.0,
-            max_curvature=0.34
-        )
+        rrt = FastRRT(ego)
         
         start = (416, 686, angle.new_deg(90 + -0.039754376).rad())
         goal = (296, 15, angle.new_deg(-14).rad())
         #goal = (296, 15, angle.new_deg(-8.9513413283239596).rad())
         
-        rrt.set_plan_data(
-            frame,
-            start=start,
-            goal=goal,
-            velocity_m_s=1.0,
-            min_dist=(2, 2)
-        )
+        rrt.set_plan_data(search_params)
         
         
         start_time = time.time()

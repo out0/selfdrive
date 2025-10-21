@@ -1,6 +1,7 @@
 #include "../include/fastrrt.h"
 #include <driveless/search_frame.h>
 
+
 extern "C"
 {
     void *fastrrt_initialize(
@@ -10,35 +11,22 @@ extern "C"
         float perceptionHeightSize_m,
         float maxSteeringAngle_deg,
         float vehicleLength,
-        int timeout_ms,
         int lowerBound_x, int lowerBound_z,
         int upperBound_x, int upperBound_z,
         float *classCosts,
-        float maxPathSize,
-        float distToGoalTolerance,
         float max_curvature)
     {
 
-        std::vector<float> costs;
-        int count = static_cast<int>(classCosts[0]);
-        costs.reserve(count);
+        EgoParams params = EgoParams::init(width, height)
+            .withEgoLowerBound({lowerBound_x, lowerBound_z})
+            .withEgoUpperBound({upperBound_x, upperBound_z})
+            .withMaxCurvature(max_curvature)
+            .withSearchPhysicalSize(perceptionWidthSize_m, perceptionHeightSize_m)
+            .withMaxSteeringAngle(angle::deg(maxSteeringAngle_deg))
+            .withVehicleLength(vehicleLength)
+            .build();
 
-        for (int i = 1; i <= count; i++)
-        {
-            costs.push_back(classCosts[i]);
-        }
-
-        return new FastRRT(
-            width, height,
-            perceptionWidthSize_m,
-            perceptionHeightSize_m,
-            angle::deg(maxSteeringAngle_deg),
-            vehicleLength,
-            timeout_ms,
-            maxPathSize,
-            distToGoalTolerance,
-            angle::deg(10),
-            max_curvature);
+        return new FastRRT(params);
     }
 
     void fastrrt_destroy(void *ptr)
@@ -47,15 +35,32 @@ extern "C"
         delete rrt;
     }
 
-    void set_plan_data(void *ptr, void *cudaFramePtr, int start_x, int start_z, float start_heading_rad, int goal_x, int goal_z, float goal_heading_rad, float velocity_m_s, int min_dist_x, int min_dist_z)
+    void set_plan_data(void *ptr, void *cudaFramePtr, 
+        int start_x, int start_z, float start_heading_rad, int goal_x, int goal_z, 
+        float goal_heading_rad, float velocity_m_s, 
+        int min_dist_x, int min_dist_z,
+        int timeout_ms,
+        float maxPathSize,
+        float distToGoalTolerance,
+        float headingErrorTolerance_rad)
     {
         FastRRT *rrt = (FastRRT *)ptr;
         Waypoint s(start_x, start_z, angle::rad(start_heading_rad));
         Waypoint p(goal_x, goal_z, angle::rad(goal_heading_rad));
         // printf ("p.x = %d, p.y = %d, p.h = %f\n", p.x(), p.z(), p.heading().deg());
-
+        
         SearchFrame *frame = (SearchFrame *)cudaFramePtr;
-        rrt->setPlanData(*frame, s, p, velocity_m_s, {min_dist_x, min_dist_z});
+        auto params = SearchParams::init(s, p)
+            .withVelocity(velocity_m_s)
+            .withMinDistance({min_dist_x, min_dist_z})
+            .withTimeout(timeout_ms)
+            .withMaxPathSize(maxPathSize)
+            .withDistanceToGoalTolerance(distToGoalTolerance)
+            .withHeadingErrorTolerance(angle::rad(headingErrorTolerance_rad))
+            .withFrame(frame)
+            .build();
+
+        rrt->setPlanData(params);
     }
 
     bool goal_reached(void *ptr)

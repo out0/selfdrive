@@ -8,6 +8,7 @@
 #include <driveless/angle.h>
 #include <driveless/waypoint.h>
 #include <driveless/cuda_frame.h>
+#include <driveless/search_params.h>
 #include <vector>
 #include "graph.h"
 
@@ -29,6 +30,7 @@ private:
     int _last_expanded_node_count;
     bool _hasPlanData;
     angle _headingErrorTolerance;
+    EgoParams _egoParams;
 
     void __set_exec_started();
     long __get_exec_time_ms();
@@ -36,18 +38,9 @@ private:
     void __shrink_search_graph();
 
 public:
-    FastRRT(int width, int height,
-            float perceptionWidthSize_m,
-            float perceptionHeightSize_m,
-            angle maxSteeringAngle,
-            float vehicleLength,
-            int timeout_ms,
-            float maxPathSize = 30.0,
-            float distToGoalTolerance = 5.0,
-            angle headingErrorTolerance = angle::deg(10),
-            float max_curvature = -1);
+    FastRRT(EgoParams &egoParams);
 
-    void setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance);
+    void setPlanData(SearchParams &params);
 
     /// @brief
     /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.

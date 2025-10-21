@@ -1,6 +1,6 @@
 #include "../include/fastrrt.h"
 #include <bits/algorithmfwd.h>
-
+/*
 FastRRT::FastRRT(
     int width,
     int height,
@@ -8,14 +8,8 @@ FastRRT::FastRRT(
     float perceptionHeightSize_m,
     angle maxSteeringAngle,
     float vehicleLength,
-    int timeout_ms,
-    float maxPathSize,
-    float distToGoalTolerance,
     angle headingErrorTolerance,
     float max_curvature) : _graph(CudaGraph(width, height)),
-                           _distToGoalTolerance(distToGoalTolerance),
-                           _timeout_ms(timeout_ms),
-                           _maxPathSize(maxPathSize),
                            _start(Waypoint(0, 0, angle::rad(0))),
                            _goal(Waypoint(0, 0, angle::rad(0))),
                            _hasPlanData(false),
@@ -36,6 +30,19 @@ FastRRT::FastRRT(
     _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, maxSteeringAngle, vehicleLength, max_curvature);
     _ptr = nullptr;
 }
+*/
+
+FastRRT::FastRRT(EgoParams &egoParams) : _graph(CudaGraph(egoParams.width(), egoParams.height())),
+                           _start(Waypoint(0, 0, angle::rad(0))),
+                           _goal(Waypoint(0, 0, angle::rad(0))),
+                           _hasPlanData(false),
+                           _headingErrorTolerance(angle::deg(10)),
+                           _egoParams(egoParams)
+{
+    auto [perceptionWidthSize_m, perceptionHeightSize_m] = egoParams.searchFramePhysicalDimensions();
+    _graph.setPhysicalParams(perceptionWidthSize_m, perceptionHeightSize_m, egoParams.maxSteeringAngle(), egoParams.vehicleLength_m(), egoParams.maxCurvature());
+    _ptr = nullptr;
+}
 
 void FastRRT::__set_exec_started()
 {
@@ -54,16 +61,22 @@ bool FastRRT::__check_timeout()
     return (_timeout_ms > 0 && __get_exec_time_ms() > _timeout_ms);
 }
 
-void FastRRT::setPlanData(SearchFrame &frame, Waypoint start, Waypoint goal, float velocity_m_s, std::pair<int, int> minDistance)
+void FastRRT::setPlanData(SearchParams &params)
 {
+    auto frame = params.frame();
     this->_hasPlanData = true;
-    this->_start = start;
-    this->_goal = goal;
-    this->_ptr = frame.getCudaPtr();
-    this->_planningVelocity_m_s = velocity_m_s;
-    _graph.setSearchParams(minDistance, frame.lowerBound(), frame.upperBound());
-    _graph.setClassCosts(frame.getCudaClassCostsPtr(), frame.getClassCount());
-    _graph.processDirectGoalConnection(&frame, goal.x(), goal.z(), goal.heading(), 0.8);
+    this->_start = params.start();
+    this->_goal = params.goal();
+    this->_ptr = frame->getCudaPtr();
+    this->_planningVelocity_m_s = params.velocity_m_s();
+    this->_timeout_ms = params.timeout_ms();
+    this->_maxPathSize = params.maxPathSize_px();
+    this->_distToGoalTolerance = params.distanceToGoalTolerance_px();
+    this->_headingErrorTolerance = params.headingErrorTolerance();
+
+    _graph.setSearchParams(params.minDistance(), _egoParams.egoLowerBound(), _egoParams.egoUpperBound());
+    _graph.setClassCosts(frame->getCudaClassCostsPtr(), frame->getClassCount());
+    _graph.processDirectGoalConnection(frame, _goal.x(), _goal.z(), _goal.heading(), 0.8);
     // printf ("_goal.x = %d, _goal.y = %d, _goal.h = %f\n", _goal.x(), _goal.z(), _goal.heading().deg());
 }
 

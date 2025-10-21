@@ -15,3 +15,4 @@ from .src.interpolator import Interpolator
 from .src.slam import SLAM
 from .src.fast_state_machine import FastStateMachine
 from .src.telemetry import Telemetry
+from .src.search_params import EgoParams, SearchParams

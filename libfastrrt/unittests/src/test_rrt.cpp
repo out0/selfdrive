@@ -47,13 +47,13 @@ std::pair<cv::Mat, float *> readImg(const char *file)
 #define MAX_STEERING_ANGLE 40
 #define VEHICLE_LENGTH_M 5.412658774
 
-void exportPathTo(float3* f, int width, int height, std::vector<Waypoint> &path, const char *file)
+void exportPathTo(float3 *f, int width, int height, std::vector<Waypoint> &path, const char *file)
 {
     uchar *dest = new uchar[3 * width * height];
 
     SearchFrame frame(width, height, {-1, -1}, {-1, -1});
     frame.setClassColors(classColors);
-    
+
     frame.setClassCosts(classCosts);
 
     frame.exportToColorFrame(dest);
@@ -104,12 +104,14 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
     delete[] dest;
 
     std::vector<GraphNode> nodes = rrt->exportGraphNodes();
-    //printf ("exporting %d nodes\n", nodes.size());
+    // printf ("exporting %d nodes\n", nodes.size());
 
     for (auto n : nodes)
     {
-        if (n.z < 0 || n.z >= height) continue;
-        if (n.x < 0 || n.x >= width) continue;
+        if (n.z < 0 || n.z >= height)
+            continue;
+        if (n.x < 0 || n.x >= width)
+            continue;
         cv::Vec3b &pixel = cimg.at<cv::Vec3b>(n.z, n.x);
 
         switch (n.nodeType)
@@ -137,10 +139,8 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
     cv::imwrite(file, cimg);
     std::string s = "log/graph_nodes_" + std::to_string(i) + ".txt";
 
-   
     // Usage in logGraph
     exportGraphNodesToFile(nodes, s);
-
 }
 
 #define TIMEOUT -1
@@ -172,18 +172,19 @@ TEST(TestRRT, TestSearch)
 
     frame.copyFrom(res.second);
     frame.processSafeDistanceZone({2, 2}, false);
-    
 
     std::vector<float> p = classCosts;
 
-    FastRRT rrt(width, height,
-        OG_REAL_WIDTH, OG_REAL_HEIGHT,
-        angle::deg(MAX_STEERING_ANGLE),
-        VEHICLE_LENGTH_M,
-        TIMEOUT,
-        maxPathSize,
-        distToGoal);
-    
+    EgoParams egoParams = EgoParams::init(width, height)
+                           .withEgoLowerBound({119, 148})
+                           .withEgoUpperBound({137, 108})
+                           .withSearchPhysicalSize(OG_REAL_WIDTH, OG_REAL_HEIGHT)
+                           .withMaxSteeringAngle(angle::deg(MAX_STEERING_ANGLE))
+                           .withVehicleLength(VEHICLE_LENGTH_M)
+                           .withSegmentationClassCosts(classCosts)
+                           .build();
+
+    FastRRT rrt(egoParams);
 
     std::vector<Waypoint> path = rrt.getPlannedPath();
 
@@ -191,10 +192,20 @@ TEST(TestRRT, TestSearch)
 
     Waypoint goal(107, 0, angle::rad(0));
     Waypoint start(128, 128, angle::rad(0));
-    //rrt.setPlanData(frame, start, goal, 1, {11, 20});
+    // rrt.setPlanData(frame, start, goal, 1, {11, 20});
+
+    auto params = SearchParams::init(start, goal)
+                      .withVelocity(1.0)
+                      .withMinDistance({2, 2})
+                      .withTimeout(TIMEOUT)
+                      .withMaxPathSize(maxPathSize)
+                      .withDistanceToGoalTolerance(distToGoal)
+                      .withHeadingErrorTolerance(angle::rad(10))
+                      .withFrame(&frame)
+                      .build();
 
     auto chrono_start = std::chrono::high_resolution_clock::now();
-    rrt.setPlanData(frame, start, goal, 1, {2, 2});
+    rrt.setPlanData(params);
     frame.processDistanceToGoal(goal.x(), goal.z());
 
     rrt.search_init();
@@ -202,14 +213,13 @@ TEST(TestRRT, TestSearch)
     int i = 0;
     while (!rrt.goalReached() && rrt.loop(false))
     {
-        //logGraph(&rrt, &frame, "output1.png", ++i);
+        // logGraph(&rrt, &frame, "output1.png", ++i);
     }
 
     ASSERT_TRUE(rrt.goalReached());
 
     path = rrt.getPlannedPath();
-    //ASSERT_TRUE(path.size() > 5);
-
+    // ASSERT_TRUE(path.size() > 5);
 
     auto last = path.back();
     int dx = last.x() - goal.x();
@@ -217,18 +227,16 @@ TEST(TestRRT, TestSearch)
 
     ASSERT_LE(dx * dx + dz * dz, 400);
 
-    //logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1.png");
+    // logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1.png");
     rrt.path_optimize();
-    //logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1_optim.png");
+    // logGraph(&rrt, &frame, "/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/output1_optim.png");
 
     auto chrono_end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(chrono_end - chrono_start).count();
     std::cout << "Execution time: " << duration / 1000 << " ms" << " (" << duration << ") us" << std::endl;
 
-
-    //exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output2.png");
-    // auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
-    
+    // exportPathTo(frame.getFramePtr(), img.cols, img.rows, path, "output2.png");
+    //  auto interpol_path = CubicInterpolator::cubicSplineInterpolation(path, 50);
 
     // rrt.optimize();
     // path = rrt.getPlannedPath();

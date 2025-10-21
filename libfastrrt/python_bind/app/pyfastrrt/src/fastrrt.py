@@ -2,43 +2,35 @@ import ctypes.util
 import ctypes
 import numpy as np
 import os
-from pydriveless import SearchFrame
+from pydriveless import SearchFrame, EgoParams, SearchParams
 
 class FastRRT:
      __ptr: ctypes.c_void_p
         
-     def __init__(self, 
-                 search_frame: SearchFrame,
-                 perception_width_m: float,
-                 perception_height_m: float,
-                 max_steering_angle_deg : float,
-                 vehicle_length_m: float,
-                 timeout_ms: int,
-                 path_costs: np.ndarray,
-                 max_path_size_px: float = 30.0,
-                 dist_to_goal_tolerance_px: float = 5.0,
-                 max_curvature: float = -1
-                 ):
+     def __init__(self, ego_params: EgoParams):
           
           FastRRT.setup_cpp_lib()
+
+          path_costs = ego_params.segmentation_class_costs
+          perception_width_m, perception_height_m = ego_params.search_frame_physical_dimensions
+          max_steering_angle_deg = ego_params.max_steering_angle.deg()
+          vehicle_length_m = ego_params.vehicle_length_m
+          max_curvature = ego_params.max_curvature
         
           costs = np.ascontiguousarray(np.concatenate(([path_costs.shape[0]], path_costs)), dtype=np.float32)
+          w, h = ego_params.search_frame_dimensions
+          lb_x, lb_z = ego_params.ego_lower_bound
+          ub_x, ub_z = ego_params.ego_upper_bound
 
           self.__ptr = FastRRT.lib.fastrrt_initialize(
-                 search_frame.width(), 
-                 search_frame.height(),
+                 w, h,
                  perception_width_m,
                  perception_height_m,
                  max_steering_angle_deg,
                  vehicle_length_m,
-                 timeout_ms,
-                 search_frame.lower_bound()[0],
-                 search_frame.lower_bound()[1],
-                 search_frame.upper_bound()[0],
-                 search_frame.upper_bound()[1],
+                 lb_x, lb_z,
+                 ub_x, ub_z,
                  costs,
-                 max_path_size_px,
-                 dist_to_goal_tolerance_px,
                  max_curvature)
 
      def __del__(self) -> None:
@@ -63,14 +55,11 @@ class FastRRT:
             ctypes.c_float,   # perceptionHeightSize_m
             ctypes.c_float,   # maxSteeringAngle_rad
             ctypes.c_float,   # vehicleLength
-            ctypes.c_int,     # timeout_ms
             ctypes.c_int,     # lowerBound_x
             ctypes.c_int,     # lowerBound_z
             ctypes.c_int,     # upperBound_x
             ctypes.c_int,     # upperBound_z
             np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1), # segmentationClassCost
-            ctypes.c_float,   # maxPathSize
-            ctypes.c_float,   # distToGoalTolerance
             ctypes.c_float    # max_curvature
           ]
         
@@ -91,7 +80,12 @@ class FastRRT:
                ctypes.c_float,    # goal_heading_rad
                ctypes.c_float,    # velocity_m_s             
                ctypes.c_int,      # min_dist_x
-               ctypes.c_int       # min_dist_z
+               ctypes.c_int,       # min_dist_z
+               ctypes.c_int,     # timeout_ms
+               ctypes.c_float,   # maxPathSize
+               ctypes.c_float,   # distToGoalTolerance
+               ctypes.c_float,   # headingErrorTolerance_rad
+
           ]
 
           FastRRT.lib.goal_reached.restype = ctypes.c_bool
@@ -175,10 +169,19 @@ class FastRRT:
         
          
 
-     def set_plan_data(self, cuda_ptr: SearchFrame, start: tuple[int, int, float], goal: tuple[int, int, float], velocity_m_s: float, min_dist: tuple[int, int]) -> bool:
+     def set_plan_data(self, search_params: SearchParams) -> bool:          
+          frame = search_params.frame.get_cuda_ptr()
+          start = search_params.start.x, search_params.start.z, search_params.start.heading.rad()
+          goal = search_params.goal.x, search_params.goal.z, search_params.goal.heading.rad()
+          velocity_m_s = search_params.velocity_m_s
+          min_dist = search_params.min_distance
+          timeout_ms = search_params.timeout_ms
+          max_path_size_px = search_params.max_path_size_px
+          dist_to_goal_tolerance_px = search_params.distance_to_goal_tolerance_px
+
           return FastRRT.lib.set_plan_data(
             self.__ptr, 
-            cuda_ptr.get_cuda_ptr(),
+            frame,
             start[0],
             start[1],
             start[2],
@@ -187,7 +190,11 @@ class FastRRT:
             goal[2],
             velocity_m_s,
             min_dist[0],
-            min_dist[1]
+            min_dist[1],
+            timeout_ms,
+            max_path_size_px,
+            dist_to_goal_tolerance_px,
+            search_params.heading_error_tolerance.rad()
           )
    
      def search_init(self, copy_intrinsic_costs_from_frame: bool = False) -> None:

@@ -80,6 +80,7 @@ add_executable(
   src/test_coord_conversion_waypoint.cpp
   src/test_quaternion.cu
   src/test_interpolator.cpp
+  src/test_search_params.cpp
   ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp
@@ -87,6 +88,7 @@ add_executable(
   ../../src/async_component.cpp
   ../../src/coord_conversion.cpp
   ../../src/interpolator.cpp
+  ../../src/search_params.cpp  
   ../../src/cuda/cuda_frame.cu
   ../../src/cuda/quaternion.cu
   ../../src/cuda/search_frame_color.cu
