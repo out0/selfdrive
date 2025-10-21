@@ -101,35 +101,42 @@ void logGraph(FastRRT *rrt, SearchFrame *frame, const char *file, int i)
 
 int main()
 {
-    std::pair<cv::Mat, float *> res = readImg("/home/cristiano/Documents/Projects/Mestrado/code/selfdrive/libfastrrt/tests/cpp_frenetix/converted_bev_23.png");
+    std::pair<cv::Mat, float *> res = readImg("converted_bev_23.png");
     cv::Mat img = res.first;
     float *ptr = res.second;
 
-    SearchFrame *frame = new SearchFrame(img.cols, img.rows, {-1, -1}, {-1, -1});
-    std::vector<float> costs = {-1, 0, 0, 0, 0};
-    std::vector<std::tuple<int, int, int>> colors = {
-        {0, 0, 0},
-        {255, 255, 255},
-        {255, 255, 255},        
-        {255, 255, 255},        
-        {255, 255, 255}};
-
-    frame->setClassCosts(costs);
-    frame->setClassColors(colors);
-    frame->copyFrom(ptr);
-
-    FastRRT rrt(img.cols, img.rows, PERCEPTION_WIDTH_M, PERCEPTION_HEIGHT_M,
-                angle::deg(40), VEHICLE_LENGTH_M, TIMEOUT, 40.0, 20.0, angle::deg(10), 0.8);
+    EgoParams egoParams = EgoParams::init(img.cols, img.rows)
+                              .withEgoLowerBound({119, 148})
+                              .withEgoUpperBound({137, 108})
+                              .withSearchPhysicalSize(PERCEPTION_WIDTH_M, PERCEPTION_HEIGHT_M)
+                              .withMaxSteeringAngle(angle::deg(40))
+                              .withVehicleLength(VEHICLE_LENGTH_M)
+                              .withSegmentationClassCosts({-1, 0, 0, 0, 0})
+                              .withSegmentationClassColors({{0, 0, 0},
+                                                            {255, 255, 255},
+                                                            {255, 255, 255},
+                                                            {255, 255, 255},
+                                                            {255, 255, 255}})
+                              .build();
 
     auto start = Waypoint(416, 686, angle::deg(90 + -0.039754376));
     auto goal = Waypoint(296, 15, angle::deg(-14));
 
-    rrt.setPlanData(
-        *frame,
-        start,
-        goal,
-        1.0,
-        {2, 2});
+    SearchFrame *frame = egoParams.newSearchFrame();
+
+    auto params = egoParams.newSearchParams(start, goal)
+                      .withVelocity(1.0)
+                      .withMinDistance({2, 2})
+                      .withTimeout(TIMEOUT)
+                      .withMaxPathSize(40.0)
+                      .withDistanceToGoalTolerance(20.0)
+                      .withHeadingErrorTolerance(angle::rad(10))
+                      .withFrame(frame)
+                      .build();
+    frame->copyFrom(ptr);
+
+    FastRRT rrt(egoParams);
+    rrt.setPlanData(params);
 
     frame->processSafeDistanceZone({2, 2}, false);
     frame->processDistanceToGoal(goal.x(), goal.z());
@@ -150,11 +157,12 @@ int main()
     uchar *dest = new uchar[frame->width() * frame->height() * 3];
     frame->exportToColorFrame(dest);
     int width = frame->width();
-    for (auto p : interpol_path) {
-        long pos = 3*(p.z() * width + p.x());
+    for (auto p : interpol_path)
+    {
+        long pos = 3 * (p.z() * width + p.x());
         dest[pos] = 255;
-        dest[pos+1] = 0;
-        dest[pos+2] = 0;
+        dest[pos + 1] = 0;
+        dest[pos + 2] = 0;
     }
     {
         int w = frame->width();
