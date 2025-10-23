@@ -274,8 +274,10 @@ class EgoParams:
     def new_search_frame(self) -> SearchFrame:
         w, h = self._search_frame_dimensions
         f = SearchFrame(w, h, self._ego_lower_bound, self._ego_upper_bound)
-        f.set_class_costs(self._segmentation_class_costs)
-        f.set_class_colors(self._segmentation_class_colors)
+        if self._segmentation_class_costs is not None and len(self._segmentation_class_costs) > 0:
+            f.set_class_costs(self._segmentation_class_costs)
+        if self._segmentation_class_colors is not None and len(self._segmentation_class_colors) > 0:
+            f.set_class_colors(self._segmentation_class_colors)
         return f
 
     # Accessors

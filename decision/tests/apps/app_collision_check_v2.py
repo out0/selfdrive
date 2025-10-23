@@ -9,7 +9,7 @@ import cv2, math
 from app_utils import fix_cv2_import
 fix_cv2_import()
 
-from model.physical_paramaters import PhysicalParameters
+from ensemble import PhysicalParameters
 from pydriveless import SearchFrame
 from pydriveless import Waypoint
 from pydriveless import WorldPose
@@ -53,7 +53,8 @@ class CollisionCheckDemo(QWidget):
         self.label.setStyleSheet("color: black; font-size: 16px;")
         
         self.min_dist = (PhysicalParameters.MIN_DISTANCE_WIDTH_PX, PhysicalParameters.MIN_DISTANCE_HEIGHT_PX)
-        self.og.set_goal( min_distance=self.min_dist, x=128, z=0, compute_vectorized=False)
+        self.og.process_safe_distance_zone(self.min_dist, compute_vectorized=True)
+        self.og.process_distance_to_goal(128, 0)
         self.min_dist_dir = int(round(math.sqrt(self.min_dist[0]**2 + self.min_dist[1]**2) / 2))
 
 

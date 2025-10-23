@@ -9,7 +9,7 @@ import cv2
 from app_utils import fix_cv2_import
 fix_cv2_import()
 
-from model.physical_paramaters import PhysicalParameters
+from ensemble import PhysicalParameters
 from pydriveless import SearchFrame
 from pydriveless import Waypoint
 from pydriveless import WorldPose
@@ -67,8 +67,8 @@ class CollisionCheckDemo(QWidget):
         self.b_plus.clicked.connect(self.btn_plus)
 
         min_dist = (PhysicalParameters.MIN_DISTANCE_WIDTH_PX, PhysicalParameters.MIN_DISTANCE_HEIGHT_PX)
-        self.og.set_goal( min_distance=min_dist, x=128, z=0, compute_vectorized=True)
-        #self.bev = self.og.get_frame()
+        self.og.process_safe_distance_zone(min_dist, compute_vectorized=True)
+        self.og.process_distance_to_goal(128, 0)        #self.bev = self.og.get_frame()
 
         self.angle = 0.0
         self.old_angle = None
@@ -122,6 +122,7 @@ class CollisionCheckDemo(QWidget):
         if self.angle != self.old_angle:
             bev = self.og.get_frame()
             bev2 = self.og.get_color_frame()
+            cv2.imwrite("debug_bev.png", bev2)
             for z in range(bev2.shape[0]):
                 for x in range(bev2.shape[1]):
                     if not self.check_feasible(bev, x, z, self.angle):
@@ -146,7 +147,7 @@ class CollisionCheckDemo(QWidget):
 
         painter.setPen(QColor(0, 0, 0))
         painter.setFont(QFont("Arial", 16))
-        painter.drawText(30, 130, f"Current angle: {self.angle} deg")
+        painter.drawText(480, 690, f"{self.angle} deg")
 
         painter.drawPixmap(self.image_top_left, self.image)
 

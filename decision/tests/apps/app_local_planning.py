@@ -596,14 +596,14 @@ class FindGoalPointDemo(QWidget):
             bev = self.og.get_color_frame()  
             for p in self.show_path:
                 if self.show_min_dist:
-                    self.__draw_min_dist(self.og, bev, p.x, p.z, p.heading.rad())
+                    self.__draw_min_dist(self.og, bev, p.x(), p.z, p.heading.rad())
             for p in self.show_path:
                 if self.show_min_dist:
-                    if p.x - 1 > 0: bev[p.z, p.x - 1] = [0, 0, 0]
-                    if p.x + 1 < bev.shape[1]: bev[p.z, p.x + 1] = [0, 0, 0]
-                    bev[p.z, p.x] = [0, 0, 0]
+                    if p.x() - 1 > 0: bev[p.z, p.x() - 1] = [0, 0, 0]
+                    if p.x() + 1 < bev.shape[1]: bev[p.z, p.x() + 1] = [0, 0, 0]
+                    bev[p.z, p.x()] = [0, 0, 0]
                 else:
-                    bev[p.z, p.x] = [255, 255, 255]            
+                    bev[p.z, p.x()] = [255, 255, 255]            
 
             self.set_image(bev)
 
@@ -616,13 +616,13 @@ class FindGoalPointDemo(QWidget):
 
             first_pos = 0
             for p in self.show_path:
-                if not self.og.is_traversable(p.x, p.z, p.heading, precision_check=True):
+                if not self.og.is_traversable(p.x(), p.z, p.heading, precision_check=True):
                     break
                 first_pos += 1
             painter.drawText(210, 700, f"Planner path is invalid - first collision in {self.show_path[first_pos]}")
             p = self.show_path[first_pos]
             painter.setPen(QColor(255, 0, 0))
-            painter.drawText(p.x+378, p.z+388, "X")
+            painter.drawText(p.x()+378, p.z+388, "X")
 
 
         self.show_l1(painter)
@@ -650,18 +650,18 @@ class FindGoalPointDemo(QWidget):
         p = event.pos()
         if self.set_l1:
             heading = self.get_input_float(self.txt_l1_heading_input)
-            self.L1 = Waypoint(p.x - 384, p.y - 384,
+            self.L1 = Waypoint(p.x() - 384, p.y() - 384,
                                angle.new_deg(heading))
             self.set_l1 = False
-            self.txt_l1_x_input.setText(str(p.x - 384))
-            self.txt_l1_z_input.setText(str(p.y - 384))
+            self.txt_l1_x_input.setText(str(p.x() - 384))
+            self.txt_l1_z_input.setText(str(p.y() - 384))
         if self.set_l2:
             heading = self.get_input_float(self.txt_l2_heading_input)
-            self.L2 = Waypoint(p.x - 384, p.y - 384,
+            self.L2 = Waypoint(p.x() - 384, p.y() - 384,
                                angle.new_deg(heading))
             self.set_l2 = False
-            self.txt_l2_x_input.setText(str(p.x - 384))
-            self.txt_l2_z_input.setText(str(p.y - 384))
+            self.txt_l2_x_input.setText(str(p.x() - 384))
+            self.txt_l2_z_input.setText(str(p.y() - 384))
 
         self.goal_invalid = True
         self.update()  # trigger repaint

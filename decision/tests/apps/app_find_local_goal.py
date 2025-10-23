@@ -226,11 +226,11 @@ class FindGoalPointDemo(QWidget):
         p = event.pos()
         if self.set_l1:
             heading = self.get_input_float(self.txt_l1_heading_input)
-            self.L1 = Waypoint(p.x - 384, p.y - 384, angle.new_deg(heading))
+            self.L1 = Waypoint(p.x() - 384, p.y() - 384, angle.new_deg(heading))
             self.set_l1 = False
         if self.set_l2:
             heading = self.get_input_float(self.txt_l2_heading_input)
-            self.L2 = Waypoint(p.x - 384, p.y - 384, angle.new_deg(heading))
+            self.L2 = Waypoint(p.x() - 384, p.y() - 384, angle.new_deg(heading))
             self.set_l2 = False    
         self.update()  # trigger repaint
 

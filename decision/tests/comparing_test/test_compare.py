@@ -1,7 +1,8 @@
 import math
 from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
-from pydriveless import SearchFrame, angle
-from ensemble import PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, Ensemble, InformedHybridAStar
+from pydriveless import SearchFrame, angle, SearchParams, EgoParams
+from pyfastrrt import FastRRT
+from ensemble import LocalPlannerExecutor, PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, Ensemble, InformedHybridAStar
 import numpy as np
 import math
 import cv2
@@ -65,36 +66,47 @@ def draw_arrow(frame: np.ndarray, x: int, z: int, heading_rad: float, arrow_leng
         hy = int(end_z - arrow_head_size * math.sin(side_angle))
         cv2.line(frame, (end_x, end_z), (hx, hy), (0, 0, 255), thickness=2)
 
-def frame_to_og(frame: np.ndarray, start: Waypoint) -> SearchFrame:   
+def convert_black_white_frame(frame: np.ndarray) -> np.ndarray:
     f = np.zeros(frame.shape, dtype=np.float32)
     for i in range(frame.shape[0]):
         for j in range(frame.shape[1]):
              f[i, j, 0] = 1.0 if frame[i, j, 0] == 255 else 0
              #f[i, j, 0] = 1.0
+    return f
 
-    og = SearchFrame(
-     width=frame.shape[1],
-     height=frame.shape[0],
-     lower_bound=(start.x - EGO_DIMENSIONS_PX[0], start.z + EGO_DIMENSIONS_PX[1]),
-     upper_bound=(start.x + EGO_DIMENSIONS_PX[0], start.z - EGO_DIMENSIONS_PX[1]))
+    #map_center_location = MapPose(0, 0, 0, angle.new_rad(0))
+    #ego_location = conv.convert(map_center_location, start)
+    # l0 = conv.convert(map_center_location, ego_location)
+    # g1 = conv.convert(map_center_location, pose=goal)
+    # g2 = None
 
-    
-    og.set_class_colors(np.array([[0,0,0], [255,255,255]]))
-    og.set_class_costs(np.array([[-1.0], [0.0]]))
-    #og.set_class_costs(PhysicalParameters.SEGMENTATION_CLASS_COST)
-    og.set_frame_data(f)
-    return og
 
-def exec_planner_test(planner, frame, planning_data, path_color) -> None:
-    start_time = time.time()
-    planner.plan(planning_data)
-    while not planner.new_path_available():
+def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, executor: LocalPlannerExecutor, path_color: tuple[int, int, int] = [255, 0, 0]) -> None:
+    print (f"Starting planner test for {executor.get_planner_name()}")
+    while not executor.new_path_available():
         time.sleep(0.1)
-    execution_time = time.time() - start_time
-    res = planner.get_result()
-    print(f"{planner.get_planner_name()} execution time: {1000*execution_time:.6f} ms [choosen: {res.planner_name}]")
-    for p in res.path:
-        frame[p.z, p.x, :] = path_color
+    executor.plan(search_params, False)
+    result: PlanningResult = executor.get_result()
+
+    if result.result_type != PlannerResultType.VALID:
+        print (f"{executor.get_planner_name()} failed to find a valid path.")
+        return
+    
+    execution_time = executor.get_execution_time()    
+    print(f"{executor.get_planner_name()} execution time: {execution_time:.2f} ms [choosen: {result.planner_name}]")
+    path = result.path
+
+    if executor.is_optimizing():
+        print (f"Planner {executor.get_planner_name()} is optimizing")
+        while not executor.is_optimizing():
+            time.sleep(0.1)
+
+        execution_time = executor.get_execution_time()    
+        print(f"{executor.get_planner_name()} optimizing execution time: {execution_time:.2f} ms [choosen: {result.planner_name}]")
+        path = result.path
+
+    for p in path:
+        outp_frame[p.z, p.x, :] = path_color
 
 def exec_test():
     
@@ -103,47 +115,103 @@ def exec_test():
     goal =  Waypoint(48, 261, angle.new_deg(0))
     #goal =  Waypoint(207, 117, angle.new_deg(-180))
     
-    frame  = np.array(cv2.imread("comparing_og.png"))
-    og = frame_to_og(frame, start)
+    orig_frame = np.array(cv2.imread("comparing_og.png"))
+    raw_frame = convert_black_white_frame(orig_frame)
+    width, height = raw_frame.shape[1], raw_frame.shape[0]
+    lower_bound=(start.x - EGO_DIMENSIONS_PX[0], start.z + EGO_DIMENSIONS_PX[1])
+    upper_bound=(start.x + EGO_DIMENSIONS_PX[0], start.z - EGO_DIMENSIONS_PX[1])    
+    px, pz = width*PhysicalParameters.OG_WIDTH_PX_TO_METERS_RATE, height*PhysicalParameters.OG_HEIGHT_PX_TO_METERS_RATE
+
+    ego_params = EgoParams.init(width, height)\
+            .with_ego_lower_bound(lower_bound)\
+            .with_ego_upper_bound(upper_bound)\
+            .with_max_steering_angle(angle.new_deg(40))\
+            .with_max_curvature(0.34)\
+            .with_segmentation_class_costs(np.array([-1.0, 0.0]))\
+            .with_segmentation_class_colors(np.array([[0,0,0], [255,255,255]]))\
+            .with_search_physical_size(px, pz)\
+            .with_vehicle_length(PhysicalParameters.VEHICLE_LENGTH_M)\
+            .build()
+
 
     conv = CoordinateConverter(
         origin=ORIGIN, 
-        width=frame.shape[1], 
-        height=frame.shape[0],
-        perceptionHeightSize_m=frame.shape[0]*PhysicalParameters.OG_WIDTH_PX_TO_METERS_RATE,
-        perceptionWidthSize_m=frame.shape[0]*PhysicalParameters.OG_HEIGHT_PX_TO_METERS_RATE)
+        width=width, 
+        height=height,
+        perceptionHeightSize_m=px,
+        perceptionWidthSize_m=pz)
     
-    map_center_location = MapPose(0, 0, 0, angle.new_rad(0))
-    ego_location = conv.convert(map_center_location, start)
-    l0 = conv.convert(map_center_location, ego_location)
-    g1 = conv.convert(map_center_location, pose=goal)
-    g2 = None
+    frame = ego_params.new_search_frame()
+    frame.set_frame_data(raw_frame)
+    frame.process_distance_to_goal(goal.x, goal.z)
+    frame.process_safe_distance_zone(EGO_DIMENSIONS_PX, True)
 
-    planning_data = PlanningData(seq=1, og=og, ego_location=ego_location, start=start,
-                                g1=g1, g2=g2, velocity=2.0, min_distance=(20, 40),
-                                base_map_conversion_location=map_center_location)
+    search_params = ego_params.new_search_params(start, goal)\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((2, 2))\
+            .with_velocity(1.0)\
+            .with_timeout(3000)\
+            .build()    
 
-    planning_data.set_local_goal(goal)
+    fast_rrt = FastRRT(ego_params)
+    fast_rrt.set_plan_data(search_params)
 
-    og.process_distance_to_goal(goal.x, goal.z)
-    og.process_safe_distance_zone(EGO_DIMENSIONS_PX, True)
+    fast_rrt.search_init(True)
 
-    planner = Ensemble(conv, max_exec_time_ms=-1)
-    planner2 = InformedHybridAStar(conv, veh_dims=EGO_DIMENSIONS_PX, max_exec_time_ms=-1)   
-    planner3 = InformedHybridAStar(conv, veh_dims=EGO_DIMENSIONS_PX, max_exec_time_ms=-1)
-    planner3.inform_sub_goals([
-        Waypoint(220, 98, angle.new_deg(-90))
-    ])
+    loop_count = 0
+    start_time = time.time()
 
-    exec_planner_test(planner, frame, planning_data, path_color=[255, 0, 0])
-    exec_planner_test(planner2, frame, planning_data, path_color=[0, 255, 0])
-    exec_planner_test(planner3, frame, planning_data, path_color=[128, 0, 128])
+    while not fast_rrt.goal_reached() and fast_rrt.loop(True):
+        loop_count += 1
+    
+    end_time = time.time()
+    execution_time = end_time - start_time
+        
+    path = fast_rrt.get_planned_path(interpolate=False)
+    if path is None:
+        print(f"no path found")
+        return False
+        
+        #np.save('coarse_path.npy', path)
+        #rrt.save_current_graph_state("coarse_path_state.dat")
+        
+    path = fast_rrt.get_planned_path(interpolate=True)
+    print (f"found path with {len(path)} waypoints in {1000*execution_time:.2f} ms, took {loop_count} iterations")
 
-    add_ego(frame, start)
+    loop_count = 1
+    start_time = time.time()
+    while fast_rrt.path_optimize():
+        loop_count += 1
+        pass
+    end_time = time.time()
+    execution_time = end_time - start_time
 
-    draw_arrow(frame, goal.x, goal.z, goal.heading.rad())
+    path = fast_rrt.get_planned_path(interpolate=True)
+    print (f"optimizing path with {len(path)} waypoints in {1000*execution_time:.2f} ms took {loop_count} iterations")
 
-    cv2.imwrite("debug.png", frame) 
+
+    for p in path:
+        orig_frame[int(p[1]), int(p[0]), :] = [255, 0, 0]
+
+
+    # planner = Ensemble(conv, max_exec_time_ms=-1)
+    # planner2 = InformedHybridAStar(conv, veh_dims=EGO_DIMENSIONS_PX, max_exec_time_ms=-1)   
+    # planner3 = InformedHybridAStar(conv, veh_dims=EGO_DIMENSIONS_PX, max_exec_time_ms=-1)
+    # planner3.inform_sub_goals([
+    #     Waypoint(220, 98, angle.new_deg(-90))
+    # ])
+
+    # exec_planner_test(planner, frame, planning_data, path_color=[255, 0, 0])
+    # exec_planner_test(planner2, frame, planning_data, path_color=[0, 255, 0])
+    # exec_planner_test(planner3, frame, planning_data, path_color=[128, 0, 128])
+
+    add_ego(orig_frame, start)
+
+    draw_arrow(orig_frame, goal.x, goal.z, goal.heading.rad())
+
+    cv2.imwrite("debug.png", orig_frame) 
 
 
 if __name__ == "__main__":

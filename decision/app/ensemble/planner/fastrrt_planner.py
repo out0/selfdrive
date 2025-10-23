@@ -1,5 +1,5 @@
 
-from pydriveless import CoordinateConverter
+from pydriveless import EgoParams, SearchParams
 from pyfastrrt import FastRRT
 from ..model.planner_executor import LocalPlannerExecutor
 from ..model.planning_result import PlanningResult, PlannerResultType
@@ -10,55 +10,34 @@ import numpy as np
 import random
 
 
-class FastRRT(LocalPlannerExecutor):
-    _map_coordinate_converter: CoordinateConverter
+class FastRRTPlanner(LocalPlannerExecutor):
     _fastrrt: FastRRT
-    _max_exec_time_ms: int
-    _max_path_size_px: int
-    _dist_to_goal_tolerance_px: int
- 
+    _pre_process_data: bool
+    _smart_expansion: bool
     
-    def __init__(self, map_coordinate_converter: CoordinateConverter,
-                 max_exec_time_ms: int, 
-                 max_path_size_px: int = 20, 
-                 dist_to_goal_tolerance_px: int = 20
-                 ):
+    def __init__(self, ego_params: EgoParams, pre_process_data: bool = True, smart_expansion: bool = True):
         
-        super().__init__("FastRRT", max_exec_time_ms)
-        self._map_coordinate_converter = map_coordinate_converter
-        self._max_exec_time_ms = max_exec_time_ms
-        self._max_path_size_px = max_path_size_px
-        self._dist_to_goal_tolerance_px = dist_to_goal_tolerance_px
+        super().__init__("FastRRT", ego_params)
+        self._fastrrt = FastRRT(ego_params)
+        self._pre_process_data = pre_process_data
+        self._smart_expansion = smart_expansion
    
-    def _planning_init(self, planning_data: PlanningData) -> bool:
-        self._fastrrt = FastRRT(
-            search_frame = planning_data.og(),
-            perception_width_m = PhysicalParameters.OG_REAL_WIDTH,
-            perception_height_m = PhysicalParameters.OG_REAL_HEIGHT,
-            max_steering_angle_deg = PhysicalParameters.MAX_STEERING_ANGLE,
-            vehicle_length_m = PhysicalParameters.VEHICLE_LENGTH_M,
-            timeout_ms = self._max_exec_time_ms,
-            min_dist_x = PhysicalParameters.MIN_DISTANCE_WIDTH_PX,
-            min_dist_z = PhysicalParameters.MIN_DISTANCE_HEIGHT_PX,
-            path_costs = PhysicalParameters.SEGMENTATION_CLASS_COST,
-            max_path_size_px = self._max_path_size_px,
-            dist_to_goal_tolerance_px = self._dist_to_goal_tolerance_px
-        )
-
-        self._fastrrt.set_plan_data(
-            cuda_ptr=planning_data.og().get_cuda_ptr(),
-            start=(planning_data.start().x, planning_data.start().z, planning_data.start().heading.rad()),
-            goal=(planning_data.local_goal().x, planning_data.local_goal().z, planning_data.local_goal().heading.rad()), 
-            velocity_m_s=planning_data.velocity)
+    def _planning_init(self, search_params: SearchParams) -> bool:
         
+        self._fastrrt.set_plan_data(search_params)
         self._fastrrt.search_init()
+        
+        if self._pre_process_data:
+            frame = search_params.frame
+            frame.process_safe_distance_zone(min_distance=search_params.min_distance, compute_vectorized=False)
+            frame.process_distance_to_goal(search_params.goal.x, search_params.goal.z)
+            
         return True
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
-        return self._fastrrt.loop(False)
+    def _loop_plan(self) -> bool:
+        return self._fastrrt.loop(self._smart_expansion)
 
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
-        self._fastrrt.optimize_path()
-        return False
+    def _loop_optimize(self) -> bool:
+        return self._fastrrt.path_optimize()
 
     

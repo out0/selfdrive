@@ -1,9 +1,8 @@
 
 import time
-from .planning_data import PlanningData
 from .planning_result import PlanningResult, PlannerResultType
 from threading import Thread
-from pydriveless import Waypoint
+from pydriveless import Waypoint, SearchParams, EgoParams
 
 class LocalPlannerExecutor:
     __name: str
@@ -14,19 +13,19 @@ class LocalPlannerExecutor:
     __is_running: bool
     __can_run: bool
     __loop_thr: Thread
-    __planning_data: PlanningData
+    _search_params: SearchParams
     _planning_result: PlanningResult
         
-    def __init__(self, name: str, max_exec_time_ms: int):
+    def __init__(self, name: str):
         self.__name = name
-        self.__max_exec_time_ms = max_exec_time_ms
+        self.__max_exec_time_ms = -1
         self.__exec_start = -1
         self.__can_run = True
         self.__is_planning = False
         self.__is_optimizing = False
         self.__loop_thr = None
         self.__is_running = False
-        self._planning_result = PlanningResult(self.__name)        
+        self._planning_result = PlanningResult(self.__name)
     
     def cancel(self) -> None:
         if self.__can_run:
@@ -70,17 +69,17 @@ class LocalPlannerExecutor:
     def get_execution_time(self) -> int:
         return 1000 * (time.time() - self.__exec_start)
     
-    def plan (self, data: PlanningData, run_in_main_thread: bool = False) -> None:
+    def plan (self, search_params: SearchParams, run_in_main_thread: bool = False) -> None:
         self.cancel()
         self.__can_run = True
         self.__is_planning = True
         self.__is_optimizing = True
         self.__is_running = True
-        self.__planning_data = data
+        self._search_params = search_params
         self.__rst_timeout()
 
         if run_in_main_thread:
-            if not self._planning_init(data):
+            if not self._planning_init(search_params):
                 return
             self._planning_exec()
             return
@@ -92,18 +91,18 @@ class LocalPlannerExecutor:
         timeout: bool = False
         self.__is_running = True
         
-        if self._planning_init(self.__planning_data):
+        if self._planning_init(self._search_params):
             while not timeout and self.__can_run and self.__is_planning:
                 timeout = self._check_timeout()
                 if timeout: continue
-                self.__is_planning = self._loop_plan(self.__planning_data)
+                self.__is_planning = self._loop_plan()
 
             self._planning_result.planning_exec_time_ms = self.get_execution_time()
             
             while not timeout and self.__can_run and self.__is_optimizing:
                 timeout = self._check_timeout()
                 if timeout: continue
-                self.__is_optimizing = self._loop_optimize(self.__planning_data)
+                self.__is_optimizing = self._loop_optimize()
 
             self.__is_running = False
         
@@ -132,12 +131,12 @@ class LocalPlannerExecutor:
     #               Extend and Implement These
     #
     #----------------------------------------------------------
-    def _planning_init(self, planning_data: PlanningData) -> bool:
+    def _planning_init(self, planning_data: SearchParams) -> bool:
         return True
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
+    def _loop_plan(self) -> bool:
         pass
     
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
+    def _loop_optimize(self) -> bool:
         pass
     
