@@ -3,6 +3,8 @@ from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
 from pydriveless import SearchFrame, angle, SearchParams, EgoParams
 from pyfastrrt import FastRRT
 from ensemble import LocalPlannerExecutor, PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, Ensemble, InformedHybridAStar
+# planners
+from ensemble import FastRRTPlanner
 import numpy as np
 import math
 import cv2
@@ -83,9 +85,10 @@ def convert_black_white_frame(frame: np.ndarray) -> np.ndarray:
 
 def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, executor: LocalPlannerExecutor, path_color: tuple[int, int, int] = [255, 0, 0]) -> None:
     print (f"Starting planner test for {executor.get_planner_name()}")
+    executor.plan(search_params, False)
+
     while not executor.new_path_available():
         time.sleep(0.1)
-    executor.plan(search_params, False)
     result: PlanningResult = executor.get_result()
 
     if result.result_type != PlannerResultType.VALID:
@@ -106,7 +109,7 @@ def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, execu
         path = result.path
 
     for p in path:
-        outp_frame[p.z, p.x, :] = path_color
+        outp_frame[int(p[1]), int(p[0]), :] = path_color
 
 def exec_test():
     
@@ -155,45 +158,48 @@ def exec_test():
             .with_timeout(3000)\
             .build()    
 
-    fast_rrt = FastRRT(ego_params)
-    fast_rrt.set_plan_data(search_params)
+    fast_rrt_planner = FastRRTPlanner(ego_params, False, True)
+    exec_planner_test(orig_frame, search_params, fast_rrt_planner, path_color=[255, 0, 0])
 
-    fast_rrt.search_init(True)
+    # fast_rrt = FastRRT(ego_params)
+    # fast_rrt.set_plan_data(search_params)
 
-    loop_count = 0
-    start_time = time.time()
+    # fast_rrt.search_init(True)
 
-    while not fast_rrt.goal_reached() and fast_rrt.loop(True):
-        loop_count += 1
+    # loop_count = 0
+    # start_time = time.time()
+
+    # while not fast_rrt.goal_reached() and fast_rrt.loop(True):
+    #     loop_count += 1
     
-    end_time = time.time()
-    execution_time = end_time - start_time
+    # end_time = time.time()
+    # execution_time = end_time - start_time
         
-    path = fast_rrt.get_planned_path(interpolate=False)
-    if path is None:
-        print(f"no path found")
-        return False
+    # path = fast_rrt.get_planned_path(interpolate=False)
+    # if path is None:
+    #     print(f"no path found")
+    #     return False
         
-        #np.save('coarse_path.npy', path)
-        #rrt.save_current_graph_state("coarse_path_state.dat")
+    #     #np.save('coarse_path.npy', path)
+    #     #rrt.save_current_graph_state("coarse_path_state.dat")
         
-    path = fast_rrt.get_planned_path(interpolate=True)
-    print (f"found path with {len(path)} waypoints in {1000*execution_time:.2f} ms, took {loop_count} iterations")
+    # path = fast_rrt.get_planned_path(interpolate=True)
+    # print (f"found path with {len(path)} waypoints in {1000*execution_time:.2f} ms, took {loop_count} iterations")
 
-    loop_count = 1
-    start_time = time.time()
-    while fast_rrt.path_optimize():
-        loop_count += 1
-        pass
-    end_time = time.time()
-    execution_time = end_time - start_time
+    # loop_count = 1
+    # start_time = time.time()
+    # while fast_rrt.path_optimize():
+    #     loop_count += 1
+    #     pass
+    # end_time = time.time()
+    # execution_time = end_time - start_time
 
-    path = fast_rrt.get_planned_path(interpolate=True)
-    print (f"optimizing path with {len(path)} waypoints in {1000*execution_time:.2f} ms took {loop_count} iterations")
+    # path = fast_rrt.get_planned_path(interpolate=True)
+    # print (f"optimizing path with {len(path)} waypoints in {1000*execution_time:.2f} ms took {loop_count} iterations")
 
 
-    for p in path:
-        orig_frame[int(p[1]), int(p[0]), :] = [255, 0, 0]
+    # for p in path:
+    #     orig_frame[int(p[1]), int(p[0]), :] = [255, 0, 0]
 
 
     # planner = Ensemble(conv, max_exec_time_ms=-1)

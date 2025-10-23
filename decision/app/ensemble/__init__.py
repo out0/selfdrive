@@ -10,3 +10,4 @@ from .planner.hybrid_a import HybridAStar
 from .planner.reeds_shepp import ReedsShepp
 from .planner.informed_hybrid_a import InformedHybridAStar
 from .model.planner_executor import LocalPlannerExecutor
+from .planner.fastrrt_planner import FastRRTPlanner

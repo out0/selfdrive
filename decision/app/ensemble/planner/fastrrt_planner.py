@@ -17,7 +17,7 @@ class FastRRTPlanner(LocalPlannerExecutor):
     
     def __init__(self, ego_params: EgoParams, pre_process_data: bool = True, smart_expansion: bool = True):
         
-        super().__init__("FastRRT", ego_params)
+        super().__init__("FastRRT")
         self._fastrrt = FastRRT(ego_params)
         self._pre_process_data = pre_process_data
         self._smart_expansion = smart_expansion
@@ -35,9 +35,27 @@ class FastRRTPlanner(LocalPlannerExecutor):
         return True
 
     def _loop_plan(self) -> bool:
-        return self._fastrrt.loop(self._smart_expansion)
+        if self._fastrrt.loop(self._smart_expansion):
+            return True
+        
+        path = self._fastrrt.get_planned_path(True)
+
+        if path is None:
+            self._set_planning_result(PlannerResultType.INVALID_PATH, None)
+        else:
+            self._set_planning_result(PlannerResultType.VALID, path)
+        
+        return False
 
     def _loop_optimize(self) -> bool:
-        return self._fastrrt.path_optimize()
+        if self._fastrrt.path_optimize():
+            return True
+        
+        path = self._fastrrt.get_planned_path(True)
+        
+        if path is not None:
+            self._set_planning_result(PlannerResultType.VALID, path)
+        
+        return False
 
     
