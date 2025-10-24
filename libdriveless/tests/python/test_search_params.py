@@ -3,7 +3,7 @@ sys.path.append("../../")
 sys.path.append("../")
 import unittest, math, numpy as np
 import matplotlib.pyplot as plt
-from pydriveless import SearchFrame, angle, Waypoint
+from pydriveless import MapPose, angle, Waypoint, WorldPose
 from pydriveless import EgoParams, SearchParams
 
 class TestSearchParams(unittest.TestCase):
@@ -20,6 +20,7 @@ class TestSearchParams(unittest.TestCase):
         self.assertEqual(params.pixel_to_meter_ratio_height, 1.0)
         self.assertEqual(params.meter_to_pixel_ratio_width, 1.0)
         self.assertEqual(params.meter_to_pixel_ratio_height, 1.0)
+        self.assertTrue(params.world_origin == WorldPose(angle.new_rad(0), angle.new_rad(0), 0, angle.new_rad(0)))
  
     def test_search_params_default(self):
         params = EgoParams.init(256, 256).build()
@@ -37,6 +38,11 @@ class TestSearchParams(unittest.TestCase):
         self.assertTrue(search.goal == Waypoint(128, 0, angle.new_deg(11)))
         self.assertAlmostEqual(search.velocity_m_s, 1.0)
 
+        self.assertTrue(search.world_origin == WorldPose(angle.new_rad(0), angle.new_rad(0), 0, angle.new_rad(0)))
+        self.assertTrue(search.map_origin == MapPose(0, 0, 0, angle.new_rad(0)))
+        self.assertTrue(search.ego_pose == MapPose(0, 0, 0, angle.new_rad(0)))
+
+
     def test_build_ego_params_custom_values(self):
             params = (EgoParams.init(256, 256)
                     .with_ego_lower_bound((10, 11))
@@ -47,6 +53,7 @@ class TestSearchParams(unittest.TestCase):
                     .with_segmentation_class_colors([(0, 0, 0), (255, 255, 255)])
                     .with_segmentation_class_costs([0.0, -1.0])
                     .with_vehicle_length(3.2)
+                    .with_world_origin(WorldPose(angle.new_deg(11.1), angle.new_deg(11.2), 11.3, angle.new_deg(11.4)))
                     .build())
 
             self.assertTupleEqual(params.ego_lower_bound, (10, 11))
@@ -67,6 +74,7 @@ class TestSearchParams(unittest.TestCase):
             costs = params.segmentation_class_costs
             self.assertAlmostEqual(costs[0], 0.0)
             self.assertAlmostEqual(costs[1], -1.0)
+            self.assertEqual(params.world_origin, WorldPose(angle.new_deg(11.1), angle.new_deg(11.2), 11.3, angle.new_deg(11.4)))
  
     def test_build_search_params_custom_values(self):
             ego = (EgoParams.init(256, 256)
@@ -78,6 +86,7 @@ class TestSearchParams(unittest.TestCase):
                 .with_segmentation_class_colors([(0, 0, 0), (255, 255, 255)])
                 .with_segmentation_class_costs([0.0, -1.0])
                 .with_vehicle_length(3.2)
+                .with_world_origin(WorldPose(angle.new_deg(11.1), angle.new_deg(11.2), 11.3, angle.new_deg(11.4)))
                 .build())
 
             frame = ego.new_search_frame()
@@ -92,6 +101,9 @@ class TestSearchParams(unittest.TestCase):
                     .with_min_distance((10.12, 11.14))
                     .with_timeout(501)
                     .with_velocity(3.45)
+                    .with_world_origin(WorldPose(angle.new_deg(11.1), angle.new_deg(11.2), 11.3, angle.new_deg(11.4)))
+                    .with_map_origin(MapPose(1.1, 1.2, -1.3, angle.new_deg(21.1)))
+                    .with_ego_pose(MapPose(-1.0, -2.1, 3.0, angle.new_deg(10.12)))
                     .build())
 
             self.assertEqual(search.timeout_ms, 501)
@@ -103,6 +115,9 @@ class TestSearchParams(unittest.TestCase):
             self.assertEqual(search.start, Waypoint(128, 107, angle.new_deg(-6.3)))
             self.assertEqual(search.goal, Waypoint(128, 5, angle.new_deg(11)))
             self.assertAlmostEqual(search.velocity_m_s, 3.45)
+            self.assertTrue(search.world_origin == WorldPose(angle.new_deg(11.1), angle.new_deg(11.2), 11.3, angle.new_deg(11.4)))
+            self.assertTrue(search.map_origin == MapPose(1.1, 1.2, -1.3, angle.new_deg(21.1)))
+            self.assertTrue(search.ego_pose == MapPose(-1.0, -2.1, 3.0, angle.new_deg(10.12)))
 
 
 if __name__ == "__main__":

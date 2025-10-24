@@ -8,6 +8,8 @@
 #include <driveless/angle.h>
 #include <driveless/search_frame.h>
 #include <driveless/math_utils.h>
+#include <driveless/map_pose.h>
+#include <driveless/world_pose.h>
 
 class SearchParams
 {
@@ -21,18 +23,25 @@ class SearchParams
     SearchFrame *_frame;
     Waypoint _start;
     Waypoint _goal;
+    MapPose _ego_pose;
+    MapPose _map_origin;
+    WorldPose _world_origin;
     float _velocity_m_s;
 
     // Private constructor only accessible by Builder
     SearchParams(int timeout_ms, float maxPathSize_px, float distanceToGoalTolerance_px, angle headingErrorTolerance,
-                 std::pair<int, int> minDistance, SearchFrame *frame, Waypoint start, Waypoint goal, float velocity_m_s) : _timeout_ms(timeout_ms), _maxPathSize_px(maxPathSize_px),
-                                                                                                                            _distanceToGoalTolerance_px(distanceToGoalTolerance_px),
-                                                                                                                            _headingErrorTolerance(headingErrorTolerance),
-                                                                                                                            _minDistance(minDistance),
-                                                                                                                            _frame(frame),
-                                                                                                                            _start(start),
-                                                                                                                            _goal(goal),
-                                                                                                                            _velocity_m_s(velocity_m_s) {}
+                 std::pair<int, int> minDistance, SearchFrame *frame, Waypoint start, Waypoint goal, MapPose ego_pose,
+                 MapPose map_origin, WorldPose world_origin, float velocity_m_s) : _timeout_ms(timeout_ms), _maxPathSize_px(maxPathSize_px),
+                                                                                   _distanceToGoalTolerance_px(distanceToGoalTolerance_px),
+                                                                                   _headingErrorTolerance(headingErrorTolerance),
+                                                                                   _minDistance(minDistance),
+                                                                                   _frame(frame),
+                                                                                   _start(start),
+                                                                                   _goal(goal),
+                                                                                   _ego_pose(ego_pose),
+                                                                                   _map_origin(map_origin),
+                                                                                   _world_origin(world_origin),
+                                                                                   _velocity_m_s(velocity_m_s) {}
 
 public:
     class SearchParamsBuilder
@@ -47,9 +56,14 @@ public:
         SearchFrame *_frame = nullptr;
         Waypoint _start;
         Waypoint _goal;
+        MapPose _ego_pose;
+        MapPose _map_origin;
+        WorldPose _world_origin;
         float _velocity_m_s = 1.0f;
 
-        explicit SearchParamsBuilder(const Waypoint &start, const Waypoint &goal) : _start(start), _goal(goal) {}
+        explicit SearchParamsBuilder(const Waypoint &start, const Waypoint &goal,
+                                     const MapPose &ego_pose, const MapPose &map_origin, const WorldPose &world_origin) : _start(start), _goal(goal),
+                                                                                                                          _ego_pose(ego_pose), _map_origin(map_origin), _world_origin(world_origin) {}
 
     public:
         SearchParamsBuilder &withTimeout(int timeout_ms)
@@ -94,16 +108,37 @@ public:
             return *this;
         }
 
+        SearchParamsBuilder &withMapOrigin(const MapPose &origin)
+        {
+            _map_origin = origin;
+            return *this;
+        }
+
+        SearchParamsBuilder &withEgoPose(const MapPose &egoPose)
+        {
+            _ego_pose = egoPose;
+            return *this;
+        }
+
+        SearchParamsBuilder &withWorldOrigin(const WorldPose &origin)
+        {
+            _world_origin = origin;
+            return *this;
+        }
+
         SearchParams build()
         {
             return SearchParams(_timeout_ms, _maxPathSize_px, _distanceToGoalTolerance_px, _headingErrorTolerance,
-                                _minDistance, _frame, _start, _goal, _velocity_m_s);
+                                _minDistance, _frame, _start, _goal, _ego_pose, _map_origin, _world_origin, _velocity_m_s);
         }
     };
 
     static SearchParamsBuilder init(const Waypoint &start, const Waypoint &goal)
     {
-        return SearchParamsBuilder(start, goal);
+        MapPose pose(0, 0, 0, angle::rad(0));
+        MapPose map_origin(0, 0, 0, angle::rad(0));
+        WorldPose origin(angle::rad(0), angle::rad(0), 0, angle::rad(0));
+        return SearchParamsBuilder(start, goal, pose, map_origin, origin);
     }
 
     inline int timeout_ms() { return _timeout_ms; }
@@ -114,6 +149,11 @@ public:
     inline SearchFrame *frame() { return _frame; }
     inline Waypoint start() { return _start; }
     inline Waypoint goal() { return _goal; }
+
+    inline MapPose ego_pose() { return _ego_pose; }
+    inline MapPose map_origin() { return _map_origin; }
+    inline WorldPose world_origin() { return _world_origin; }
+
     inline float velocity_m_s() { return _velocity_m_s; }
 };
 
@@ -137,6 +177,8 @@ private:
     float _meterToPixelRatio_Width;
     float _meterToPixelRatio_Height;
 
+    WorldPose _world_origin;
+
     EgoParams(
         const std::tuple<int, int> &searchFrameDimensions,
         const std::tuple<float, float> &searchFramePhysicalDimensions,
@@ -150,7 +192,8 @@ private:
         float pixelToMeterRatio_Width,
         float pixelToMeterRatio_Height,
         float meterToPixelRatio_Width,
-        float meterToPixelRatio_Height)
+        float meterToPixelRatio_Height,
+        const WorldPose &world_origin)
         : _searchFrameDimensions(searchFrameDimensions),
           _searchFramePhysicalDimensions(searchFramePhysicalDimensions),
           _segmentationClassColors(segmentationClassColors),
@@ -163,7 +206,8 @@ private:
           _pixelToMeterRatio_Width(pixelToMeterRatio_Width),
           _pixelToMeterRatio_Height(pixelToMeterRatio_Height),
           _meterToPixelRatio_Width(meterToPixelRatio_Width),
-          _meterToPixelRatio_Height(meterToPixelRatio_Height)
+          _meterToPixelRatio_Height(meterToPixelRatio_Height),
+          _world_origin(world_origin)
     {
     }
 
@@ -189,8 +233,11 @@ public:
         float _meterToPixelRatio_Width = 1.0;
         float _meterToPixelRatio_Height = 1.0;
 
+        WorldPose _world_origin;
+
     public:
-        explicit EgoParamsBuilder(std::tuple<int, int> searchFrameDimensions) : _searchFrameDimensions(searchFrameDimensions) {}
+        explicit EgoParamsBuilder(std::tuple<int, int> searchFrameDimensions, WorldPose world_origin) : _searchFrameDimensions(searchFrameDimensions),
+                                                                                                        _world_origin(world_origin) {}
 
         EgoParamsBuilder &withSearchPhysicalSize(float width_m, float height_m)
         {
@@ -240,6 +287,12 @@ public:
             return *this;
         }
 
+        EgoParamsBuilder &withWorldOrigin(WorldPose origin)
+        {
+            _world_origin = origin;
+            return *this;
+        }
+
         EgoParams build()
         {
             auto [xp, zp] = _searchFrameDimensions;
@@ -269,13 +322,15 @@ public:
                 _pixelToMeterRatio_Width,
                 _pixelToMeterRatio_Height,
                 _meterToPixelRatio_Width,
-                _meterToPixelRatio_Height);
+                _meterToPixelRatio_Height,
+                _world_origin);
         }
     };
 
     static EgoParamsBuilder init(const int searchWidth, const int searchHeight)
     {
-        return EgoParamsBuilder({searchWidth, searchHeight});
+        WorldPose origin(angle::rad(0), angle::rad(0), 0, angle::rad(0));
+        return EgoParamsBuilder({searchWidth, searchHeight}, origin);
     }
     inline SearchParams::SearchParamsBuilder newSearchParams(const Waypoint &start, const Waypoint &goal)
     {
@@ -287,7 +342,7 @@ public:
         return SearchParams::init(Waypoint(TO_INT(0.5 * w), TO_INT(0.5 * h), angle::rad(0)), goal);
     }
 
-    SearchFrame * newSearchFrame();
+    SearchFrame *newSearchFrame();
 
     inline int width() { return std::get<0>(_searchFrameDimensions); }
     inline int height() { return std::get<1>(_searchFrameDimensions); }
@@ -308,6 +363,8 @@ public:
     inline float pixelToMeterRatio_Height() { return _pixelToMeterRatio_Height; }
     inline float meterToPixelRatio_Width() { return _meterToPixelRatio_Width; }
     inline float meterToPixelRatio_Height() { return _meterToPixelRatio_Height; }
+
+    inline WorldPose world_origin() { return _world_origin; }
 };
 
 #endif

@@ -107,3 +107,11 @@ class WorldPose:
 
     def __str__(self) -> str:
         return f"{self.lat.deg()}|{self.lon.deg()}|{self.alt}|{self.compass.deg()}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, WorldPose):
+            return False
+        return (math.isclose(self.lat.rad(), other.lat.rad()) and
+                math.isclose(self.lon.rad(), other.lon.rad()) and
+                math.isclose(self.alt, other.alt) and
+                math.isclose(self.compass.rad(), other.compass.rad()))

@@ -20,6 +20,8 @@ TEST(TestSearchParams, TestBuildEgoParamsAllDefault)
     ASSERT_EQ(params.pixelToMeterRatio_Height(), 1.0f);
     ASSERT_EQ(params.meterToPixelRatio_Width(), 1.0f);
     ASSERT_EQ(params.meterToPixelRatio_Height(), 1.0f);
+
+    ASSERT_TRUE(params.world_origin() == WorldPose(angle::rad(0), angle::rad(0), 0, angle::rad(0)));
 }
 
 TEST(TestSearchParams, TestBuildSearchParamsAllDefault)
@@ -39,6 +41,10 @@ TEST(TestSearchParams, TestBuildSearchParamsAllDefault)
     ASSERT_TRUE(search.start() == Waypoint(128, 128, angle::deg(0)));
     ASSERT_TRUE(search.goal() == Waypoint(128, 0, angle::deg(11)));
     ASSERT_EQ(search.velocity_m_s(), 1.0f);
+
+    ASSERT_TRUE(search.world_origin() == WorldPose(angle::rad(0), angle::rad(0), 0, angle::rad(0)));
+    ASSERT_TRUE(search.map_origin() == MapPose(0, 0, 0, angle::rad(0)));
+    ASSERT_TRUE(search.ego_pose() == MapPose(0, 0, 0, angle::rad(0)));
 }
 
 TEST(TestSearchParams, TestBuildEgoParamsCustomValues)
@@ -54,6 +60,7 @@ TEST(TestSearchParams, TestBuildEgoParamsCustomValues)
                            .withSegmentationClassCosts({0.0,
                                                         -1.0})
                            .withVehicleLength(3.2)
+                           .withWorldOrigin(WorldPose(angle::deg(11.1), angle::deg(11.2), 11.3, angle::deg(11.4)))
                            .build();
 
     ASSERT_EQ(params.egoLowerBound(), (std::pair<int, int>({10, 11})));
@@ -74,6 +81,7 @@ TEST(TestSearchParams, TestBuildEgoParamsCustomValues)
     auto costs = params.segmentationClassCosts();
     ASSERT_EQ(costs.at(0), 0.0);
     ASSERT_EQ(costs.at(1), -1.0);
+    ASSERT_TRUE(params.world_origin() == WorldPose(angle::deg(11.1), angle::deg(11.2), 11.3, angle::deg(11.4)));
 }
 
 TEST(TestSearchParams, TestBuildSearchParamsCustomValues)
@@ -101,6 +109,9 @@ TEST(TestSearchParams, TestBuildSearchParamsCustomValues)
                               .withMinDistance({10.12, 11.14})
                               .withTimeout(501)
                               .withVelocity(3.45)
+                              .withWorldOrigin(WorldPose(angle::deg(11.1), angle::deg(11.2), 11.3, angle::deg(11.4)))
+                              .withMapOrigin(MapPose(1.1, 1.2, -1.3, angle::deg(21.1)))
+                              .withEgoPose(MapPose(-1.0, -2.1, 3.0, angle::deg(10.12)))
                               .build();
 
     ASSERT_EQ(search.timeout_ms(), 501);
@@ -112,4 +123,7 @@ TEST(TestSearchParams, TestBuildSearchParamsCustomValues)
     ASSERT_TRUE(search.start() == Waypoint(128, 107, angle::deg(-6.3)));
     ASSERT_TRUE(search.goal() == Waypoint(128, 5, angle::deg(11)));
     ASSERT_EQ(search.velocity_m_s(), 3.45f);
+    ASSERT_TRUE(search.world_origin() == WorldPose(angle::deg(11.1), angle::deg(11.2), 11.3, angle::deg(11.4)));
+    ASSERT_TRUE(search.map_origin() == MapPose(1.1, 1.2, -1.3, angle::deg(21.1)));
+    ASSERT_TRUE(search.ego_pose() == MapPose(-1.0, -2.1, 3.0, angle::deg(10.12)));
 }

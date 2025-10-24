@@ -1,6 +1,8 @@
 from .angle import angle
 from .waypoint import Waypoint
 from .search_frame import SearchFrame
+from .map_pose import MapPose
+from .world_pose import WorldPose
 from typing import Optional
 import ctypes
 import os
@@ -16,6 +18,9 @@ class SearchParams:
     _frame: SearchFrame
     _start: Waypoint
     _goal: Waypoint
+    _ego_pose: MapPose
+    _map_origin: MapPose
+    _world_origin: WorldPose
     _velocity_m_s: float
 
     def __init__(
@@ -28,6 +33,9 @@ class SearchParams:
         frame: 'SearchFrame',
         start: 'Waypoint',
         goal: 'Waypoint',
+        ego_pose: MapPose,
+        map_origin: MapPose,
+        world_origin: WorldPose,
         velocity_m_s: float
     ):
         self._timeout_ms = timeout_ms
@@ -38,6 +46,9 @@ class SearchParams:
         self._frame = frame
         self._start = start
         self._goal = goal
+        self._ego_pose = ego_pose
+        self._map_origin = map_origin
+        self._world_origin = world_origin
         self._velocity_m_s = velocity_m_s
 
     class Builder:
@@ -50,6 +61,9 @@ class SearchParams:
             self._frame = None
             self._start = start
             self._goal = goal
+            self._ego_pose = MapPose(0.0, 0.0, 0.0, angle.new_rad(0.0))
+            self._map_origin = MapPose(0.0, 0.0, 0.0, angle.new_rad(0.0))
+            self._world_origin = WorldPose(angle.new_rad(0.0), angle.new_rad(0.0), 0.0, angle.new_rad(0.0))
             self._velocity_m_s = 1.0
 
         def with_timeout(self, timeout_ms: int):
@@ -79,6 +93,18 @@ class SearchParams:
         def with_velocity(self, velocity_m_s: float):
             self._velocity_m_s = velocity_m_s
             return self
+        
+        def with_ego_pose(self, pose: MapPose):
+            self._ego_pose = pose
+            return self        
+        
+        def with_map_origin(self, origin: MapPose):
+            self._map_origin = origin
+            return self        
+        
+        def with_world_origin(self, world_origin: WorldPose):
+            self._world_origin = world_origin
+            return self        
 
         def build(self) -> 'SearchParams':
             return SearchParams(
@@ -90,6 +116,9 @@ class SearchParams:
                 self._frame,
                 self._start,
                 self._goal,
+                self._ego_pose,
+                self._map_origin,
+                self._world_origin,
                 self._velocity_m_s
             )
 
@@ -133,6 +162,18 @@ class SearchParams:
     def velocity_m_s(self) -> float:
         return self._velocity_m_s
 
+    @property
+    def ego_pose(self) -> MapPose:
+        return self._ego_pose
+
+    @property
+    def map_origin(self) -> MapPose:
+        return self._map_origin
+
+    @property
+    def world_origin(self) -> WorldPose:
+        return self._world_origin
+
 
 class EgoParams:
     _search_frame_dimensions: tuple[int, int]
@@ -152,6 +193,8 @@ class EgoParams:
     _meters_to_pixel_ratio_width: float
     _meters_to_pixel_ratio_height: float
 
+    _world_origin: WorldPose
+
     def __init__(self,
                  search_frame_dimensions: tuple[int, int],
                  search_frame_physical_dimensions: tuple[float, float],
@@ -165,7 +208,8 @@ class EgoParams:
                  pixel_to_meters_ratio_width: float,
                  pixel_to_meters_ratio_height: float,
                  meters_to_pixel_ratio_width: float,
-                 meters_to_pixel_ratio_height: float):
+                 meters_to_pixel_ratio_height: float,
+                 world_origin: WorldPose):
         self._search_frame_dimensions = search_frame_dimensions
         self._search_frame_physical_dimensions = search_frame_physical_dimensions
         self._segmentation_class_colors = segmentation_class_colors
@@ -179,6 +223,7 @@ class EgoParams:
         self._pixel_to_meters_ratio_height = pixel_to_meters_ratio_height
         self._meters_to_pixel_ratio_width = meters_to_pixel_ratio_width
         self._meters_to_pixel_ratio_height = meters_to_pixel_ratio_height
+        self._world_origin = world_origin
      
     class Builder:
         def __init__(self, search_frame_dimensions: tuple[int, int]):
@@ -198,6 +243,8 @@ class EgoParams:
             self._pixel_to_meters_ratio_height = 1.0
             self._meters_to_pixel_ratio_width = 1.0
             self._meters_to_pixel_ratio_height = 1.0
+
+            self._world_origin = WorldPose(angle.new_rad(0.0), angle.new_rad(0.0), 0.0, angle.new_rad(0.0))
 
         def with_search_physical_size(self, width_m: float, height_m: float):
             self._search_frame_physical_dimensions = (width_m, height_m)
@@ -231,6 +278,10 @@ class EgoParams:
             self._max_curvature = curvature
             return self
 
+        def with_world_origin(self, world_origin: WorldPose):
+            self._world_origin = world_origin
+            return self      
+
         def build(self) -> 'EgoParams':
             width_px, height_px = self._search_frame_dimensions
             width_m, height_m = self._search_frame_physical_dimensions
@@ -258,7 +309,8 @@ class EgoParams:
                 self._pixel_to_meters_ratio_width,
                 self._pixel_to_meters_ratio_height,
                 self._meters_to_pixel_ratio_width,
-                self._meters_to_pixel_ratio_height
+                self._meters_to_pixel_ratio_height,
+                self._world_origin
             )
 
     @staticmethod
@@ -332,3 +384,7 @@ class EgoParams:
     @property
     def meter_to_pixel_ratio_height(self) -> float:
         return self._meters_to_pixel_ratio_height
+
+    @property
+    def world_origin(self) -> WorldPose:
+        return self._world_origin
