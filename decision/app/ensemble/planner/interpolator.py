@@ -1,6 +1,6 @@
 
 from pydriveless import Waypoint, angle
-from pydriveless import CoordinateConverter
+from pydriveless import CoordinateConverter, EgoParams, SearchParams
 from .. model.planner_executor import LocalPlannerExecutor
 from .. model.planning_result import PlanningResult, PlannerResultType
 from .. model.planning_data import PlanningData
@@ -11,11 +11,19 @@ HALF_PI = 0.5*math.pi
 
 class Interpolator(LocalPlannerExecutor):
     _map_coordinate_converter: CoordinateConverter
+    __planning_data: SearchParams
 
-    def __init__(self, map_coordinate_converter: CoordinateConverter,
-                 max_exec_time_ms: int):
-        LocalPlannerExecutor.__init__(self, "Interpolator", max_exec_time_ms)
-        self._map_coordinate_converter = map_coordinate_converter
+    def __init__(self, ego_params: EgoParams):
+        LocalPlannerExecutor.__init__(self, "Interpolator")
+        w, h = ego_params.search_frame_dimensions
+        pw, ph = ego_params.search_frame_physical_dimensions
+        
+        self._map_coordinate_converter = CoordinateConverter(
+            origin=ego_params.world_origin, 
+            width=w, 
+            height=h,
+            perceptionHeightSize_m=pw,
+            perceptionWidthSize_m=ph)
 
     def __dedup_path(self, path: list[Waypoint], og_height: int):
         dedup = set()
@@ -28,14 +36,19 @@ class Interpolator(LocalPlannerExecutor):
             new_path.append(p)
         return new_path
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
-        start = planning_data.start()
+    def _planning_init(self, search_params: SearchParams) -> bool:
+        self._search_params = search_params
+        self.set_timeout(search_params.timeout_ms)
+        return True
 
-        l1 = planning_data.local_goal()
+    def _loop_plan(self) -> bool:
+        start = self._search_params.start
+        l1 = self._search_params.goal
+        frame = self._search_params.frame
 
         path: list[Waypoint] = None
 
-        path = Interpolator.interpolate_hermite_curve(planning_data.og().width(), planning_data.og().height(), start, l1)
+        path = Interpolator.interpolate_hermite_curve(frame.width(), frame.height(), start, l1)
 
         if path is None:
             return False
@@ -43,16 +56,16 @@ class Interpolator(LocalPlannerExecutor):
         if self._check_timeout():
             return False
 
-        path = self.__dedup_path(path, og_height=planning_data.og().height())
+        path = self.__dedup_path(path, og_height=frame.height())
         self._set_planning_result(PlannerResultType.INVALID_PATH, path)
 
-        if not planning_data.og().check_feasible_path(planning_data.min_distance(), path):
+        if not frame.check_feasible_path(self._search_params.min_distance, path):
             return False
 
         self._set_planning_result(PlannerResultType.VALID, path)
         return False
 
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
+    def _loop_optimize(self) -> bool:
         # ignore
         return False
 

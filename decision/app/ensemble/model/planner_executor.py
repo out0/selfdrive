@@ -53,6 +53,9 @@ class LocalPlannerExecutor:
     def new_path_available(self) -> bool:
         return self._planning_result.result_type == PlannerResultType.VALID
 
+    def set_timeout(self, timeout_ms: int) -> None:
+        self.__max_exec_time_ms = timeout_ms
+
     def timeout (self) -> bool:
         return self._planning_result.timeout
        

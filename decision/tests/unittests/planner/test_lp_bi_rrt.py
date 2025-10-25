@@ -1,7 +1,7 @@
 import sys, time
 sys.path.append("../../../")
 from pydriveless import MapPose, Waypoint, WorldPose, angle
-from pydriveless import SearchFrame
+from pydriveless import SearchFrame, SearchParams, EgoParams
 from pydriveless import CoordinateConverter
 import unittest
 import numpy as np
@@ -17,202 +17,148 @@ class TestLPBiRRT(unittest.TestCase):
     TIMEOUT_MS = -1
     ORIGIN = WorldPose(angle.new_rad(0), angle.new_rad(0), 0, angle.new_rad(0))
 
-    __last_planner: any
-    __last_planning_data: any
-
-    @classmethod
-    def run_planner(cls) -> None:
-        cls.__last_planner.plan(cls.__last_planning_data, run_in_main_thread=True)
-
-
     def test_free_area(self):
-        return
+        ego_params = EgoParams.init(100, 100)\
+                .with_max_steering_angle(angle.new_deg(40))\
+                .with_max_curvature(0.34)\
+                .with_segmentation_class_costs(np.array([0.0, -1.0]))\
+                .with_segmentation_class_colors(np.array([[255, 255, 255], [0, 0, 0]]))\
+                .with_search_physical_size(1, 1)\
+                .build()
+
         bev = np.full((100, 100, 3), fill_value=0.0, dtype=np.float32)
-        og = SearchFrame(width=100, height=100, lower_bound=(-1, -1), upper_bound=(-1, -1))
-        og.set_frame_data(bev)
-        og.set_class_costs(np.array([0.0, -1.0]))
-        
-        conv = CoordinateConverter(origin=TestLPHybridA.ORIGIN, width=100, height=100, perceptionHeightSize_m=1, perceptionWidthSize_m=1)
-        planner = HybridAStar(conv, max_exec_time_ms=TestLPHybridA.TIMEOUT_MS)
-        
-        ego_location = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        g1 = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        L2 = Waypoint(x=50, z=-100, heading=angle.new_rad(0))
-        g2: MapPose = conv.convert(ego_location, L2)
-        
-        planning_data = PlanningData(
-            og=og,
-            ego_location=ego_location,
-            g1=g1,
-            g2=g2,
-            velocity=1.0,
-            min_distance=(5, 5)
-        )
-        
-        planning_data.set_local_goal(Waypoint(x=50, z=0, heading=angle.new_deg(0.0)))
-        og.process_distance_to_goal(planning_data.local_goal().x, planning_data.local_goal().z)
-        
-        TestLPHybridA.__last_planning_data = planning_data
-        TestLPHybridA.__last_planner = planner
+        goal = Waypoint(x=50, z=0, heading=angle.new_deg(0.0))
 
-        cProfile.run("TestLPHybridA.run_planner()")
-        
-        # planner.plan(planning_data)
-        # while planner.is_planning():
-        #     pass
+        frame = ego_params.new_search_frame()
+        frame.set_frame_data(bev)
+        frame.process_distance_to_goal(goal.x, goal.z)
+        frame.process_safe_distance_zone((5,5), True)
 
+        search_params = ego_params.new_search_params(goal=goal)\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((5,5))\
+            .with_velocity(1.0)\
+            .with_distance_to_goal_tolerance(5)\
+            .with_timeout(3000)\
+            .build()
 
-        
+               
+        planner = BiRRTStar(ego_params)        
+        planner.plan(search_params, True)
+       
         self.assertTrue(planner.get_execution_time() > 0)
         
         result = planner.get_result()
         
         self.assertEqual(result.result_type, PlannerResultType.VALID)
         
-        for p in result.path:
-            if (p.x > 52 or p.x < 48):
-                self.fail("should be straight or near straight line")
+        # for p in result.path:
+        #     if (p.x > 52 or p.x < 48):
+        #         self.fail("should be straight or near straight line")
         
         planner.cancel()
         while planner.is_running():
             pass
 
         print(str(result))
-        f = og.get_color_frame()
-        for p in result.path:
-            f[p.z, p.x] = [0, 255, 0]
-                
-        cv2.imwrite("debug.png", f)
        
     def test_diverge_plan_due_to_obstacle(self):
-        return
-        bev = np.full((100, 400, 3), fill_value=0.0, dtype=np.float32)
-        og = SearchFrame(width=100, height=400, lower_bound=(-1, -1), upper_bound=(-1, -1))
-        
+        ego_params = EgoParams.init(100, 100)\
+                .with_max_steering_angle(angle.new_deg(40))\
+                .with_max_curvature(0.34)\
+                .with_segmentation_class_costs(np.array([0.0, -1.0]))\
+                .with_segmentation_class_colors(np.array([[255, 255, 255], [0, 0, 0]]))\
+                .with_search_physical_size(1, 1)\
+                .build()
+
+        bev = np.full((100, 100, 3), fill_value=0.0, dtype=np.float32)
         for z in range(0, 10):
-            for x in range(40, 60):
+            for x in range(0, 100):
                 bev[z,x,0] = 1.0
-        
-        og.set_frame_data(bev)
-        og.set_class_costs(np.array([0.0, -1.0]))
-        og.set_class_colors(np.array([(0, 0, 0), (255, 255, 255)]))
 
-        f = og.get_color_frame()
-        cv2.imwrite("debug.png", f)
-        
-        conv = CoordinateConverter(origin=TestLPHybridA.ORIGIN, width=100, height=400, perceptionHeightSize_m=4, perceptionWidthSize_m=1)
-        planner = HybridAStar(conv, max_exec_time_ms=TestLPHybridA.TIMEOUT_MS)
-        
-        ego_location = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        g1 = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        L2 = Waypoint(x=50, z=-100, heading=angle.new_rad(0))
-        g2: MapPose = conv.convert(ego_location, L2)
-        
-        planning_data = PlanningData(
-            og=og,
-            ego_location=ego_location,
-            g1=g1,
-            g2=g2,
-            velocity=1.0,
-            min_distance=(5, 5)
-        )
-        
-        planning_data.set_local_goal(Waypoint(x=15, z=0, heading=angle.new_deg(0.0)))
+        goal = Waypoint(x=50, z=0, heading=angle.new_deg(0.0))
 
-        execution_time = timeit.timeit(lambda: og.process_distance_to_goal(planning_data.local_goal().x, planning_data.local_goal().z), number=1)
-        print(f"Execution time: {execution_time:.6f} seconds")
+        frame = ego_params.new_search_frame()
+        frame.set_frame_data(bev)
+        frame.process_distance_to_goal(goal.x, goal.z)
+        frame.process_safe_distance_zone((5,5), True)
 
-        # planner.plan(planning_data)
-        # while planner.is_planning():
-        #     pass
-        TestLPHybridA.__last_planning_data = planning_data
-        TestLPHybridA.__last_planner = planner
+        search_params = ego_params.new_search_params(goal=goal)\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((5,5))\
+            .with_velocity(1.0)\
+            .with_distance_to_goal_tolerance(5)\
+            .with_timeout(100)\
+            .build()
 
-        cProfile.run("TestLPHybridA.run_planner()")
-
+               
+        planner = BiRRTStar(ego_params)        
+        planner.plan(search_params, True)
+       
+        self.assertTrue(planner.get_execution_time() > 0)
+        
         result = planner.get_result()
-
-        #self.assertEqual(result.result_type, PlannerResultType.VALID)
-        planner.cancel()
-        while planner.is_running():
-            pass
-
-        print(str(result))
-
-        f = og.get_color_frame()
-        if result.path is not None:
-            for p in result.path:
-                f[p.z, p.x] = [0, 255, 0]
         
-        cv2.imwrite("debug.png", f)
-        p = 1
+        self.assertEqual(result.result_type, PlannerResultType.NONE)
+        self.assertIsNone(result.path)
+        print(str(result))
 
 
     def test_bev_1(self):
         bev = np.array(cv2.imread("bev_1.png"), dtype=np.float32)
-        og = SearchFrame(width=bev.shape[1], height=bev.shape[0], lower_bound=PhysicalParameters.EGO_LOWER_BOUND, upper_bound=PhysicalParameters.EGO_UPPER_BOUND)
-        
-        og.set_frame_data(bev)
-        og.set_class_costs(PhysicalParameters.SEGMENTATION_CLASS_COST)
-        og.set_class_colors(PhysicalParameters.SEGMENTED_COLORS)
+        ego_params = EgoParams.init(256, 256)\
+                .with_max_steering_angle(angle.new_deg(PhysicalParameters.MAX_STEERING_ANGLE))\
+                .with_ego_lower_bound(PhysicalParameters.EGO_LOWER_BOUND)\
+                .with_ego_upper_bound(PhysicalParameters.EGO_UPPER_BOUND)\
+                .with_max_curvature(0.34)\
+                .with_segmentation_class_costs(PhysicalParameters.SEGMENTATION_CLASS_COST)\
+                .with_segmentation_class_colors(PhysicalParameters.SEGMENTED_COLORS)\
+                .with_search_physical_size(PhysicalParameters.OG_REAL_WIDTH, PhysicalParameters.OG_REAL_HEIGHT)\
+                .build()
 
-        f = og.get_color_frame()
-        cv2.imwrite("debug.png", f)
-        
-        conv = CoordinateConverter(origin=TestLPBiRRT.ORIGIN, width=PhysicalParameters.OG_WIDTH, height=PhysicalParameters.OG_HEIGHT, perceptionHeightSize_m=PhysicalParameters.OG_REAL_HEIGHT, perceptionWidthSize_m=PhysicalParameters.OG_REAL_WIDTH)
-        planner = BiRRTStar(map_coordinate_converter=conv, 
-                            max_exec_time_ms=TestLPBiRRT.TIMEOUT_MS,
-                            max_path_size_px=30,
-                            dist_to_goal_tolerance_px=5,
-                            class_cost=PhysicalParameters.SEGMENTATION_CLASS_COST)
-        
-        ego_location = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        g1 = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        L2 = Waypoint(x=50, z=-100, heading=angle.new_rad(0))
-        g2: MapPose = conv.convert(ego_location, L2)
-        
-        planning_data = PlanningData(
-            seq=0,
-            og=og,
-            start=Waypoint(128,128, heading=angle.new_rad(0)),
-            ego_location=ego_location,
-            g1=g1,
-            g2=g2,
-            velocity=1.0,
-            min_distance=(5, 5)
-        )
-        
-        planning_data.set_local_goal(Waypoint(x=108, z=0, heading=angle.new_deg(0.0)))
+        goal = Waypoint(x=108, z=0, heading=angle.new_deg(0.0))
 
-        execution_time = timeit.timeit(lambda: og.process_distance_to_goal(planning_data.local_goal().x, planning_data.local_goal().z), number=1)
-        print(f"Execution time: {execution_time:.6f} seconds")
+        frame = ego_params.new_search_frame()
+        frame.set_frame_data(bev)
+        frame.process_distance_to_goal(goal.x, goal.z)
+        frame.process_safe_distance_zone((PhysicalParameters.MIN_DISTANCE_WIDTH_PX//2, PhysicalParameters.MIN_DISTANCE_HEIGHT_PX//2), True)
 
-        # planner.plan(planning_data)
-        # while planner.is_planning():
-        #     pass
-        TestLPBiRRT.__last_planning_data = planning_data
-        TestLPBiRRT.__last_planner = planner
+        search_params = ego_params.new_search_params(goal=goal)\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((PhysicalParameters.MIN_DISTANCE_WIDTH_PX//2, PhysicalParameters.MIN_DISTANCE_HEIGHT_PX//2))\
+            .with_velocity(1.0)\
+            .with_distance_to_goal_tolerance(5)\
+            .with_timeout(500)\
+            .build()
 
-        TestLPBiRRT.run_planner()
-        #cProfile.run("TestLPBiRRT.run_planner()")
+               
+        planner = BiRRTStar(ego_params)        
+        planner.plan(search_params, True)
 
+        self.assertTrue(planner.get_execution_time() > 0)
+        
         result = planner.get_result()
-
-        #self.assertEqual(result.result_type, PlannerResultType.VALID)
-        planner.cancel()
-        while planner.is_running():
-            pass
-
-        print(str(result))
-
-        f = og.get_color_frame()
+        
+        self.assertEqual(result.result_type, PlannerResultType.VALID)
+        
+        f = frame.get_color_frame()
         if result.path is not None:
             for p in result.path:
                 f[p.z, p.x] = [0, 255, 0]
         
         cv2.imwrite("debug.png", f)
-        p = 1
+        
+        planner.cancel()
+        while planner.is_running():
+            pass
 
+        print(str(result))
 
 if __name__ == "__main__":
     unittest.main()

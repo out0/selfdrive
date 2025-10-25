@@ -1,6 +1,6 @@
 
 from pydriveless import Waypoint, angle, MapPose
-from pydriveless import CoordinateConverter
+from pydriveless import CoordinateConverter, EgoParams, SearchParams
 from .. model.planner_executor import LocalPlannerExecutor
 from .. model.planning_result import PlanningResult, PlannerResultType
 from .. model.planning_data import PlanningData
@@ -26,29 +26,18 @@ class Ensemble(LocalPlannerExecutor):
     _mtx_path: Lock
     _chosen_planner_name: str
 
-    def __init__(self, map_coordinate_converter: CoordinateConverter,
-                 max_exec_time_ms: int):
-        super().__init__("Ensemble", max_exec_time_ms)
-        self._map_coordinate_converter = map_coordinate_converter
-        self.__initialize_planners()
+    def __init__(self, ego_params: EgoParams):
+        super().__init__("Ensemble")
+        self.__initialize_planners(ego_params)
         self.__new_path_available = False
         self._mtx_path = Lock()
         self._chosen_planner_name = None
    
-    def __initialize_planners(self) -> None:
-        planner_interpolator = Interpolator(self._map_coordinate_converter, max_exec_time_ms=self.get_max_exec_time_ms())
-        
-        planner_overtaker = Overtaker(max_exec_time_ms=self.get_max_exec_time_ms())
-        
-        planner_hybrid = HybridAStar(
-            self._map_coordinate_converter, 
-            max_exec_time_ms=self.get_max_exec_time_ms())
-        
-        planner_bi_rrt = BiRRTStar(map_coordinate_converter=self._map_coordinate_converter, 
-                            max_exec_time_ms=self.get_max_exec_time_ms(),
-                            max_path_size_px=30,
-                            dist_to_goal_tolerance_px=20,
-                            class_cost=PhysicalParameters.SEGMENTATION_CLASS_COST)
+    def __initialize_planners(self, ego_params: EgoParams) -> None:
+        planner_interpolator = Interpolator(ego_params)
+        planner_overtaker = Overtaker(ego_params)
+        planner_hybrid = HybridAStar(ego_params)
+        planner_bi_rrt = BiRRTStar(ego_params)
         
         self._planning_set = [
             planner_interpolator,
@@ -56,8 +45,6 @@ class Ensemble(LocalPlannerExecutor):
             planner_hybrid,
             planner_bi_rrt
         ]
-        
-        
 
     def __terminate_local_planners(self) -> None:
         if DEBUG:
@@ -94,9 +81,10 @@ class Ensemble(LocalPlannerExecutor):
         self.__terminate_local_planners()
         self.__assert_local_planners_termination()
         
-    def _planning_init(self, planning_data: PlanningData) -> bool:
+    def _planning_init(self, search_params: SearchParams) -> bool:
         self.__terminate_local_planners()
         self.__assert_local_planners_termination()
+        self._search_params = search_params
         
         # planning_data.og().process_safe_distance_zone(planning_data.min_distance(), True)
         # planning_data.og().process_distance_to_goal(planning_data.local_goal().x, planning_data.local_goal().z)
@@ -107,11 +95,11 @@ class Ensemble(LocalPlannerExecutor):
         self._best_cost = MAX_VALUE
 
         for p in self._planning_set:
-            p.plan(planning_data, run_in_main_thread=False)
+            p.plan(search_params, run_in_main_thread=False)
         return True
 
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
+    def _loop_plan(self) -> bool:
         if not self.__check_coarse_planning():
             if DEBUG:
                 print ("[Ensemble] coarse planning terminated")
@@ -127,7 +115,7 @@ class Ensemble(LocalPlannerExecutor):
                 result = p.get_result()
                 
                 if result.result_type == PlannerResultType.VALID and len(result.path) > 0:
-                    cost, path_metrics = self.__assess_curve_quality_cost(result.path, planning_data.local_goal())                    
+                    cost, path_metrics = self.__assess_curve_quality_cost(result.path, self._search_params.goal)                    
                     if cost < self._best_cost:
                         self._best_cost = cost
                         result.planner_name = f"{self.get_planner_name()}/{p.get_planner_name()}"
@@ -153,7 +141,7 @@ class Ensemble(LocalPlannerExecutor):
         self.__new_path_available = True
         self._mtx_path.release()
 
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
+    def _loop_optimize(self, ) -> bool:
         if not self.__check_optim_planning():
             if DEBUG:
                 print ("[Ensemble] optimize planning terminated")            
@@ -168,7 +156,7 @@ class Ensemble(LocalPlannerExecutor):
                 result = p.get_result()
                 
                 if result.result_type == PlannerResultType.VALID and len(result.path) > 0:
-                    cost, path_metrics = self.__assess_curve_quality_cost(result.path, planning_data.local_goal())
+                    cost, path_metrics = self.__assess_curve_quality_cost(result.path, self._search_params.goal)
                     if cost < self._best_cost:
                         result.planner_name = f"{self.get_planner_name()}: {p.get_planner_name()}"
                         result.result_type = PlannerResultType.VALID

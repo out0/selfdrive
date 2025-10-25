@@ -1,10 +1,9 @@
 import math
 from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
-from pydriveless import SearchFrame, angle
+from pydriveless import SearchFrame, angle, SearchParams, EgoParams
 from .. model.planner_executor import LocalPlannerExecutor
 from .. model.planning_result import PlanningResult, PlannerResultType
 from .. model.planning_data import PlanningData
-from .. model.physical_paramaters import PhysicalParameters
 #from queue import PriorityQueue
 import heapq
 
@@ -101,15 +100,25 @@ class HybridAStar(LocalPlannerExecutor):
     _min_distance: tuple[int, int]
     _reed_shepp: ReedsShepp
     _goal: Waypoint
+    _ego_params: EgoParams
 
-    def __init__(self, conv: CoordinateConverter, max_exec_time_ms: float = -1, ):
-        super().__init__("Hybrid A*", max_exec_time_ms)
-        self._map_coordinate_converter = conv
+    def __init__(self, ego_params: EgoParams):
+        super().__init__("Hybrid A*")
+        w, h = ego_params.search_frame_dimensions
+        pw, ph = ego_params.search_frame_physical_dimensions
+        
+        self._map_coordinate_converter = CoordinateConverter(
+            origin=ego_params.world_origin, 
+            width=w, 
+            height=h,
+            perceptionHeightSize_m=pw,
+            perceptionWidthSize_m=ph)
+        
         self._cfg = HybridConfig(
             veh_dims = None,
             mot_res = 2,
             n_steer = 5,
-            max_steering_rad = math.radians(PhysicalParameters.MAX_STEERING_ANGLE),
+            max_steering_rad = ego_params.max_steering_angle.rad(),
             # H_C = 3,
             # S_C = 0.5,
             # S_CH_C = 0.5,
@@ -121,7 +130,8 @@ class HybridAStar(LocalPlannerExecutor):
             B_C = 0,
             SB_C = 0
         )
-        self._lr = PhysicalParameters.VEHICLE_LENGTH_M / 2
+        self._lr = ego_params.vehicle_length_m / 2
+        self._ego_params = ego_params
     
     def __check_local_curves_gpu(self, curves: list[tuple[list[MapPose], list[Waypoint]]]) -> bool:
         all_curves = []
@@ -299,37 +309,39 @@ class HybridAStar(LocalPlannerExecutor):
 
         return (path, local_path)
     
-    def _planning_init(self, planning_data: PlanningData) -> bool:
-        self._og = planning_data.og()
+    def _planning_init(self, search_params: SearchParams) -> bool:
+        self._og = search_params.frame
         self._width = self._og.width()
         self._height = self._og.height()
-        self._min_distance = planning_data.min_distance()
-        self._map_base_location = planning_data.base_map_conversion_location
-        self._goal = planning_data.local_goal()
-        self._cfg.veh_dims = planning_data.min_distance()
+        self._min_distance = search_params.min_distance
+        self._map_base_location = search_params.map_origin
+        self._goal = search_params.goal
+        self._cfg.veh_dims = search_params.min_distance
+        self._search_params = search_params
+        self.set_timeout(search_params.timeout_ms)
 
         self._reed_shepp = ReedsShepp(
             step=0.1,
-            vehicle_length_m=PhysicalParameters.VEHICLE_LENGTH_M,
-            max_steering_angle=PhysicalParameters.MAX_STEERING_ANGLE,
-            speed=planning_data.velocity()
+            vehicle_length_m=self._ego_params.vehicle_length_m,
+            max_steering_angle=self._ego_params.max_steering_angle.deg(),
+            speed=search_params.velocity_m_s
         )
 
         if DEBUG:
-            gray = np.dot(planning_data.og().get_color_frame()[..., :3], [0.2989, 0.5870, 0.1140])
+            gray = np.dot(self._og.get_color_frame()[..., :3], [0.2989, 0.5870, 0.1140])
             gray = np.clip(gray, 0, 255).astype(np.uint8)
             self._og_debug = np.stack((gray,) * 3, axis=-1)
 
-        self._start = planning_data.start()
-        self._cfg.velocity_m_s = planning_data.velocity()
+        self._start = search_params.start
+        self._cfg.velocity_m_s = search_params.velocity_m_s
 
         self._root = Node(parent=None,
                     local_pose=self._start,
-                    global_pose=planning_data.ego_location(),
+                    global_pose=search_params.ego_pose,
                     f_cost=0,
                     g_cost=0,
                     h_cost=self._og.get_cost(self._start.x, self._start.z),
-                    dist=planning_data.og().get_distance_to_goal(self._start.x, self._start.z),
+                    dist=self._og.get_distance_to_goal(self._start.x, self._start.z),
                     delta_heading=0.0,
                     reverse=False)
 
@@ -338,11 +350,10 @@ class HybridAStar(LocalPlannerExecutor):
         #self._open_list.put((self._root.cost, self._root))
         self._best_candidate: Node = None
         self._best_cost: float = HybridAStar.MAX_COST
-        self._min_dist = planning_data.min_distance()
         self._closed_list: dict[int, Node] = {}
-        return super()._planning_init(planning_data)
+        return True
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
+    def _loop_plan(self) -> bool:
         if  len(self._open_list) <= 0:
             self._set_planning_result(PlannerResultType.INVALID_GOAL, path=[])
             return False
@@ -356,7 +367,7 @@ class HybridAStar(LocalPlannerExecutor):
         if key in self._closed_list:
             return True
         
-        connecting_path = self.__RS_expansion(node, planning_data.local_goal(), self._cfg)
+        connecting_path = self.__RS_expansion(node, self._search_params.goal, self._cfg)
         if connecting_path is not None:
             # I've found a good solution
             self.__build_path(connecting_path)
@@ -386,7 +397,7 @@ class HybridAStar(LocalPlannerExecutor):
         self._set_planning_result(PlannerResultType.VALID, f_path)
         
 
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
+    def _loop_optimize(self) -> bool:
         return False
 
 

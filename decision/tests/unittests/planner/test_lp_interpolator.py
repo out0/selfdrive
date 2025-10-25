@@ -1,7 +1,7 @@
 import sys, time
 sys.path.append("../../../")
 from pydriveless import MapPose, Waypoint, WorldPose, angle
-from pydriveless import SearchFrame
+from pydriveless import SearchFrame, EgoParams, SearchParams
 from pydriveless import CoordinateConverter
 import unittest
 import numpy as np
@@ -15,34 +15,37 @@ class TestLPInterpolator(unittest.TestCase):
     ORIGIN = WorldPose(angle.new_rad(0), angle.new_rad(0), 0, angle.new_rad(0))
 
     def test_free_area_interpolate(self):
+
+        ego_params = EgoParams.init(100, 100)\
+                .with_max_steering_angle(angle.new_deg(40))\
+                .with_max_curvature(0.34)\
+                .with_segmentation_class_costs(np.array([0.0, -1.0]))\
+                .with_segmentation_class_colors(np.array([[255, 255, 255], [0, 0, 0]]))\
+                .with_search_physical_size(1, 1)\
+                .build()
+
         bev = np.full((100, 100, 3), fill_value=0.0, dtype=np.float32)
-        og = SearchFrame(width=100, height=100, lower_bound=(-1, -1), upper_bound=(-1, -1))
-        og.set_frame_data(bev)
-        og.set_class_costs(np.array([0.0, -1.0]))
-        
-        conv = CoordinateConverter(origin=TestLPInterpolator.ORIGIN, width=100, height=100, perceptionHeightSize_m=1, perceptionWidthSize_m=1)
-        planner = Interpolator(conv, max_exec_time_ms=TestLPInterpolator.TIMEOUT_MS)
-        
-        ego_location = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        g1 = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        L2 = Waypoint(x=50, z=-100, heading=angle.new_rad(0))
-        g2: MapPose = conv.convert(ego_location, L2)
-        
-        planning_data = PlanningData(
-            seq=0,
-            og=og,
-            ego_location=ego_location,
-            g1=g1,
-            g2=g2,
-            velocity=1.0,
-            min_distance=(5, 5)
-        )
-        
-        planning_data.set_local_goal(Waypoint(x=50, z=0, heading=angle.new_deg(0.0)))
-        planner.plan(planning_data)
-        while planner.is_planning():
-            pass
-        
+        goal = Waypoint(x=50, z=0, heading=angle.new_deg(0.0))
+
+        frame = ego_params.new_search_frame()
+        frame.set_frame_data(bev)
+        frame.process_distance_to_goal(goal.x, goal.z)
+        frame.process_safe_distance_zone((5,5), True)
+
+        search_params = ego_params.new_search_params(goal=goal)\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((5,5))\
+            .with_velocity(1.0)\
+            .with_distance_to_goal_tolerance(5)\
+            .with_timeout(3000)\
+            .build()
+
+               
+        planner = Interpolator(ego_params)        
+        planner.plan(search_params, True)
+       
         self.assertTrue(planner.get_execution_time() > 0)
         
         result = planner.get_result()
@@ -60,47 +63,58 @@ class TestLPInterpolator(unittest.TestCase):
         print(str(result))
        
     def test_no_plan_due_to_obstacle(self):
+        ego_params = EgoParams.init(100, 100)\
+                .with_max_steering_angle(angle.new_deg(40))\
+                .with_max_curvature(0.34)\
+                .with_segmentation_class_costs(np.array([0.0, -1.0]))\
+                .with_segmentation_class_colors(np.array([[255, 255, 255], [0, 0, 0]]))\
+                .with_search_physical_size(1, 1)\
+                .build()
+
         bev = np.full((100, 100, 3), fill_value=0.0, dtype=np.float32)
-        og = SearchFrame(width=100, height=100, lower_bound=(-1, -1), upper_bound=(-1, -1))
-        
         for z in range(0, 10):
             for x in range(40, 60):
                 bev[z,x,0] = 1.0
-        
-        og.set_frame_data(bev)
-        og.set_class_costs(np.array([0.0, -1.0]))
-        
-        conv = CoordinateConverter(origin=TestLPInterpolator.ORIGIN, width=100, height=100, perceptionHeightSize_m=1, perceptionWidthSize_m=1)
-        planner = Interpolator(conv, max_exec_time_ms=TestLPInterpolator.TIMEOUT_MS)
-        
-        ego_location = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        g1 = MapPose(x=0, y=0, z=0, heading=angle.new_rad(0.0))
-        L2 = Waypoint(x=50, z=-100, heading=angle.new_rad(0))
-        g2: MapPose = conv.convert(ego_location, L2)
-        
-        planning_data = PlanningData(
-            seq=0,
-            og=og,
-            start=Waypoint(128,128, heading=angle.new_rad(0)),
-            ego_location=ego_location,
-            g1=g1,
-            g2=g2,
-            velocity=1.0,
-            min_distance=(5, 5)
-        )
-        
-        planning_data.set_local_goal(Waypoint(x=50, z=0, heading=angle.new_deg(0.0)))
-        planner.plan(planning_data)
-        while planner.is_planning():
-            pass
-        result = planner.get_result()
 
+        goal = Waypoint(x=50, z=0, heading=angle.new_deg(0.0))
+
+        frame = ego_params.new_search_frame()
+        frame.set_frame_data(bev)
+        frame.process_distance_to_goal(goal.x, goal.z)
+        frame.process_safe_distance_zone((5,5), True)
+
+        search_params = ego_params.new_search_params(goal=goal)\
+            .with_distance_to_goal_tolerance(20.0)\
+            .with_frame(frame)\
+            .with_max_path_size(40.0)\
+            .with_min_distance((5,5))\
+            .with_velocity(1.0)\
+            .with_distance_to_goal_tolerance(5)\
+            .with_timeout(3000)\
+            .build()
+
+               
+        planner = Interpolator(ego_params)        
+        planner.plan(search_params, True)
+       
+        self.assertTrue(planner.get_execution_time() > 0)
+        
+        result = planner.get_result()
+        
         self.assertEqual(result.result_type, PlannerResultType.INVALID_PATH)
+        
+        for p in result.path:
+            if (p.x > 52 or p.x < 48):
+                self.fail("should be straight or near straight line")
+        
         planner.cancel()
         while planner.is_running():
             pass
 
         print(str(result))
+
+
+       
         
 
         

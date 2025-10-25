@@ -1,7 +1,7 @@
 
 from pydriveless import Waypoint, angle
 from pydriveless import CoordinateConverter
-from pydriveless import SearchFrame
+from pydriveless import SearchFrame, SearchParams, EgoParams
 from pydriveless import Interpolator
 from .. model.planner_executor import LocalPlannerExecutor
 from .. model.planning_result import PlanningResult, PlannerResultType
@@ -43,53 +43,78 @@ class BiRRTStar(LocalPlannerExecutor):
     _class_cost: list[float]
     _velocity_m_s: float
     _kinematic_planning: bool
+    _search_params: SearchParams
     
-    def __init__(self, map_coordinate_converter: CoordinateConverter,
-                 max_exec_time_ms: int, 
-                 max_path_size_px: int, 
-                 dist_to_goal_tolerance_px: int,
-                 class_cost: list[float],
-                 kinematic_planning: bool = False
-                 ):
+    # def __init__(self, map_coordinate_converter: CoordinateConverter,
+    #              max_exec_time_ms: int, 
+    #              max_path_size_px: int, 
+    #              dist_to_goal_tolerance_px: int,
+    #              class_cost: list[float],
+    #              kinematic_planning: bool = False
+    #              ):
         
-        super().__init__("Bi-RRT*", max_exec_time_ms)
-        self._map_coordinate_converter = map_coordinate_converter
-        self._grid = None
-        self._max_path_size_px = max_path_size_px
-        self._dist_to_goal_tolerance_px = dist_to_goal_tolerance_px
-        self._class_cost = class_cost
-        self._kinematic_planning = kinematic_planning
+    #     super().__init__("Bi-RRT*", max_exec_time_ms)
+    #     self._map_coordinate_converter = map_coordinate_converter
+    #     self._grid = None
+    #     self._max_path_size_px = max_path_size_px
+    #     self._dist_to_goal_tolerance_px = dist_to_goal_tolerance_px
+    #     self._class_cost = class_cost
+    #     self._kinematic_planning = kinematic_planning
    
-    def _planning_init(self, planning_data: PlanningData) -> bool:
-        self._width = planning_data.og().width()
-        self._height = planning_data.og().height()
-        self._start = planning_data.start()
-        self._perception_width_m = PhysicalParameters.OG_REAL_WIDTH
-        self._perception_height_m = PhysicalParameters.OG_REAL_HEIGHT
-        self._min_dist_x, self._min_dist_z = planning_data.min_distance()
-        self._lower_bound_x, self._lower_bound_z = PhysicalParameters.EGO_LOWER_BOUND
-        self._upper_bound_x, self._upper_bound_z = PhysicalParameters.EGO_LOWER_BOUND
-        self._velocity_m_s = planning_data.velocity()
-        self._vehicle_length_m = PhysicalParameters.VEHICLE_LENGTH_M
-        self._max_steering_angle_deg = PhysicalParameters.MAX_STEERING_ANGLE
+    def __init__(self, ego_params: EgoParams, kinematic_planning: bool = False):
+        super().__init__("Bi-RRT*")
+        w, h = ego_params.search_frame_dimensions
+        pw, ph = ego_params.search_frame_physical_dimensions
+        
+        self._map_coordinate_converter = CoordinateConverter(
+            origin=ego_params.world_origin, 
+            width=w, 
+            height=h,
+            perceptionHeightSize_m=pw,
+            perceptionWidthSize_m=ph)
+        
+        self._ego_params = ego_params
+        self._kinematic_planning = kinematic_planning
+
+
+    def _planning_init(self, search_params: SearchParams) -> bool:
+        self._max_path_size_px = search_params.max_path_size_px
+        self._dist_to_goal_tolerance_px = search_params.distance_to_goal_tolerance_px
+        self._class_cost = self._ego_params.segmentation_class_costs
+        self._width = search_params.frame.width()
+        self._height = search_params.frame.height()
+        self._start = search_params.start
+        self._perception_width_m, self._perception_height_m = self._ego_params.search_frame_physical_dimensions
+        self._min_dist_x, self._min_dist_z = search_params.min_distance
+        self._lower_bound_x, self._lower_bound_z = self._ego_params.ego_lower_bound
+        self._upper_bound_x, self._upper_bound_z = self._ego_params.ego_upper_bound
+        self._velocity_m_s = self._search_params.velocity_m_s
+        self._vehicle_length_m = self._search_params.velocity_m_s
+        self._max_steering_angle_deg = self._ego_params.max_steering_angle.deg()
+        self._search_params = search_params
+        self.set_timeout(search_params.timeout_ms)
 
         # initializing grid from starting node        
         self._nodes_start = self.__initialize_node_grid(self._start, MIN_DIST_GPU)
         
         # initializing grid from goal node
-        self._nodes_goal = self.__initialize_node_grid(planning_data.local_goal(), MIN_DIST_GPU)
+        self._nodes_goal = self.__initialize_node_grid(search_params.goal, MIN_DIST_GPU)
         return True
 
-    def _loop_plan(self, planning_data: PlanningData) -> bool:
+    def _loop_plan(self) -> bool:
+        if self._check_timeout():
+            return False
+        
         x_rand: int2 = self.__sample()
-        x_new_start = self.__loop_rrt_star_graph(planning_data.og(), self._nodes_start, x_rand, self._kinematic_planning)
-        _ = self.__loop_rrt_star_graph(planning_data.og(), self._nodes_goal, x_rand, self._kinematic_planning)
-        if self.__check_goal_reached(planning_data.og(), x_new_start, self._kinematic_planning):
-            self._set_planning_result(PlannerResultType.VALID, self.get_planned_path(planning_data.local_goal(), True))
+        frame = self._search_params.frame
+        x_new_start = self.__loop_rrt_star_graph(frame, self._nodes_start, x_rand, self._kinematic_planning)
+        _ = self.__loop_rrt_star_graph(frame, self._nodes_goal, x_rand, self._kinematic_planning)
+        if self.__check_goal_reached(frame, x_new_start, self._kinematic_planning):
+            self._set_planning_result(PlannerResultType.VALID, self.get_planned_path(self._search_params.goal, True))
             return False
         return True
 
-    def _loop_optimize(self, planning_data: PlanningData) -> bool:
+    def _loop_optimize(self) -> bool:
         # ignore
         return False
 
