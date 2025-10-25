@@ -238,6 +238,10 @@ class SearchFrame:
     
     def set_frame_data(self, frame: np.ndarray):
         self.__copy_back_frame = None
+        if (len(frame.shape) < 3):
+            raise Exception(f"frame shape does not match search frame dimensions: {frame.shape} vs {self.__height} x {self.__width} x 3")
+        elif frame.shape[0] != self.__height or frame.shape[1] != self.__width or frame.shape[2] != 3:
+            raise Exception(f"frame shape does not match search frame dimensions: {frame.shape} vs {self.__height} x {self.__width} x 3")
         size = self.__get_flatten_size(frame)
         #orig_shape = (frame.shape[0], frame.shape[1], frame.shape[2])
         f = np.ascontiguousarray(frame.reshape(size), dtype=np.float32)
