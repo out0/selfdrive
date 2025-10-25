@@ -15,7 +15,7 @@ from threading import Lock
 
 MAX_VALUE = 99999999
 PATH_CHANGE_VIABLE_MAX_DIST_PX = 50
-DEBUG = True
+DEBUG = False
 
 class Ensemble(LocalPlannerExecutor):
     _map_coordinate_converter: CoordinateConverter
@@ -123,7 +123,7 @@ class Ensemble(LocalPlannerExecutor):
                         result.curve_cost = cost
                         result.path_metrics = path_metrics  
                         self._set_result(result)
-                else:
+                elif DEBUG:
                     print (f"Non valid path for {self.get_planner_name()}/{p.get_planner_name()}")
                     
 

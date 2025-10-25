@@ -62,6 +62,13 @@ class TestLPEnsemble(unittest.TestCase):
         while planner.is_running():
             pass
 
+        f = frame.get_color_frame()
+        if result.path is not None:
+            for p in result.path:
+                f[p.z, p.x] = [0, 255, 0]
+        
+        cv2.imwrite("debug.png", f)
+
         print(str(result))
        
     def test_diverge_plan_due_to_obstacle(self):
@@ -100,13 +107,10 @@ class TestLPEnsemble(unittest.TestCase):
         planner.plan(search_params, True)
        
         self.assertTrue(planner.get_execution_time() > 0)
+        self.assertFalse(planner.new_path_available())
         
-        result = planner.get_result()
-        
-        self.assertEqual(result.result_type, PlannerResultType.NONE)
-        self.assertIsNone(result.path)
-        print(str(result))
-
+        result = planner.get_result()       
+        self.assertIsNone(result)
 
     def test_bev_1(self):
         bev = np.array(cv2.imread("bev_1.png"), dtype=np.float32)
