@@ -3,6 +3,7 @@ from .waypoint import Waypoint
 from .search_frame import SearchFrame
 from .map_pose import MapPose
 from .world_pose import WorldPose
+from .coord_conversion import CoordinateConverter
 from typing import Optional
 import ctypes
 import os
@@ -193,6 +194,8 @@ class EgoParams:
     _meters_to_pixel_ratio_width: float
     _meters_to_pixel_ratio_height: float
 
+    _coordinate_converter: CoordinateConverter
+
     _world_origin: WorldPose
 
     def __init__(self,
@@ -224,6 +227,15 @@ class EgoParams:
         self._meters_to_pixel_ratio_width = meters_to_pixel_ratio_width
         self._meters_to_pixel_ratio_height = meters_to_pixel_ratio_height
         self._world_origin = world_origin
+
+        w, h = search_frame_dimensions
+        pw, ph = search_frame_physical_dimensions
+
+        self._coordinate_converter = CoordinateConverter(
+            world_origin,
+            w, h,
+            pw, ph
+        )
      
     class Builder:
         def __init__(self, search_frame_dimensions: tuple[int, int]):
@@ -317,10 +329,13 @@ class EgoParams:
     def init(search_width: int, search_height: int):
         return EgoParams.Builder((search_width, search_height))
 
-    def new_search_params(self, goal: Waypoint, start: Waypoint = None) -> SearchParams.Builder:
+    def new_search_params(self, start: Waypoint = None, goal: Waypoint = None) -> SearchParams.Builder:
         if start is None:
             w, h = self._search_frame_dimensions
             start = Waypoint(int(0.5 * w), int(0.5 * h), angle.new_rad(0))
+        if goal is None:
+            w, h = self._search_frame_dimensions
+            goal = Waypoint(int(0.5 * w), 0, angle.new_rad(0))
         return SearchParams.init(start, goal)
 
     def new_search_frame(self) -> SearchFrame:
@@ -388,3 +403,6 @@ class EgoParams:
     @property
     def world_origin(self) -> WorldPose:
         return self._world_origin
+
+    def coordinate_converter(self) -> CoordinateConverter:
+        return self._coordinate_converter

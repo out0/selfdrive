@@ -55,7 +55,7 @@ class TestSearchFrame(unittest.TestCase):
         
     
     def test_export_color_frame(self):
-        frame = SearchFrame(100, 101,  (45, 55), (55, 45))
+        frame = SearchFrame(100, 100,  (45, 55), (55, 45))
         frame.set_class_colors(COLORS)       
         data = np.zeros((100, 100, 3), dtype=np.float32)
         c = 0
@@ -115,7 +115,7 @@ class TestSearchFrame(unittest.TestCase):
         self.assertAlmostEqual(frame.get_class_cost(4), 5.5, places=3)
 
     def test_get_set(self):
-        frame = SearchFrame(100, 101, (-1, -1), (-1, -1))
+        frame = SearchFrame(100, 100, (-1, -1), (-1, -1))
         data = np.full((100, 100, 3), 1.0, np.float32)
         frame.set_frame_data(data)
         

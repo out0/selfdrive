@@ -4,6 +4,8 @@ import numpy as np
 from .angle import angle
 import os
 from .waypoint import Waypoint
+from .map_pose import MapPose
+from .search_params import SearchParams, EgoParams
 from typing import Union
 
 
@@ -106,3 +108,47 @@ class Interpolator:
 
         Interpolator.lib.free_interpolation_arr(raw_res)
         return res
+
+    @classmethod
+    def bicycle_model(cls, search_params: SearchParams, ego_params: EgoParams, ego_location: MapPose, steering_angle: angle, path_size_px: int = -1) -> tuple[list[MapPose], list[Waypoint]]:
+        """ Generate path from the center of gravity
+        """
+        v = search_params.velocity_m_s
+        steer = math.tan(steering_angle.rad())
+        
+        x = ego_location.x
+        y = ego_location.y
+        heading = ego_location.heading.rad()
+        path = []
+        local_path = []
+
+        lr = 0.5 * ego_params.vehicle_length_m
+        dt = 0.05
+
+        if path_size_px > 0:
+            steps = path_size_px / dt
+        else:
+            steps = search_params.max_path_size_px / dt
+
+        conv = ego_params.coordinate_converter()
+        base_location = search_params.map_origin
+        w, h = ego_params.search_frame_dimensions
+
+        for _ in range (0, steps):
+            beta = math.atan(steer / lr)
+            x += v * math.cos(heading + beta) * dt
+            y += v * math.sin(heading + beta) * dt
+            heading += v * math.cos(beta) * steer * dt / (ego_params.vehicle_length_m)
+            next_point = MapPose(x, y, ego_location.z, heading=heading)
+            next_point_local = conv.convert(base_location, next_point)
+            
+            if next_point_local.x >= w or next_point_local.x < 0:
+                return (path, local_path)
+
+            if next_point_local.z >= h or next_point_local.z < 0:
+                return (path, local_path)
+
+            path.append(next_point)
+            local_path.append(next_point_local)
+
+        return (path, local_path)
