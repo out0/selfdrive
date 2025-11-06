@@ -12,7 +12,7 @@ import math
 from .reeds_shepp import ReedsShepp
 import cv2
 
-DEBUG = False
+DEBUG = True
 
 class Node:
     g_cost: float
@@ -101,6 +101,7 @@ class HybridAStar(LocalPlannerExecutor):
     _reed_shepp: ReedsShepp
     _goal: Waypoint
     _ego_params: EgoParams
+    _dist_processed: bool
 
     def __init__(self, ego_params: EgoParams):
         super().__init__("Hybrid A*")
@@ -132,6 +133,7 @@ class HybridAStar(LocalPlannerExecutor):
         )
         self._lr = ego_params.vehicle_length_m / 2
         self._ego_params = ego_params
+        self._dist_processed = False
     
     def __check_local_curves_gpu(self, curves: list[tuple[list[MapPose], list[Waypoint]]]) -> bool:
         all_curves = []
@@ -178,7 +180,10 @@ class HybridAStar(LocalPlannerExecutor):
         #G = parent_node.cost + G_res + G_sb + cfg.S_C * abs(delta_heading) + cfg.S_CH_C * abs((delta_heading - parent_node.delta_heading))
         G = parent_node.g_cost + G_res + G_sb + cfg.S_C * abs(delta_heading) + cfg.S_CH_C * abs((delta_heading - parent_node.delta_heading))
         
-        dist_to_end = self._og.get_cost(local_p.x, local_p.z)
+        if self._dist_processed:
+            dist_to_end = self._og.get_cost(local_p.x, local_p.z)
+        else:
+            dist_to_end = Waypoint.distance_between(local_p, self._goal)
 
         H = cfg.H_C * dist_to_end
         
@@ -262,11 +267,13 @@ class HybridAStar(LocalPlannerExecutor):
                 heading=angle.new_rad(lh[i])
             ))
         
-        # if DEBUG:
-        #     f = self._og_debug.copy()
-        #     for p in path:
-        #         f[p.z, p.x, :] = [128, 0, 128]
-        #     cv2.imwrite("debug.png", f)
+        if DEBUG:
+            f = self._og.get_color_frame()
+            for p in path:
+                f[p.z, p.x, :] = [128, 0, 128]
+            cv2.imwrite("debug.png", f)
+        
+        
 
         valid = self._og.check_feasible_path(self._min_distance, path, individual_waypoint_check=False)
             
@@ -289,6 +296,7 @@ class HybridAStar(LocalPlannerExecutor):
             heading += PI
         path = []
         local_path = []
+        last_p = None
 
         for _ in range (0, steps):
             beta = math.atan(steer / self._lr)
@@ -304,6 +312,10 @@ class HybridAStar(LocalPlannerExecutor):
             if next_point_local.z >= self._height or next_point_local.z < 0:
                 return (path, local_path)
 
+            if last_p is not None and last_p[0] == next_point_local.x and last_p[1] == next_point_local.z:
+                continue
+
+            last_p = (next_point_local.x, next_point_local.z)
             path.append(next_point)
             local_path.append(next_point_local)
 
@@ -311,6 +323,7 @@ class HybridAStar(LocalPlannerExecutor):
     
     def _planning_init(self, search_params: SearchParams) -> bool:
         self._og = search_params.frame
+        self._dist_processed = self._og.is_distance_to_goal_processed()
         self._width = self._og.width()
         self._height = self._og.height()
         self._min_distance = search_params.min_distance
@@ -406,7 +419,7 @@ class HybridAStar(LocalPlannerExecutor):
             ego_location=ego_location,
             velocity_m_s=velocity_m_s, 
             steering_angle_rad=steering_angle.rad(), 
-            steps=20, 
+            steps=(5-velocity_m_s) * 20, 
             reverse=reverse
         )
     
