@@ -127,7 +127,7 @@ class TestLPBiRRT(unittest.TestCase):
         frame.process_distance_to_goal(goal.x, goal.z)
         frame.process_safe_distance_zone((PhysicalParameters.MIN_DISTANCE_WIDTH_PX//2, PhysicalParameters.MIN_DISTANCE_HEIGHT_PX//2), True)
 
-        search_params = ego_params.new_search_params(goal=goal)\
+        search_params = ego_params.new_search_params(goal=goal, start=None)\
             .with_distance_to_goal_tolerance(20.0)\
             .with_frame(frame)\
             .with_max_path_size(40.0)\

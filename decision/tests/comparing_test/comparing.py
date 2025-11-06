@@ -91,10 +91,13 @@ def draw_arrow(frame: np.ndarray, x: int, z: int, heading_rad: float, arrow_leng
 
 frame = np.array(cv2.imread(f"comparing_og.png"), dtype=np.uint8)
 
-start = Waypoint(455, 263, angle.new_deg(0))
+start = Waypoint(436, 250, angle.new_deg(0))
+goal = Waypoint(236, 208, angle.new_deg(-90))
+
+#start = Waypoint(455, 263, angle.new_deg(0))
 #goal =  Waypoint(143, 114, angle.new_deg(-70))
 #goal =  Waypoint(121, 107, angle.new_deg(-180))
-goal =  Waypoint(48, 261, angle.new_deg(-180))
+#goal =  Waypoint(48, 261, angle.new_deg(-180))
 
 conv = CoordinateConverter(
      origin=ORIGIN, 
@@ -118,7 +121,7 @@ planning_data = PlanningData(seq=1, og=og, ego_location=ego_location, start=star
                              base_map_conversion_location=map_center_location)
 
 planning_data.set_local_goal(goal)
-planner = Ensemble(conv, max_exec_time_ms=-1)
+planner = Ensemble(conv)
 planner.plan(planning_data)
 
 while not planner.new_path_available():

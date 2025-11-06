@@ -53,13 +53,14 @@ def add_ego(frame, start: Waypoint) -> None:
                 continue
             frame[zp, xp] = [255, 0, 0]
 
-    draw_arrow(frame, x, z, start.heading.rad(), arrow_length=50)
+    draw_arrow(frame, x, z, start.heading, arrow_length=50)
 
 
-def draw_arrow(frame: np.ndarray, x: int, z: int, heading_rad: float, arrow_length=20):
+def draw_arrow(frame: np.ndarray, x: int, z: int, heading: angle, arrow_length=20):
     # Arrow end point
-    end_x = int(x + arrow_length * math.sin(math.pi + heading_rad))
-    end_z = int(z + arrow_length * math.cos(math.pi + heading_rad))
+    a = heading.rad() - (PI / 2)
+    end_x = int(x + arrow_length * math.cos(a))
+    end_z = int(z + arrow_length * math.sin(a))
 
     # Draw the arrow shaft (line)
     cv2.line(frame, (x, z), (end_x, end_z), (0, 0, 255), thickness=2)
@@ -90,7 +91,7 @@ def convert_black_white_frame(frame: np.ndarray) -> np.ndarray:
 
 def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, executor: LocalPlannerExecutor, path_color: tuple[int, int, int] = [255, 0, 0]) -> None:
     print(f"Starting planner test for {executor.get_planner_name()}")
-    executor.plan(search_params, False)
+    executor.plan(search_params, True)
 
     while not executor.new_path_available():
         time.sleep(0.1)
@@ -121,8 +122,10 @@ def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, execu
 
 def exec_test():
 
-    start = Waypoint(455, 263, angle.new_deg(0))
+    start = Waypoint(436, 250, angle.new_deg(0))
     goal = Waypoint(48, 261, angle.new_deg(-180))
+
+    # start = Waypoint(455, 263, angle.new_deg(0))
     # goal =  Waypoint(48, 261, angle.new_deg(0))
     # goal =  Waypoint(207, 117, angle.new_deg(-180))
 
@@ -156,7 +159,7 @@ def exec_test():
         .with_distance_to_goal_tolerance(20.0)\
         .with_frame(frame)\
         .with_max_path_size(40.0)\
-        .with_min_distance((2, 2))\
+        .with_min_distance((20, 40))\
         .with_velocity(1.0)\
         .with_distance_to_goal_tolerance(5)\
         .with_timeout(3000)\
@@ -165,16 +168,16 @@ def exec_test():
     # fast_rrt_planner = FastRRTPlanner(ego_params, False, True)
     # exec_planner_test(orig_frame, search_params, fast_rrt_planner, path_color=[255, 0, 0])
 
-    # has = HybridAStar(ego_params)
-    # exec_planner_test(orig_frame, search_params, has, path_color=[0, 0, 255])
+    has = HybridAStar(ego_params)
+    exec_planner_test(orig_frame, search_params, has, path_color=[0, 0, 255])
 
-    interpolator = Interpolator(ego_params)
-    exec_planner_test(orig_frame, search_params,
-                      interpolator, path_color=[128, 0, 128])
+    # interpolator = Interpolator(ego_params)
+    # exec_planner_test(orig_frame, search_params,
+    #                   interpolator, path_color=[128, 0, 128])
 
     add_ego(orig_frame, start)
 
-    draw_arrow(orig_frame, goal.x, goal.z, goal.heading.rad())
+    draw_arrow(orig_frame, goal.x, goal.z, goal.heading)
 
     cv2.imwrite("debug.png", orig_frame)
 
