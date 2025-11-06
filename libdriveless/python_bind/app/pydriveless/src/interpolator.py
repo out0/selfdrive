@@ -110,11 +110,16 @@ class Interpolator:
         return res
 
     @classmethod
-    def bicycle_model(cls, ego_params: EgoParams, search_params: SearchParams, steering_angle: angle, path_size_px: int = -1) -> tuple[list[MapPose], list[Waypoint]]:
+    def bicycle_model(cls, ego_params: EgoParams, search_params: SearchParams, steering_angle: angle, path_size_px: int = -1, reverse: bool = False) -> tuple[list[MapPose], list[Waypoint]]:
         """ Generate path from the center of gravity
         """
         v = search_params.velocity_m_s
-        steer = math.tan(steering_angle.rad())
+        a = steering_angle.rad()
+        
+        if reverse:
+            a += math.pi
+
+        steer = math.tan(a)
         
         ego_location = search_params.ego_pose
         x = ego_location.x
@@ -140,7 +145,7 @@ class Interpolator:
             x += v * math.cos(heading + beta) * dt
             y += v * math.sin(heading + beta) * dt
             heading += v * math.cos(beta) * steer * dt / (ego_params.vehicle_length_m)
-            next_point = MapPose(x, y, ego_location.z, heading=heading)
+            next_point = MapPose(x, y, ego_location.z, heading=heading, reversed=reverse)
             next_point_local = conv.convert(base_location, next_point)
             
             if next_point_local.x >= w or next_point_local.x < 0:
