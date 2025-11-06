@@ -147,4 +147,20 @@ extern "C"
         return frame->getDistanceToGoal(x, z);
     }
 
+    bool is_safe_zone_checked(void *self) {
+         SearchFrame *frame = (SearchFrame *)self;
+         return frame->isSafeZoneChecked();
+    }
+
+    bool is_vectorial_safe_zone_checked(void *self) {
+         SearchFrame *frame = (SearchFrame *)self;
+         return frame->isVectorialSafeZoneChecked();
+    }
+
+    bool is_distance_to_goal_processed(void *self) {
+         SearchFrame *frame = (SearchFrame *)self;
+         return frame->isDistanceToGoalProcessed();
+    }
+
+
 }

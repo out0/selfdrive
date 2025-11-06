@@ -201,6 +201,22 @@ class SearchFrame:
             ctypes.c_int,                   # z
         ]
 
+        SearchFrame.lib.is_safe_zone_checked.restype = ctypes.c_bool
+        SearchFrame.lib.is_safe_zone_checked.argtypes = [
+            ctypes.c_void_p,                # self
+        ]
+        
+        SearchFrame.lib.is_vectorial_safe_zone_checked.restype = ctypes.c_bool
+        SearchFrame.lib.is_vectorial_safe_zone_checked.argtypes = [
+            ctypes.c_void_p,                # self
+        ]
+
+        SearchFrame.lib.is_distance_to_goal_processed.restype = ctypes.c_bool
+        SearchFrame.lib.is_distance_to_goal_processed.argtypes = [
+            ctypes.c_void_p,                # self
+        ]        
+
+
 
     def __getitem__(self, key) -> float3:
         x, z = key
@@ -338,3 +354,13 @@ class SearchFrame:
     
     def upper_bound(self) -> tuple[int, int]:
         return self.__upper_bound
+    
+
+    def is_safe_zone_checked (self) -> bool:
+        return SearchFrame.lib.is_safe_zone_checked(self._cuda_ptr)
+    
+    def is_vectorial_safe_zone_checked (self) -> bool:
+        return SearchFrame.lib.is_vectorial_safe_zone_checked(self._cuda_ptr)
+
+    def is_distance_to_goal_processed (self) -> bool:
+        return SearchFrame.lib.is_distance_to_goal_processed(self._cuda_ptr)

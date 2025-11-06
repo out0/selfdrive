@@ -110,12 +110,13 @@ class Interpolator:
         return res
 
     @classmethod
-    def bicycle_model(cls, search_params: SearchParams, ego_params: EgoParams, ego_location: MapPose, steering_angle: angle, path_size_px: int = -1) -> tuple[list[MapPose], list[Waypoint]]:
+    def bicycle_model(cls, ego_params: EgoParams, search_params: SearchParams, steering_angle: angle, path_size_px: int = -1) -> tuple[list[MapPose], list[Waypoint]]:
         """ Generate path from the center of gravity
         """
         v = search_params.velocity_m_s
         steer = math.tan(steering_angle.rad())
         
+        ego_location = search_params.ego_pose
         x = ego_location.x
         y = ego_location.y
         heading = ego_location.heading.rad()
