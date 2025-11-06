@@ -2,7 +2,7 @@ import ctypes.util
 import ctypes
 import numpy as np
 import os
-from pydriveless import SearchFrame, EgoParams, SearchParams
+from pydriveless import EgoParams, SearchParams, Waypoint, angle
 
 class FastRRT:
      __ptr: ctypes.c_void_p
@@ -209,20 +209,34 @@ class FastRRT:
      def goal_reached(self) -> bool:
           return FastRRT.lib.goal_reached(self.__ptr)     
      
-     def __convert_planned_path(self, ptr: ctypes.c_void_p) -> np.ndarray:
+     # def __convert_planned_path(self, ptr: ctypes.c_void_p) -> np.ndarray:
+     #      size = int(ptr[0])
+     #      if size == 0:
+     #           return None
+          
+     #      res = np.zeros((size, 3), dtype=np.float32)
+     #      for i in range(size):
+     #           pos = 3*i + 1
+     #           res[i, 0] = float(ptr[pos])
+     #           res[i, 1] = float(ptr[pos + 1])
+     #           res[i, 2] = float(ptr[pos + 2])
+     #      return res
+
+     def __convert_planned_path(self, ptr: ctypes.c_void_p) -> list[Waypoint]:
           size = int(ptr[0])
           if size == 0:
                return None
           
-          res = np.zeros((size, 3), dtype=np.float32)
+          res = []
           for i in range(size):
                pos = 3*i + 1
-               res[i, 0] = float(ptr[pos])
-               res[i, 1] = float(ptr[pos + 1])
-               res[i, 2] = float(ptr[pos + 2])
-          return res
+               res.append(Waypoint(
+                    x=int(ptr[pos]),
+                    z=int(ptr[pos + 1]),
+                    heading=angle.new_rad(ptr[pos + 2])))
+          return res     
      
-     def get_planned_path(self, interpolate: bool = False) -> np.ndarray:
+     def get_planned_path(self, interpolate: bool = False) -> list[Waypoint]:
           if interpolate:
                ptr = FastRRT.lib.interpolate_planned_path(self.__ptr)
           else:
