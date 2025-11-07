@@ -110,21 +110,40 @@ class Interpolator:
         return res
 
     @classmethod
-    def bicycle_model(cls, ego_params: EgoParams, search_params: SearchParams, steering_angle: angle, path_size_px: int = -1, reverse: bool = False) -> tuple[list[MapPose], list[Waypoint]]:
+    def bicycle_model(cls, ego_params: EgoParams, search_params: SearchParams, start: Waypoint, steering_angle: angle, path_size_px: int = -1, reverse: bool = False) -> tuple[list[MapPose], list[Waypoint]]:
         """ Generate path from the center of gravity
         """
         v = search_params.velocity_m_s
         a = steering_angle.rad()
+
+        # map origin was set
+        base_location = search_params.map_origin
         
-        if reverse:
-            a += math.pi
+        if base_location is None: # use the current pose as origin
+            base_location = search_params.ego_pose
+        
+        if base_location is None: # pure graphic results
+            base_location = MapPose(0, 0, 0, angle.new_rad(0))
+
+        if start is None:
+            w, h = ego_params.search_frame_dimensions
+            start = Waypoint(int(0.5 * w), int(0.5 * w), heading=angle.new_rad(0))
 
         steer = math.tan(a)
         
-        ego_location = search_params.ego_pose
-        x = ego_location.x
-        y = ego_location.y
-        heading = ego_location.heading.rad()
+        local_map_start: MapPose = ego_params.coordinate_converter().convert(base_location, start)
+        x = local_map_start.x
+        y = local_map_start.y
+        heading = local_map_start.heading.rad()
+        # ego_location = search_params.ego_pose
+        # x = ego_location.x
+        # y = ego_location.y
+        # heading = ego_location.heading.rad()
+
+        if reverse:
+            heading += math.pi
+
+
         path = []
         local_path = []
 
@@ -132,20 +151,20 @@ class Interpolator:
         dt = 0.05
 
         if path_size_px > 0:
-            steps = path_size_px / dt
+            steps = int(round(path_size_px / dt))
         else:
-            steps = search_params.max_path_size_px / dt
+            steps = int(round(search_params.max_path_size_px / dt))
 
         conv = ego_params.coordinate_converter()
-        base_location = search_params.map_origin
         w, h = ego_params.search_frame_dimensions
+        last_p = (-1, -1)
 
         for _ in range (0, steps):
             beta = math.atan(steer / lr)
             x += v * math.cos(heading + beta) * dt
             y += v * math.sin(heading + beta) * dt
             heading += v * math.cos(beta) * steer * dt / (ego_params.vehicle_length_m)
-            next_point = MapPose(x, y, ego_location.z, heading=heading, reversed=reverse)
+            next_point = MapPose(x, y, base_location.z, heading=heading, reversed=reverse)
             next_point_local = conv.convert(base_location, next_point)
             
             if next_point_local.x >= w or next_point_local.x < 0:
@@ -154,6 +173,10 @@ class Interpolator:
             if next_point_local.z >= h or next_point_local.z < 0:
                 return (path, local_path)
 
+            if last_p[0] == next_point_local.x and last_p[1] == next_point_local.z:
+                continue
+
+            last_p = (next_point_local.x, next_point_local.z)
             path.append(next_point)
             local_path.append(next_point_local)
 

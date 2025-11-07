@@ -100,6 +100,9 @@ static void catmull_roll_interpolate(std::vector<Waypoint> &points, Waypoint p0,
 {
     double inv_res = (double)1.0 / static_cast<double>(resolution);
     double t = 0;
+
+    int last_x = -1, last_z = -1;
+
     while (t < 1.0)
     {
         double t2 = t * t;
@@ -118,7 +121,12 @@ static void catmull_roll_interpolate(std::vector<Waypoint> &points, Waypoint p0,
                            2.0 * (2.0 * p0.z() - 5.0 * p1.z() + 4.0 * p2.z() - p3.z()) * t +
                            3.0 * (-p0.z() + 3.0 * p1.z() - 3.0 * p2.z() + p3.z()) * t2);
 
-        points.push_back(Waypoint(TO_INT(x), TO_INT(y), angle::rad(0.0 + HALF_PI - atan2(-dy, dx))));
+        int xi = TO_INT(x);
+        int zi = TO_INT(y);
+        if (xi == last_x && zi == last_z) continue;
+        last_x = xi;
+        last_z = zi;
+        points.push_back(Waypoint(xi, zi, angle::rad(0.0 + HALF_PI - atan2(-dy, dx))));
         t += inv_res;
     }
 }
