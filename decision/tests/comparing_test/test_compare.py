@@ -165,15 +165,15 @@ def exec_test():
         .with_timeout(-1)\
         .build()
 
-    # fast_rrt_planner = FastRRTPlanner(ego_params, False, True)
-    # exec_planner_test(orig_frame, search_params, fast_rrt_planner, path_color=[255, 0, 0])
+    fast_rrt_planner = FastRRTPlanner(ego_params, False, True)
+    exec_planner_test(orig_frame, search_params, fast_rrt_planner, path_color=[255, 0, 0])
 
     has = HybridAStar(ego_params)
     exec_planner_test(orig_frame, search_params, has, path_color=[0, 0, 255])
 
-    # interpolator = Interpolator(ego_params)
-    # exec_planner_test(orig_frame, search_params,
-    #                   interpolator, path_color=[128, 0, 128])
+    interpolator = Interpolator(ego_params)
+    exec_planner_test(orig_frame, search_params,
+                      interpolator, path_color=[128, 0, 128])
 
     add_ego(orig_frame, start)
 

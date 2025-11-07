@@ -11,7 +11,7 @@ import math
 from .reeds_shepp import ReedsShepp
 import cv2
 
-DEBUG = True
+DEBUG = False
 
 class Node:
     g_cost: float
