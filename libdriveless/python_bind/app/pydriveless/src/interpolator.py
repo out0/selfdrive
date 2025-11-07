@@ -163,7 +163,7 @@ class Interpolator:
             beta = math.atan(steer / lr)
             x += v * math.cos(heading + beta) * dt
             y += v * math.sin(heading + beta) * dt
-            heading += v * math.cos(beta) * steer * dt / (ego_params.vehicle_length_m)
+            heading += (v * math.cos(beta) * steer * dt) / (ego_params.vehicle_length_m)
             next_point = MapPose(x, y, base_location.z, heading=heading, reversed=reverse)
             next_point_local = conv.convert(base_location, next_point)
             

@@ -1,9 +1,8 @@
-import math
-from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
+from pydriveless import MapPose, Waypoint, CoordinateConverter, PI
 from pydriveless import SearchFrame, angle, SearchParams, EgoParams
+from pydriveless import Interpolator
 from .. model.planner_executor import LocalPlannerExecutor
-from .. model.planning_result import PlanningResult, PlannerResultType
-from .. model.planning_data import PlanningData
+from .. model.planning_result import PlannerResultType
 #from queue import PriorityQueue
 import heapq
 
@@ -118,18 +117,18 @@ class HybridAStar(LocalPlannerExecutor):
         self._cfg = HybridConfig(
             veh_dims = None,
             mot_res = 2,
-            n_steer = 5,
+            n_steer = 9,
             max_steering_rad = ego_params.max_steering_angle.rad(),
             # H_C = 3,
             # S_C = 0.5,
             # S_CH_C = 0.5,
             # B_C = 1,
             # SB_C = 10
-            H_C = 1,
-            S_C = 0,
+            H_C = 3,
+            S_C = 0.5,
             S_CH_C = 0,
-            B_C = 0,
-            SB_C = 0
+            B_C = 1,
+            SB_C = 7
         )
         self._lr = ego_params.vehicle_length_m / 2
         self._ego_params = ego_params
@@ -196,17 +195,17 @@ class HybridAStar(LocalPlannerExecutor):
         angles = np.linspace(-cfg.max_steering_rad, cfg.max_steering_rad, num=num_curves, endpoint=True, dtype=np.float32)
         #angles_deg = np.linspace(-math.degrees(cfg.max_steering_rad), math.degrees(cfg.max_steering_rad), num=num_curves, endpoint=True, dtype=np.float32)
 
-        curves_fwd = [self.__curve_model(node.global_pose, cfg.velocity_m_s, a, steps=20) for a in angles]
-        curves_bwd = [self.__curve_model(node.global_pose, cfg.velocity_m_s, a, steps=20, reverse=True) for a in angles]
+
+        curves_fwd = [Interpolator.bicycle_model(self._ego_params, self._search_params, start=node.local_pose, steering_angle=angle.new_rad(a), path_size_px=20) for a in angles]
+        curves_bwd = [Interpolator.bicycle_model(self._ego_params, self._search_params, start=node.local_pose, steering_angle=angle.new_rad(a), path_size_px=20, reverse=True) for a in angles]
 
         curves = curves_fwd + curves_bwd
 
         if DEBUG:
-            #f = self._og_debug.copy()
-            f = self._og_debug
+            f = self._og_debug.copy()
             for c in curves:
                 for p in c[1]:
-                    f[p.z, p.x, :] = [128, 0, 128]
+                    f[p.z, p.x, :] = [0, 255, 0]
             cv2.imwrite("debug.png", f)
 
 
@@ -273,53 +272,8 @@ class HybridAStar(LocalPlannerExecutor):
                 f[p.z, p.x, :] = [128, 0, 128]
             cv2.imwrite("debug.png", f)
         
-        
-
-        valid = self._og.check_feasible_path(self._min_distance, path, individual_waypoint_check=False)
-            
-
-        if valid:
-            return path
-        else:
-            return None
-
-    def __curve_model(self, ego_location: MapPose, velocity_m_s: float, steering_angle_rad: float, steps: int, reverse = False, dt: float = 0.05) -> tuple[list[MapPose], list[Waypoint]]:
-        """ Generate path from the center of gravity
-        """
-        v = velocity_m_s
-        steer = math.tan(steering_angle_rad)
-        
-        x = ego_location.x
-        y = ego_location.y
-        heading = ego_location.heading.rad()
-        if reverse:
-            heading += PI
-        path = []
-        local_path = []
-        last_p = None
-
-        for _ in range (0, steps):
-            beta = math.atan(steer / self._lr)
-            x += v * math.cos(heading + beta) * dt
-            y += v * math.sin(heading + beta) * dt
-            heading += v * math.cos(beta) * steer * dt / (2*self._lr)
-            next_point = MapPose(x, y, ego_location.z, heading=heading, reversed=reverse)
-            next_point_local = self._map_coordinate_converter.convert(self._map_base_location, next_point)
-            
-            if next_point_local.x >= self._width or next_point_local.x < 0:
-                return (path, local_path)
-
-            if next_point_local.z >= self._height or next_point_local.z < 0:
-                return (path, local_path)
-
-            if last_p is not None and last_p[0] == next_point_local.x and last_p[1] == next_point_local.z:
-                continue
-
-            last_p = (next_point_local.x, next_point_local.z)
-            path.append(next_point)
-            local_path.append(next_point_local)
-
-        return (path, local_path)
+        valid = self._og.check_feasible_path(self._min_distance, path, individual_waypoint_check=False)           
+        return path if valid else None
     
     def _planning_init(self, search_params: SearchParams) -> bool:
         self._og = search_params.frame

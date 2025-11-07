@@ -93,7 +93,7 @@ def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, execu
     print(f"Starting planner test for {executor.get_planner_name()}")
     executor.plan(search_params, True)
 
-    while not executor.new_path_available():
+    while not executor.new_path_available() and executor.is_planning():
         time.sleep(0.1)
     result: PlanningResult = executor.get_result()
 
@@ -125,7 +125,7 @@ def exec_test():
     start = Waypoint(436, 250, angle.new_deg(0))
     goal = Waypoint(48, 261, angle.new_deg(-180))
 
-    # start = Waypoint(455, 263, angle.new_deg(0))
+    #map_start = Waypoint(436, 250, angle.new_deg(0))
     # goal =  Waypoint(48, 261, angle.new_deg(0))
     # goal =  Waypoint(207, 117, angle.new_deg(-180))
 
@@ -162,7 +162,7 @@ def exec_test():
         .with_min_distance((20, 40))\
         .with_velocity(1.0)\
         .with_distance_to_goal_tolerance(5)\
-        .with_timeout(3000)\
+        .with_timeout(-1)\
         .build()
 
     # fast_rrt_planner = FastRRTPlanner(ego_params, False, True)
