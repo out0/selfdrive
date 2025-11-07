@@ -52,6 +52,20 @@ class SearchParams:
         self._world_origin = world_origin
         self._velocity_m_s = velocity_m_s
 
+    def clone (self) -> 'SearchParams':
+        return SearchParams(self._timeout_ms, 
+                            self._max_path_size_px, 
+                            self._distance_to_goal_tolerance_px,
+                            self._heading_error_tolerance, 
+                            self._min_distance, 
+                            self._frame,
+                            self._start,
+                            self._goal,
+                            self._ego_pose,
+                            self._map_origin,
+                            self._world_origin,
+                            self._velocity_m_s)
+
     class Builder:
         def __init__(self, start: Waypoint, goal: Waypoint):
             self._timeout_ms = 350

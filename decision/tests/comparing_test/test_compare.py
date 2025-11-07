@@ -1,10 +1,9 @@
 import math
 from pydriveless import WorldPose, MapPose, Waypoint, CoordinateConverter, PI
 from pydriveless import SearchFrame, angle, SearchParams, EgoParams
-from pyfastrrt import FastRRT
-from ensemble import LocalPlannerExecutor, PlanningData, PlanningResult, PlannerResultType, PhysicalParameters, Ensemble, InformedHybridAStar
+from ensemble import LocalPlannerExecutor, PlanningResult, PlannerResultType, PhysicalParameters 
 # planners
-from ensemble import FastRRTPlanner, HybridAStar, Interpolator
+from ensemble import FastRRTPlanner, HybridAStar, Interpolator, InformedHybridAStar
 import numpy as np
 import math
 import cv2
@@ -165,6 +164,14 @@ def exec_test():
         .with_timeout(-1)\
         .build()
 
+    inhas = InformedHybridAStar(ego_params)
+    inhas.inform_sub_goals([
+        Waypoint(220, 98, angle.new_deg(-90))
+    ])
+
+    exec_planner_test(orig_frame, search_params,
+                      inhas, path_color=[0, 255, 0])
+
     fast_rrt_planner = FastRRTPlanner(ego_params, False, True)
     exec_planner_test(orig_frame, search_params, fast_rrt_planner, path_color=[255, 0, 0])
 
@@ -174,6 +181,8 @@ def exec_test():
     interpolator = Interpolator(ego_params)
     exec_planner_test(orig_frame, search_params,
                       interpolator, path_color=[128, 0, 128])
+
+
 
     add_ego(orig_frame, start)
 
