@@ -125,7 +125,7 @@ def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, execu
 def exec_test():
 
     start = Waypoint(436, 250, angle.new_deg(0))
-    goal = Waypoint(48, 261, angle.new_deg(-180))
+    goal = Waypoint(48, 261, angle.new_deg(0))
 
     #map_start = Waypoint(436, 250, angle.new_deg(0))
     # goal =  Waypoint(48, 261, angle.new_deg(0))
