@@ -4,17 +4,19 @@ from inspect import getframeinfo, stack
 
 class Profiler:
     _code_profile: dict
+    _calling_names_stack: stack
 
     def __init__(self):
         self._code_profile = {}
         self._enabled = True
+        self._calling_names_stack = []
         
     def _key(self, calling_file: str, func_name: str) -> str:
         return f"{calling_file}%{func_name}"
 
-    def fn_measurement_start(self, func_name: str, stack_skip: int = 2) -> None:
+    def fn_measurement_start(self, stack_skip: int = 2) -> None:
         caller = getframeinfo(stack()[stack_skip][0])
-        calling_fn = caller.function if func_name is None else func_name        
+        calling_fn = caller.function
         calling_file = caller.filename.split('/')[-1]
 
         key = self._key(calling_file, calling_fn)
@@ -27,10 +29,15 @@ class Profiler:
             ]
         else:
             self._code_profile[key][0] = time.time()
+        
+        self._calling_names_stack.append(calling_fn)
 
-    def fn_measurement_finish(self, func_name: str, stack_skip: int = 2) -> tuple[str, float, float]:
+    def fn_measurement_finish(self, stack_skip: int = 2) -> tuple[str, float, float]:
         caller = getframeinfo(stack()[stack_skip][0])
-        calling_fn = caller.function if func_name is None else func_name
+        if len(self._calling_names_stack) == 0: 
+            return None
+        calling_fn = self._calling_names_stack.pop()
+        
         calling_file = caller.filename.split('/')[-1]
 
         key = self._key(calling_file, calling_fn)
@@ -77,6 +84,7 @@ class Profiler:
 
     def _clear(self) -> None:
         self._code_profile.clear()
+        self._calling_names_stack = []
 
     def _print(self) -> None:
         print("\n")
@@ -97,24 +105,24 @@ class Profiler:
 
 
     @staticmethod
-    def start(func_name: str = None) -> None:
+    def start() -> None:
         if not hasattr(Profiler, "_profiler"):
             Profiler._profiler = Profiler()
 
         if not Profiler._profiler._enabled:
             return
 
-        Profiler._profiler.fn_measurement_start(func_name)
+        Profiler._profiler.fn_measurement_start()
 
     @staticmethod
-    def end(func_name: str = None) -> tuple[str, float, float]:
+    def end() -> tuple[str, float, float]:
         if not hasattr(Profiler, "_profiler"):
             return
 
         if not Profiler._profiler._enabled:
             return
 
-        return Profiler._profiler.fn_measurement_finish(func_name)
+        return Profiler._profiler.fn_measurement_finish()
 
     @staticmethod
     def print() -> None:

@@ -28,12 +28,14 @@ class TestProfiler(unittest.TestCase):
             file, fn, proc_time, total_accum_time = Profiler.end()
             p = 1000*(time.time() - i)
             self.assertTrue((p - proc_time) < 100)
+            self.assertEqual(file, "test_profiler.py")
+            self.assertEqual(fn, "test_init_end_context_partial_timing")
         
         i = 1000*(time.time() - i)
 
-        file, fn, proc_time, total_accum_time = Profiler.end()
-        self.assertEqual(file, "test_profiler.py")
-        self.assertEqual(fn, "test_init_end_context_partial_timing")
+        total_accum_time = Profiler.get_last_accum_time("test_profiler.py", "test_init_end_context_partial_timing")
+        
+        
         self.assertTrue((i - total_accum_time) < 100)
 
 
@@ -78,13 +80,13 @@ class TestProfiler(unittest.TestCase):
         return Profiler.exec(self.func_b, p1)
     
     def func_b(self, p1) -> float:
-        Profiler.start(func_name="func_b_step1")
+        Profiler.start()
         res = 2.0 * p1
-        Profiler.end(func_name="func_b_step1")
+        Profiler.end()
 
-        Profiler.start(func_name="func_b_step2")
+        Profiler.start()
         res = 2.0 * p1
-        Profiler.end(func_name="func_b_step2")
+        Profiler.end()
         return res
 
     def test_print(self):
