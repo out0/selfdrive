@@ -78,3 +78,4 @@ class Telemetry:
         if hasattr(Telemetry, "_data_queue"):
             return
         Telemetry._run = False
+
