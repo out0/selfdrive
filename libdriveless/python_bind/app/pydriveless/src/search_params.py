@@ -189,6 +189,8 @@ class SearchParams:
     def world_origin(self) -> WorldPose:
         return self._world_origin
 
+    def set_timeout_ms(self, val: int) -> None:
+        self._timeout_ms = val
 
 class EgoParams:
     _search_frame_dimensions: tuple[int, int]
