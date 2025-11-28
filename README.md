@@ -17,3 +17,4 @@ Main features:
 - libgpd - Implements our proposal for Local goal planning discover, to allow continuous vehicle navigation in unknown environments  (article under review).
 
 - dev_container - Contains basic configuration to build a local dev environment
+# FastRRT

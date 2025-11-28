@@ -1,0 +1,3 @@
+[submodule "datalink"]
+	path = datalink
+	url = https://github.com/out0/datalink
