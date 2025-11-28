@@ -1,3 +1,6 @@
+[submodule "FastRRT"]
+	path = FastRRT
+	url = https://github.com/out0/FastRRT.git
 [submodule "datalink"]
 	path = datalink
-	url = https://github.com/out0/datalink
+	url = https://github.com/out0/datalink.git

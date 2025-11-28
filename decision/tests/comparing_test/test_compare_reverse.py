@@ -89,21 +89,26 @@ def convert_black_white_frame(frame: np.ndarray) -> np.ndarray:
     # g2 = None
 
 
-def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, executor: LocalPlannerExecutor, path_color: tuple[int, int, int] = [255, 0, 0]) -> None:
+def exec_planner_test(outp_frame: np.ndarray, search_params: SearchParams, executor: LocalPlannerExecutor, path_color: tuple[int, int, int] = [255, 0, 0], wait_for_all_subplan: bool = False) -> None:
     print(f"Starting planner test for {executor.get_planner_name()}")
     executor.plan(search_params, False)
 
-    while not executor.new_path_available() and executor.is_planning():
-        time.sleep(0.1)
+    if wait_for_all_subplan:
+        while executor.is_planning():
+            time.sleep(0.1)
+    else:
+        while not executor.new_path_available() and executor.is_planning():
+            time.sleep(0.1)
+
     result: PlanningResult = executor.get_result()
 
-    if result.result_type != PlannerResultType.VALID:
+    if result is None or result.result_type != PlannerResultType.VALID:
         print(f"{executor.get_planner_name()} failed to find a valid path.")
         return
 
     execution_time = executor.get_execution_time()
     print(
-        f"{executor.get_planner_name()} execution time: {execution_time:.2f} ms [choosen: {result.planner_name}]")
+        f"{executor.get_planner_name()} toal execution time: {execution_time:.2f} ms, planner execution time: {result.total_exec_time_ms:.2f} [choosen: {result.planner_name}]")
     path = result.path
 
     if executor.is_optimizing():
@@ -170,6 +175,17 @@ def exec_test():
     add_ego(orig_frame, start)
     draw_arrow(orig_frame, goal.x, goal.z, goal.heading)
 
+    
+    bi_rrt_star = BiRRTStar(ego_params)
+    exec_planner_test(orig_frame, search_params,
+                      bi_rrt_star, path_color=[0xba, 0x8e, 0x23])
+    cv2.imwrite("debug.png", orig_frame)
+
+    ensemble = Ensemble(ego_params)
+    exec_planner_test(orig_frame, search_params,
+                      ensemble, path_color=[0, 0, 0], wait_for_all_subplan=True)
+    cv2.imwrite("debug.png", orig_frame)
+
     inhas = InformedHybridAStar(ego_params)
     inhas.inform_sub_goals([
         Waypoint(220, 98, angle.new_deg(-90))
@@ -192,16 +208,8 @@ def exec_test():
     exec_planner_test(orig_frame, search_params,
                       interpolator, path_color=[128, 0, 128])
     cv2.imwrite("debug.png", orig_frame)
-    
-    bi_rrt_star = BiRRTStar(ego_params)
-    exec_planner_test(orig_frame, search_params,
-                      bi_rrt_star, path_color=[0xba, 0x8e, 0x23])
-    cv2.imwrite("debug.png", orig_frame)
 
-    ensemble = Ensemble(ego_params)
-    exec_planner_test(orig_frame, search_params,
-                      ensemble, path_color=[0, 0, 0])
-    cv2.imwrite("debug.png", orig_frame)
+
 
 
 if __name__ == "__main__":

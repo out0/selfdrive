@@ -1,6 +1,6 @@
 from pydriveless import MapPose, Waypoint, CoordinateConverter, PI
 from pydriveless import SearchFrame, angle, SearchParams, EgoParams
-from pydriveless import Interpolator
+from pydriveless import Interpolator, Profiler
 from .. model.planner_executor import LocalPlannerExecutor
 from .. model.planning_result import PlannerResultType
 #from queue import PriorityQueue
@@ -10,8 +10,10 @@ import numpy as np
 import math
 from .reeds_shepp import ReedsShepp
 import cv2
+from pydriveless import ExecutionPerformance
 
 DEBUG = False
+EXECUTION_PROFILE = True
 
 class Node:
     g_cost: float
@@ -191,6 +193,7 @@ class HybridAStar(LocalPlannerExecutor):
         return (G, H, F, dist_to_end)
 
     def __updateSets(self, node: Node, open_set: list, closed_set: dict, cfg: HybridConfig) -> None:
+        Profiler.start()
         num_curves = cfg.n_steer
         angles = np.linspace(-cfg.max_steering_rad, cfg.max_steering_rad, num=num_curves, endpoint=True, dtype=np.float32)
         #angles_deg = np.linspace(-math.degrees(cfg.max_steering_rad), math.degrees(cfg.max_steering_rad), num=num_curves, endpoint=True, dtype=np.float32)
@@ -250,10 +253,14 @@ class HybridAStar(LocalPlannerExecutor):
                         min_node = n
                 #print(f"({c[1][i].x}, {c[1][i].z}) cost: {node_cost}, dist: {node_dist}")
 
+        Profiler.end()
+
         if DEBUG:
             print(f"best node {min_node.local_pose.x}, {min_node.local_pose.z} with cost {min_node.f_cost} and distance {min_node.dist}")
 
     def __RS_expansion(self, node: Node, goal: Waypoint, cfg: HybridConfig) -> list[Waypoint]:
+        Profiler.start()
+            
         _, _, lx, lz, lh = self._reed_shepp.generation(
             start_pose=node.local_pose,
             goal_pose=goal)
@@ -272,7 +279,10 @@ class HybridAStar(LocalPlannerExecutor):
                 f[p.z, p.x, :] = [128, 0, 128]
             cv2.imwrite("debug.png", f)
         
-        valid = self._og.check_feasible_path(self._min_distance, path, individual_waypoint_check=False)           
+        valid = self._og.check_feasible_path(self._min_distance, path, individual_waypoint_check=False)
+
+        Profiler.end()
+
         return path if valid else None
     
     def _planning_init(self, search_params: SearchParams) -> bool:
@@ -338,6 +348,7 @@ class HybridAStar(LocalPlannerExecutor):
         if connecting_path is not None:
             # I've found a good solution
             self.__build_path(connecting_path)
+            Profiler.print()
             return False
         
         self.__updateSets(node, self._open_list, self._closed_list, self._cfg)

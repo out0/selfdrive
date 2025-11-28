@@ -8,7 +8,6 @@ from .. model.physical_paramaters import PhysicalParameters
 from .interpolator import Interpolator
 from .overtaker import Overtaker
 from .hybrid_a import HybridAStar
-from .bi_rrt import BiRRTStar
 from ..model.curve_quality import CurveAssessment, CurveData
 import math, time
 from threading import Lock
@@ -37,13 +36,11 @@ class Ensemble(LocalPlannerExecutor):
         planner_interpolator = Interpolator(ego_params)
         planner_overtaker = Overtaker(ego_params)
         planner_hybrid = HybridAStar(ego_params)
-        planner_bi_rrt = BiRRTStar(ego_params)
         
         self._planning_set = [
-            planner_interpolator,
-            planner_overtaker,
-            planner_hybrid,
-            planner_bi_rrt
+            #planner_interpolator,
+            #planner_overtaker,
+            planner_hybrid
         ]
 
     def __terminate_local_planners(self) -> None:
