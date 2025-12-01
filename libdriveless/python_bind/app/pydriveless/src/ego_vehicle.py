@@ -1,5 +1,5 @@
-from .sensors.gps import GpsData
-from .sensors.imu import IMUData
+# from .sensors.gps import GpsData
+# from .sensors.imu import IMUData
 
 
 class EgoVehicle:
@@ -16,10 +16,10 @@ class EgoVehicle:
     def set_steering(self, angle: float) -> None:
         pass
     
-    def read_gps(self) -> GpsData:
-        pass
+    # def read_gps(self) -> GpsData:
+    #     pass
     
-    def read_imu(self) -> IMUData:
-        pass
+    # def read_imu(self) -> IMUData:
+    #     pass
     
     

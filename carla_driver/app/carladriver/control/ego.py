@@ -85,11 +85,11 @@ class CarlaEgoVehicle(EgoVehicle):
         self._state.steer_angle = angle
         self._state.apply()
         
-    def attach_gps_sensor(self, period_ms: int) -> None:
+    def attach_gps_sensor(self, period_ms: int) -> CarlaGPS:
         self._gps = CarlaGPS(self._session, self._vehicle, period_ms)
         return self._gps
 
-    def attach_imu_sensor(self, period_ms: int) -> None:
+    def attach_imu_sensor(self, period_ms: int) -> CarlaIMU:
         self._imu = CarlaIMU(self._session, self._vehicle, period_ms)
         return self._imu
     

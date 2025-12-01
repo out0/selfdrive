@@ -34,6 +34,7 @@ class CarlaCamera(Camera):
                  rotation: tuple[float, float, float] = (0.0, 0.0, 0.0),
                  camera_type: str = "sensor.camera.rgb"                    
                  ):
+            super().__init__(width, height, fov, fps)
             self.__width = width
             self.__height = height
             self.__fov = fov
