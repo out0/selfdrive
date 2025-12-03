@@ -125,6 +125,8 @@ class RemoteCameraClient(Camera):
     _fov: int
     _fps: int
     _dtype: np.dtype
+    _last_camera_data: np.ndarray
+    _last_camera_data_timestamp: float
 
     def __init__(self,
                  host: str = "127.0.0.1",
@@ -132,6 +134,7 @@ class RemoteCameraClient(Camera):
         self._host = host
         self._running = True
         self._last_camera_data = None
+        self._last_camera_data_timestamp = 0.0
         self._shape = None
         self._dtype = None
         self._width = 0
@@ -206,11 +209,11 @@ class RemoteCameraClient(Camera):
             if self._dtype is None:
                 continue
 
-            self._last_camera_data, _ = self._data_link.read_np(
+            self._last_camera_data, _, self._last_camera_data_timestamp = self._data_link.read_np(
                 shape=self._shape, dtype=self._dtype)
 
-    def read(self) -> np.ndarray:
-        return self._last_camera_data
+    def read(self) -> tuple[np.ndarray, float]:
+        return self._last_camera_data, self._last_camera_data_timestamp
 
     def fov(self) -> int:
         return self._fov

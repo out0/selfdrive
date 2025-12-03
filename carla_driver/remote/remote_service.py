@@ -22,13 +22,13 @@ def main():
         pos=[-90, 0, 3], 
         rotation=(0, 0, 0))
     
-    RemoteGPSServer(ego.attach_gps_sensor(250), gps_period_ms=250)
-    RemoteIMUServer(ego.attach_imu_sensor(10), imu_period_ms=10)
+    RemoteGPSServer(ego.attach_gps_sensor(250), gps_period_ms=250, port=22002)
+    RemoteIMUServer(ego.attach_imu_sensor(10), imu_period_ms=10, port=22003)
 
-    bev = ego.init_rgb_bev_camera()
-    RemoteCameraServer(bev, period_ms=100)
+    #bev = ego.init_rgb_bev_camera()
+    #RemoteCameraServer(bev, period_ms=100)
     
-    RemoteEgoServer(ego)
+    #RemoteEgoServer(ego)
 
     while True:
         time.sleep(1)

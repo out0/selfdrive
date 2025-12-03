@@ -5,11 +5,7 @@ import time
 import threading
 
 GPS_SENSOR_DATA_DEFAULT_PORT = 22002
-GPS_SENSOR_DATA_SIZE = 5
-
-CMD_SET_THROTTLE = 1.0
-CMD_SET_STEERING = 2.0
-CMD_SET_BRAKE = 3.0
+GPS_SENSOR_DATA_SIZE = 4
 
 class RemoteGPSServer:
     _data_link: Datalink
@@ -32,7 +28,7 @@ class RemoteGPSServer:
         del self._data_link
     
     def _send_sensor_data(self) -> None:
-        while self._running:
+        while self._running:            
             if not self._data_link.is_ready():
                 time.sleep(0.01)
                 continue
@@ -44,7 +40,6 @@ class RemoteGPSServer:
                     conn_data[0] = gps_data.lat
                     conn_data[1] = gps_data.lon
                     conn_data[2] = gps_data.alt
-                    conn_data[3] = time.time()
                     self._data_link.write(conn_data)
                 time.sleep(self._gps_period_s)
     
@@ -72,8 +67,8 @@ class RemoteGPSClient(GPS):
             if not self._data_link.is_ready() or not self._data_link.has_data():
                 time.sleep(0.01)
                 continue
-            
-            data, size = self._data_link.read_np(shape=(GPS_SENSOR_DATA_SIZE,), dtype=np.float32)
+
+            data, size, timestamp = self._data_link.read_np(shape=(GPS_SENSOR_DATA_SIZE,), dtype=np.float32)
             if size == 0:
                 continue
 
@@ -81,7 +76,7 @@ class RemoteGPSClient(GPS):
                 lat=data[0],
                 lon=data[1],
                 alt=data[2],
-                timestamp=data[3],
+                timestamp=timestamp,
                 valid=True)
     
     def read(self) -> GpsData:

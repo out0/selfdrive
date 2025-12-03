@@ -5,7 +5,7 @@ import time
 import threading
 
 IMU_SENSOR_DATA_DEFAULT_PORT = 22003
-IMU_SENSOR_DATA_SIZE = 8
+IMU_SENSOR_DATA_SIZE = 7
 
 CMD_SET_THROTTLE = 1.0
 CMD_SET_STEERING = 2.0
@@ -49,7 +49,6 @@ class RemoteIMUServer:
                     conn_data[4] = imu_data.gyro_x
                     conn_data[5] = imu_data.gyro_y
                     conn_data[6] = imu_data.gyro_z
-                    conn_data[7] = time.time()
                     self._data_link.write(conn_data)
                 time.sleep(self._imu_period_s)
 
@@ -78,7 +77,7 @@ class RemoteIMUClient(IMU):
                 time.sleep(0.01)
                 continue
 
-            data, size = self._data_link.read_np(
+            data, size, timestamp = self._data_link.read_np(
                 shape=(IMU_SENSOR_DATA_SIZE,), dtype=np.float32)
             if size == 0:
                 continue
@@ -88,7 +87,7 @@ class RemoteIMUClient(IMU):
                 compass=data[3],
                 gyro_x=data[4], gyro_y=data[5], gyro_z=data[6],
                 valid=True,
-                timestamp=data[7]
+                timestamp=timestamp
             )
 
     def read(self) -> IMUData:

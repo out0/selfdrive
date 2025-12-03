@@ -35,7 +35,7 @@ class RemoteEgoServer:
                 time.sleep(0.01)
                 continue
             
-            data, size = self._control_link.read_np(shape=(CONTROL_DATA_SIZE,), dtype=np.float32)
+            data, size, timestamp = self._control_link.read_np(shape=(CONTROL_DATA_SIZE,), dtype=np.float32)
             if size == 0:
                 continue
 
