@@ -191,7 +191,7 @@ class RemoteCameraClient(Camera):
                 while not info_link.has_data():
                     time.sleep(0.01)
 
-                info, size = info_link.read_np(shape=(6,), dtype=np.int32)
+                info, size, timestamp = info_link.read_np(shape=(6,), dtype=np.int32)
                 if size == 0:
                     continue
 
@@ -202,8 +202,6 @@ class RemoteCameraClient(Camera):
                 self._fps = info[4]
                 self._dtype = self.decode_dtype(info[5])
                 info_link.__del__()
-
-                print (f"shape = {self._shape}, dtype = {self._dtype}")
                 continue
 
             if self._dtype is None:
