@@ -5,6 +5,12 @@ import numpy as np
 import time
 import cv2
 
+#
+#  This script reads data from remote sensors (GPS, IMU, camera) connected to a CARLA simulator via datalink.
+#  see remote_service.py for the server side.
+#
+#
+
 def main():
     gps = RemoteGPSClient(port=22002)
     imu = RemoteIMUClient(port=22003)

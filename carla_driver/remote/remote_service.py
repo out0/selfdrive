@@ -1,14 +1,14 @@
 #! /usr/bin/python3
-from carladriver import CarlaEgoVehicle, CarlaSimulation
+from carladriver import CarlaSimulation
 from pydriveless import RemoteGPSServer, RemoteIMUServer, RemoteCameraServer
 from pydriveless import RemoteEgoServer
-import numpy as np
 import time
-#import faulthandler
-#faulthandler.enable()
 
-CMD_SIZE = 10
-KEEP_ALIVE_RESPONSE = np.zeros(CMD_SIZE, dtype=np.float32)
+#
+#  This script connects to a CARLA simulator, spawns an EGO vehicle, and initializes the remote services
+#  for GPS, IMU, camera, and EGO vehicle control. The remote services use datalink to decouple communication via TCP/IP.
+#
+#
 
 
 def main():
