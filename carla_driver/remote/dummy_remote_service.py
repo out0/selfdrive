@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 from carladriver import CarlaEgoVehicle, CarlaSimulation
 from pydriveless import RemoteGPSServer, RemoteIMUServer, RemoteCameraServer
-from pydriveless import RemoteEgoServer, GPS, GpsData, IMU, IMUData
+from pydriveless import RemoteEgoServer, GPS, GpsData, IMU, IMUData, Camera
 import numpy as np
 import time
 #import faulthandler
@@ -33,6 +33,12 @@ class DummyImu(IMU):
             timestamp=time.time()
         )
 
+class DummyCamera(Camera):
+    def __init__(self, width, height, fov = 120, fps = 30):
+        super().__init__(width, height, fov, fps)
+
+    def read(self) -> tuple[np.ndarray, float]:
+        return np.full((self.height(), self.width(), 3), 255, dtype=np.uint8), time.time()
 
 def main():
     
@@ -40,7 +46,7 @@ def main():
     RemoteIMUServer(DummyImu(0), imu_period_ms=10, port=22003)
 
     #bev = ego.init_rgb_bev_camera()
-    #RemoteCameraServer(bev, period_ms=100)
+    RemoteCameraServer(DummyCamera(256, 256), period_ms=100)
     
     #RemoteEgoServer(ego)
 
