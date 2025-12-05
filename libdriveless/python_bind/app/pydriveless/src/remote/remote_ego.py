@@ -49,6 +49,7 @@ class RemoteEgoServer:
             elif cmd_type == CMD_SET_BRAKE:
                 self._ego.set_brake(cmd_val)
             
+            self._control_link.write_keep_alive()
             #self._control_link.write(np.array([cmd_type], dtype=np.float32))  # ack
 
 

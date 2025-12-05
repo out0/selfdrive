@@ -90,5 +90,7 @@ class RemoteIMUClient(IMU):
                 timestamp=timestamp
             )
 
+            self._data_link.write_keep_alive()
+
     def read(self) -> IMUData:
         return self._last_imu_data

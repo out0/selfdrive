@@ -78,6 +78,8 @@ class RemoteGPSClient(GPS):
                 alt=data[2],
                 timestamp=timestamp,
                 valid=True)
+            
+            self._data_link.write_keep_alive()
     
     def read(self) -> GpsData:
         return self._last_gps_data

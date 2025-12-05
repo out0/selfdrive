@@ -241,6 +241,8 @@ class RemoteCameraClient(Camera):
                 time.sleep(0.01)
                 continue
 
+            self._data_link.write_keep_alive()
+
             if self._shape is None or self._dtype is None:
                 self._receive_camera_info()
                 continue

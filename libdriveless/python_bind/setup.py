@@ -16,11 +16,11 @@ setup(
     author="Cristiano Oliveira",
     author_email="cristianoo@gmail.com",
     license="MIT",
-    classifiers=[
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.10",
-        "Operating System :: OS Independent",
-    ],
+    # classifiers=[
+    #     "License :: OSI Approved :: MIT License",
+    #     "Programming Language :: Python :: 3.10",
+    #     "Operating System :: OS Independent",
+    # ],
     install_requires=["numpy>=1.21.0"],
     extras_require={
         "dev": ["pytest>=7.0", "twine>=4.0.2"],
