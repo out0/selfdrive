@@ -42,8 +42,8 @@ class DummyCamera(Camera):
 
 def main():
     
-    RemoteGPSServer(DummyGps(0), gps_period_ms=250, port=22002)
-    RemoteIMUServer(DummyImu(0), imu_period_ms=10, port=22003)
+    RemoteGPSServer(DummyGps(0), gps_period_ms=250)
+    RemoteIMUServer(DummyImu(0), imu_period_ms=10)
 
     #bev = ego.init_rgb_bev_camera()
     RemoteCameraServer(DummyCamera(256, 256), period_ms=100)

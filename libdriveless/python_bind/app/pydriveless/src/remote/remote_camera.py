@@ -93,14 +93,10 @@ class RemoteCameraServer:
         if not self._data_link.has_data():
             return
 
-        print("received link mode command?")
-
         mode_data, size, _ = self._data_link.read_np(shape=(1,), dtype=np.int32)
         if size == 0:
             return None
         
-        print(f"received link mode command: {mode_data}")
-
         mode = mode_data[0]
         if mode == 1:
             self._camera_info_mode = True
@@ -120,10 +116,8 @@ class RemoteCameraServer:
             self._check_link_mode()
 
             if self._camera_info_mode:
-                print ("Sending camera info data")
                 self._send_info_data()
             else:
-                print ("Sending IMAGE data")
                 self._data_link.write(img)
             
             time.sleep(self._camera_period_s)
@@ -208,14 +202,10 @@ class RemoteCameraClient(Camera):
             self._data_link.clear_buffer()            
             return
         
-        print (f"reading camera info")
-        info, size, timestamp = self._data_link.read_np(shape=(6,), dtype=np.int32)
+        info, size, _ = self._data_link.read_np(shape=(6,), dtype=np.int32)
         if size == 0:
-            print (f"reading camera info: empty")
             return
         
-        print (f"reading camera info: {info}, size={size}, timestamp={timestamp}")
-
         self._height = info[0]
         self._width = info[1]
         self._shape = (info[0], info[1], info[2])
@@ -223,7 +213,6 @@ class RemoteCameraClient(Camera):
         self._fps = info[4]
         self._dtype = self.decode_dtype(info[5])
 
-        print (f"setting info mode to false")
         self._set_camera_to_info_mode(False)       
         time.sleep(0.10)
         self._data_link.clear_buffer()
@@ -232,10 +221,8 @@ class RemoteCameraClient(Camera):
     def _read_sensor_data(self) -> None:
         while self._running:
             if not self._data_link.is_ready():
-                print ("data link not ready")
                 while not self._data_link.is_ready() and self._running:
                     time.sleep(0.01)
-                print ("data link connected")
 
             if not self._data_link.has_data():
                 time.sleep(0.01)
@@ -248,7 +235,6 @@ class RemoteCameraClient(Camera):
                 continue
             
             if self._check_camera_is_in_info_mode():
-                print (f"camera is still in info mode, requesting data mode")
                 self._set_camera_to_info_mode(False)
                 self._data_link.clear_buffer()
                 time.sleep(0.10)

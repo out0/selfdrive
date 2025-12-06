@@ -12,15 +12,15 @@ import cv2
 #
 
 def main():
-    gps = RemoteGPSClient(port=22002)
-    imu = RemoteIMUClient(port=22003)
-    bev = RemoteCameraClient()
+    gps = RemoteGPSClient()
+    imu = RemoteIMUClient()
+    camera = RemoteCameraClient()
 
     while True:
         print ("Sensor data: ")
         print (" GPS: ", gps.read())
         print (" IMU: ", imu.read())
-        frame, timestamp  = bev.read()
+        frame, timestamp  = camera.read()
         if frame is not None and timestamp > 0 and len(frame.shape) > 0 and frame.shape[0] != 0:
             print (f" Camera: frame shape: {frame.shape} [{timestamp}]")
             cv2.imwrite(f"bev_frame.png", frame)
