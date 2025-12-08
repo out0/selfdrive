@@ -43,7 +43,6 @@ class RemoteGPSServer:
                 conn_data[0] = gps_data.lat
                 conn_data[1] = gps_data.lon
                 conn_data[2] = gps_data.alt
-                print ("sending GPS data")
                 self._data_link.write(conn_data)
             time.sleep(self._gps_period_s)
     

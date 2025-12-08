@@ -12,10 +12,10 @@ import cv2
 #
 
 def main():
-    gps = RemoteGPSClient(port=8000)
-    imu = RemoteIMUClient(port=8001)
-    camera = RemoteCameraClient(port=8002)
-    camera2 = RemoteCameraClient(port=8004)
+    gps = RemoteGPSClient()
+    imu = RemoteIMUClient()
+    camera = RemoteCameraClient()
+    camera2 = RemoteCameraClient()
 
     while True:
         print ("Sensor data: ")
