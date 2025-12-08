@@ -4,13 +4,8 @@ from .. sensors.imu import IMU, IMUData
 import time
 import threading
 
-IMU_SENSOR_DATA_DEFAULT_PORT = 22003
+IMU_SENSOR_DATA_DEFAULT_PORT = 7701
 IMU_SENSOR_DATA_SIZE = 7
-
-CMD_SET_THROTTLE = 1.0
-CMD_SET_STEERING = 2.0
-CMD_SET_BRAKE = 3.0
-
 
 class RemoteIMUServer:
     _data_link: Datalink
@@ -33,24 +28,22 @@ class RemoteIMUServer:
         del self._data_link
 
     def _send_sensor_data(self) -> None:
+        conn_data = np.zeros(IMU_SENSOR_DATA_SIZE, dtype=np.float32)
         while self._running:
             if not self._data_link.is_ready():
                 time.sleep(0.01)
                 continue
-
-            conn_data = np.zeros(IMU_SENSOR_DATA_SIZE, dtype=np.float32)
-            while self._running:
-                imu_data = self._imu.read()
-                if imu_data.valid and self._data_link.is_ready():
-                    conn_data[0] = imu_data.accel_x
-                    conn_data[1] = imu_data.accel_y
-                    conn_data[2] = imu_data.accel_z
-                    conn_data[3] = imu_data.compass
-                    conn_data[4] = imu_data.gyro_x
-                    conn_data[5] = imu_data.gyro_y
-                    conn_data[6] = imu_data.gyro_z
-                    self._data_link.write(conn_data)
-                time.sleep(self._imu_period_s)
+            imu_data = self._imu.read()
+            if imu_data.valid and self._data_link.is_ready():
+                conn_data[0] = imu_data.accel_x
+                conn_data[1] = imu_data.accel_y
+                conn_data[2] = imu_data.accel_z
+                conn_data[3] = imu_data.compass
+                conn_data[4] = imu_data.gyro_x
+                conn_data[5] = imu_data.gyro_y
+                conn_data[6] = imu_data.gyro_z
+                self._data_link.write(conn_data)
+            time.sleep(self._imu_period_s)
 
 
 class RemoteIMUClient(IMU):

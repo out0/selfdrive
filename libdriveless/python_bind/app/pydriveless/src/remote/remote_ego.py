@@ -4,7 +4,7 @@ from .. ego_vehicle import EgoVehicle
 import time
 import threading
 
-CONTROL_DATA_DEFAULT_PORT = 22001
+CONTROL_DATA_DEFAULT_PORT = 7703
 CONTROL_DATA_SIZE = 2
 
 CMD_SET_THROTTLE = 1.0
@@ -20,7 +20,7 @@ class RemoteEgoServer:
     def __init__(self, ego: EgoVehicle, port: int = CONTROL_DATA_DEFAULT_PORT):
         self._running = True
         self._ego = ego
-        self._control_link = Datalink(port=port, timeout=1000)
+        self._control_link = Datalink(port=port, timeout=100)
         self._control_thread = threading.Thread(target=self._read_control_data)
         self._control_thread.start()
     
@@ -31,25 +31,28 @@ class RemoteEgoServer:
     
     def _read_control_data(self) -> None:
         while self._running:
-            if not self._control_link.has_data():
+            if not self._control_link.is_ready():
                 time.sleep(0.01)
                 continue
             
-            data, size, timestamp = self._control_link.read_np(shape=(CONTROL_DATA_SIZE,), dtype=np.float32)
-            if size == 0:
-                continue
+            if self._control_link.has_data():
+                data, size, timestamp = self._control_link.read_np(shape=(CONTROL_DATA_SIZE,), dtype=np.float32)
+                if size == 0:
+                    continue
 
-            cmd_type = data[0]
-            cmd_val = data[1]
+                cmd_type = data[0]
+                cmd_val = data[1]
 
-            if cmd_type == CMD_SET_THROTTLE:  # control command
-                self._ego.set_power(cmd_val)
-            elif cmd_type == CMD_SET_STEERING:
-                self._ego.set_steering(cmd_val)
-            elif cmd_type == CMD_SET_BRAKE:
-                self._ego.set_brake(cmd_val)
-            
-            self._control_link.write_keep_alive()
+                if cmd_type == CMD_SET_THROTTLE:  # control command
+                    self._ego.set_power(cmd_val)
+                elif cmd_type == CMD_SET_STEERING:
+                    self._ego.set_steering(cmd_val)
+                elif cmd_type == CMD_SET_BRAKE:
+                    self._ego.set_brake(cmd_val)
+                
+                self._control_link.write_keep_alive()
+
+            time.sleep(0.001)
             #self._control_link.write(np.array([cmd_type], dtype=np.float32))  # ack
 
 
@@ -59,7 +62,7 @@ class RemoteEgoClient(EgoVehicle):
 
     def __init__(self, host: str = "127.0.0.1", port: int = CONTROL_DATA_DEFAULT_PORT):
         self._running = True
-        self._control_link = Datalink(host=host, port=port, timeout=1000)
+        self._control_link = Datalink(host=host, port=port, timeout=100)
     
     def __del__(self):
         self._running = False

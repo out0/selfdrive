@@ -4,8 +4,7 @@ from ..sensors.camera import Camera
 import time
 import threading
 
-CAMERA_SENSOR_DATA_DEFAULT_PORT = 22100
-CAMERA_SENSOR_INFO_DEFAULT_PORT = 22110
+CAMERA_SENSOR_DATA_DEFAULT_PORT = 7702
 
 
 class RemoteCameraServer:

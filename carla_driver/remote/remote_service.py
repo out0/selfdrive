@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 from carladriver import CarlaSimulation
 from pydriveless import RemoteGPSServer, RemoteIMUServer, RemoteCameraServer
-from pydriveless import RemoteEgoServer
+from pydriveless import RemoteEgoServer, EgoVehicle
 import time
 
 #
@@ -9,6 +9,16 @@ import time
 #  for GPS, IMU, camera, and EGO vehicle control. The remote services use datalink to decouple communication via TCP/IP.
 #
 #
+
+class LocalClient(EgoVehicle):
+    def set_power(self, power_level: float) -> None:
+        pass
+    
+    def set_brake(self, brake_level: float) -> None:
+        pass
+    
+    def set_steering(self, angle: float) -> None:
+        pass
 
 
 def main():
@@ -22,14 +32,16 @@ def main():
         pos=[-90, 0, 3], 
         rotation=(0, 0, 0))
     
-    gps = ego.attach_gps_sensor(250)
+    gps = ego.attach_gps_sensor(10)
     imu = ego.attach_imu_sensor(10)
     camera = ego.init_rgb_bev_camera()
+    camera2 = ego.init_semantic_bev_camera()
     
-    RemoteGPSServer(gps, gps_period_ms=250)
-    RemoteIMUServer(imu, imu_period_ms=10)
-    RemoteCameraServer(camera, period_ms=100)    
-    RemoteEgoServer(ego)
+    ego_server = RemoteEgoServer(LocalClient(), port=8003)
+    imu_server = RemoteIMUServer(imu, imu_period_ms=10, port=8001)
+    camera_server = RemoteCameraServer(camera, period_ms=100, port=8002)    
+    camera_server2 = RemoteCameraServer(camera2, period_ms=100, port=8004)    
+    gps_server = RemoteGPSServer(gps, gps_period_ms=10, port=8000)
 
     while True:
         time.sleep(1)
