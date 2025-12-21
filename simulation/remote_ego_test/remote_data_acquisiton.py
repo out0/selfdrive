@@ -15,7 +15,7 @@ def main():
     gps = RemoteGPSClient()
     imu = RemoteIMUClient()
     camera = RemoteCameraClient()
-    camera2 = RemoteCameraClient()
+    camera2 = RemoteCameraClient(port=27111)
 
     while True:
         print ("Sensor data: ")
