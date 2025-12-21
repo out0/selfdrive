@@ -4,3 +4,6 @@
 [submodule "datalink"]
 	path = datalink
 	url = https://github.com/out0/datalink.git
+[submodule "serializerpp"]
+	path = serializerpp
+	url = https://github.com/out0/serializerpp.git

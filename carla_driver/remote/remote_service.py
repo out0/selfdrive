@@ -26,7 +26,7 @@ def main():
     sim = CarlaSimulation(
         town_name='Town07'
     )
-    sim.reset()
+    #sim.reset()
     print ("summoning the EGO vehicle...")
     ego = sim.add_ego_vehicle(
         pos=[-90, 0, 3], 
@@ -34,17 +34,24 @@ def main():
     
     gps = ego.attach_gps_sensor(10)
     imu = ego.attach_imu_sensor(10)
-    camera = ego.init_rgb_bev_camera()
-    camera2 = ego.init_semantic_bev_camera()
-    
-    ego_server = RemoteEgoServer(ego)
-    imu_server = RemoteIMUServer(imu, imu_period_ms=10)
-    camera_server = RemoteCameraServer(camera, period_ms=100)    
-    camera_server2 = RemoteCameraServer(camera2, period_ms=100)    
-    gps_server = RemoteGPSServer(gps, gps_period_ms=10)
+    lidar = ego.init_lidar()
 
-    while True:
-        time.sleep(1)
+    print("press enter to terminate")
+    input()
+
+    ego.destroy()
+    
+    # camera = ego.init_rgb_bev_camera()
+    # camera2 = ego.init_semantic_bev_camera()
+    
+    # ego_server = RemoteEgoServer(ego)
+    # imu_server = RemoteIMUServer(imu, imu_period_ms=10)
+    # camera_server = RemoteCameraServer(camera, period_ms=100)    
+    # camera_server2 = RemoteCameraServer(camera2, period_ms=100)    
+    # gps_server = RemoteGPSServer(gps, gps_period_ms=10)
+
+    # while True:
+    #     time.sleep(1)
 
         
 

@@ -6,6 +6,7 @@ from .. sensors.gps import CarlaGPS, GpsData
 from .. sensors.imu import CarlaIMU, IMUData
 from .. sensors.camera import BevCameraSemantic, BevCamera
 from .. sensors.odometer import CarlaOdometer
+from .. sensors.lidar import Lidar
 
 class VehicleState:
     __vehicle: any
@@ -129,6 +130,9 @@ class CarlaEgoVehicle(EgoVehicle):
         self._bev_rgb = BevCamera(self._session, self._vehicle, width, height)
         return self._bev_rgb
 
+    def init_lidar(self) -> Lidar:
+        self._lidar = Lidar(self._session, self._vehicle)
+        return self._lidar
 
     def destroy(self) -> None:
         if self._bev_semantic is not None:
@@ -139,8 +143,12 @@ class CarlaEgoVehicle(EgoVehicle):
 
         if self._imu is not None:
             self._imu.destroy()
+
         if self._gps is not None:
             self._gps.destroy()
+
+        if self._lidar is not None:
+            self._lidar.destroy()
         
         try:
             self._vehicle.destroy()
