@@ -130,8 +130,8 @@ class CarlaEgoVehicle(EgoVehicle):
         self._bev_rgb = BevCamera(self._session, self._vehicle, width, height)
         return self._bev_rgb
 
-    def init_lidar(self) -> Lidar:
-        self._lidar = Lidar(self._session, self._vehicle)
+    def init_lidar(self, period_ms: int) -> Lidar:
+        self._lidar = Lidar(self._session, self._vehicle, period_ms)
         return self._lidar
 
     def destroy(self) -> None:
