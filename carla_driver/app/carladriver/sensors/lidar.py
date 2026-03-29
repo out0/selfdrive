@@ -18,7 +18,7 @@ class Lidar(CarlaSensor):
                  session: CarlaSession,
                  vehicle: any,
                  period_ms: int,
-                 pos: tuple[float, float, float] = (0.0, 0.0, 3.0)
+                 pos: tuple[float, float, float] = (0.0, 0.0, 2.0)
                  ):
             
         CarlaSensor.__init__(self,

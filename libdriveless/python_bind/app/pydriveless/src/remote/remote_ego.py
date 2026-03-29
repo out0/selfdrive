@@ -25,9 +25,14 @@ class RemoteEgoServer:
         self._control_thread.start()
     
     def __del__(self):
+        self.terminate()
+        
+    def terminate(self) -> None:
         self._running = False
         self._control_thread.join()
-        del self._control_link
+        if self._control_link is not None:
+            del self._control_link
+            self._control_link = None        
     
     def _read_control_data(self) -> None:
         while self._running:

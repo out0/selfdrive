@@ -21,11 +21,16 @@ class RemoteGPSServer:
         self._data_link = Datalink(port=port, timeout=1000)
         self._data_thread = threading.Thread(target=self._send_sensor_data)
         self._data_thread.start()
-    
+        
     def __del__(self):
+        self.terminate()
+        
+    def terminate(self) -> None:
         self._running = False
         self._data_thread.join()
-        del self._data_link
+        if self._data_link is not None:
+            del self._data_link
+            self._data_link = None          
     
     def _send_sensor_data(self) -> None:
         conn_data = np.zeros(shape=(GPS_SENSOR_DATA_SIZE,), dtype=np.float32)

@@ -27,11 +27,17 @@ class RemoteCameraServer:
         self._camera_info_mode = False
         self._img_shape = None
         self._img_dtype = None
-
+      
     def __del__(self):
+        self.terminate()
+        
+    def terminate(self) -> None:
         self._running = False
         self._data_thread.join()
-        del self._data_link
+        if self._data_link is not None:
+            del self._data_link
+            self._data_link = None        
+            
 
 
     def encode_dtype(self, dtype: np.dtype) -> int:

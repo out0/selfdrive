@@ -50,6 +50,7 @@ class CarlaEgoVehicle(EgoVehicle):
         self._bev_rgb = None
         self._imu = None
         self._gps = None
+        self._lidar = None
         self.__clear_state()
 
     def __clear_state(self) -> None:

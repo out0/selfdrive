@@ -38,11 +38,11 @@ def main():
     camera = ego.init_rgb_bev_camera()
     camera2 = ego.init_semantic_bev_camera()
     
-    RemoteEgoServer(ego)
-    RemoteIMUServer(imu, imu_period_ms=10)
-    RemoteCameraServer(camera, period_ms=100)    
-    RemoteCameraServer(camera2, period_ms=100, port=27111)    
-    RemoteGPSServer(gps, gps_period_ms=10)
+    ego_server = RemoteEgoServer(ego)
+    imu_server = RemoteIMUServer(imu, imu_period_ms=10)
+    cam1_server = RemoteCameraServer(camera, period_ms=100)    
+    cam2_server = RemoteCameraServer(camera2, period_ms=100, port=27111)    
+    gps_server = RemoteGPSServer(gps, gps_period_ms=10)
 
     # while True:
     #     time.sleep(1)
@@ -52,6 +52,11 @@ def main():
     print("press enter to terminate")
     input()
 
+    ego_server.terminate()
+    imu_server.terminate()
+    cam1_server.terminate()
+    cam2_server.terminate()
+    gps_server.terminate()
     ego.destroy()
     
         
