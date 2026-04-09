@@ -4,7 +4,7 @@ from pydriveless import EgoVehicle
 from .session import CarlaSession
 from .. sensors.gps import CarlaGPS, GpsData
 from .. sensors.imu import CarlaIMU, IMUData
-from .. sensors.camera import BevCameraSemantic, BevCamera
+from .. sensors.camera import BevCameraSemantic, BevCamera, FrontCamera
 from .. sensors.odometer import CarlaOdometer
 from .. sensors.lidar import Lidar
 
@@ -39,6 +39,7 @@ class CarlaEgoVehicle(EgoVehicle):
     _odometer: CarlaOdometer
     _bev_semantic: BevCameraSemantic
     _bev_rgb: BevCamera
+    _front_rgb: FrontCamera
     
     def __init__(self, session: CarlaSession, vehicle: any):
         super().__init__()
@@ -51,6 +52,7 @@ class CarlaEgoVehicle(EgoVehicle):
         self._imu = None
         self._gps = None
         self._lidar = None
+        self._front_rgb = None
         self.__clear_state()
 
     def __clear_state(self) -> None:
@@ -130,6 +132,10 @@ class CarlaEgoVehicle(EgoVehicle):
     def init_rgb_bev_camera(self, width: int = 256, height: int = 256) -> BevCameraSemantic:
         self._bev_rgb = BevCamera(self._session, self._vehicle, width, height)
         return self._bev_rgb
+    
+    def init_rgb_front_camera(self, width: int = 256, height: int = 256) -> FrontCamera:
+        self._front_rgb = FrontCamera(self._session, self._vehicle, width, height)
+        return self._front_rgb
 
     def init_lidar(self, period_ms: int) -> Lidar:
         self._lidar = Lidar(self._session, self._vehicle, period_ms)
@@ -141,6 +147,9 @@ class CarlaEgoVehicle(EgoVehicle):
 
         if self._bev_rgb is not None:
             self._bev_rgb.destroy()
+            
+        if self._front_rgb is not None:
+            self._front_rgb.destroy()
 
         if self._imu is not None:
             self._imu.destroy()

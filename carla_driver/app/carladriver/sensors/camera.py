@@ -115,6 +115,10 @@ class CarlaCamera(Camera):
     def height(self) -> int:
         return self.__height
 
+class FrontCamera(CarlaCamera):
+    def __init__(self, session: CarlaSession, vehicle: any, width: int = 256, height: int = 256, fps: int = 30, camera_type="sensor.camera.rgb"):
+        super().__init__(session, vehicle, width, height, 120, fps, pos=(2.1, 0.0, 1.0), rotation=(0.0, 0.0, 0.0), camera_type=camera_type)
+
 
 class BevCameraBase(CarlaCamera):
     Z_DIST = 10.0

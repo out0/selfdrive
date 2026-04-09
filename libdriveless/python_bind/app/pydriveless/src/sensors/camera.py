@@ -17,7 +17,7 @@ class Camera:
             self.__fov = fov
             self.__fps = fps
     
-    def read(self) -> np.ndarray:
+    def read(self) -> tuple[np.ndarray, float]:
         pass
     
     def width(self) -> int:
