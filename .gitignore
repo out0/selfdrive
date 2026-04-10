@@ -19,6 +19,7 @@ seg_unet_carla/
 .local
 .jupyter
 .ipython
+.venv
 .cache
 .sudo_as_admin_successful
 .Xauthority
@@ -31,3 +32,4 @@ HiDrive
 *.so
 *.egg-info
 tmp34534.dat
+yolov8n.pt
