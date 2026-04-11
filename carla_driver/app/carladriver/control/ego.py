@@ -4,7 +4,7 @@ from pydriveless import EgoVehicle
 from .session import CarlaSession
 from .. sensors.gps import CarlaGPS, GpsData
 from .. sensors.imu import CarlaIMU, IMUData
-from .. sensors.camera import BevCameraSemantic, BevCamera, FrontCamera
+from .. sensors.camera import BevCameraSemantic, BevCamera, FrontCamera, BackCamera, LeftCamera, RightCamera
 from .. sensors.odometer import CarlaOdometer
 from .. sensors.lidar import Lidar
 
@@ -40,6 +40,9 @@ class CarlaEgoVehicle(EgoVehicle):
     _bev_semantic: BevCameraSemantic
     _bev_rgb: BevCamera
     _front_rgb: FrontCamera
+    _back_rgb: BackCamera
+    _left_rgb: LeftCamera
+    _right_rgb: RightCamera
     
     def __init__(self, session: CarlaSession, vehicle: any):
         super().__init__()
@@ -53,6 +56,9 @@ class CarlaEgoVehicle(EgoVehicle):
         self._gps = None
         self._lidar = None
         self._front_rgb = None
+        self._back_rgb = None
+        self._left_rgb = None
+        self._right_rgb = None
         self.__clear_state()
 
     def __clear_state(self) -> None:
@@ -137,6 +143,19 @@ class CarlaEgoVehicle(EgoVehicle):
         self._front_rgb = FrontCamera(self._session, self._vehicle, width, height)
         return self._front_rgb
 
+    def init_rgb_back_camera(self, width: int = 256, height: int = 256) -> BackCamera:
+        self._back_rgb = BackCamera(self._session, self._vehicle, width, height)
+        return self._back_rgb
+
+    def init_rgb_left_camera(self, width: int = 256, height: int = 256) -> LeftCamera:
+        self._left_rgb = LeftCamera(self._session, self._vehicle, width, height)
+        return self._left_rgb
+
+    def init_rgb_right_camera(self, width: int = 256, height: int = 256) -> RightCamera:
+        self._right_rgb = RightCamera(self._session, self._vehicle, width, height)
+        return self._right_rgb
+
+
     def init_lidar(self, period_ms: int) -> Lidar:
         self._lidar = Lidar(self._session, self._vehicle, period_ms)
         return self._lidar
@@ -150,6 +169,15 @@ class CarlaEgoVehicle(EgoVehicle):
             
         if self._front_rgb is not None:
             self._front_rgb.destroy()
+            
+        if self._back_rgb is not None:
+            self._back_rgb.destroy()
+
+        if self._left_rgb is not None:
+            self._left_rgb.destroy()
+
+        if self._right_rgb is not None:
+            self._right_rgb.destroy()
 
         if self._imu is not None:
             self._imu.destroy()
