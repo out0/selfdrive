@@ -43,6 +43,10 @@ class CarlaEgoVehicle(EgoVehicle):
     _back_rgb: BackCamera
     _left_rgb: LeftCamera
     _right_rgb: RightCamera
+    _front_semantic: FrontCamera
+    _back_semantic: BackCamera
+    _left_semantic: LeftCamera
+    _right_semantic: RightCamera
     
     def __init__(self, session: CarlaSession, vehicle: any):
         super().__init__()
@@ -59,6 +63,10 @@ class CarlaEgoVehicle(EgoVehicle):
         self._back_rgb = None
         self._left_rgb = None
         self._right_rgb = None
+        self._front_semantic = None
+        self._back_semantic = None
+        self._left_semantic = None
+        self._right_semantic = None
         self.__clear_state()
 
     def __clear_state(self) -> None:
@@ -155,6 +163,23 @@ class CarlaEgoVehicle(EgoVehicle):
         self._right_rgb = RightCamera(self._session, self._vehicle, width, height)
         return self._right_rgb
 
+    def init_semantic_front_camera(self, width: int = 256, height: int = 256) -> FrontCamera:
+        self._front_semantic = FrontCamera(self._session, self._vehicle, width, height, camera_type="sensor.camera.semantic_segmentation")
+        return self._front_semantic
+
+    def init_semantic_back_camera(self, width: int = 256, height: int = 256) -> BackCamera:
+        self._back_semantic = BackCamera(self._session, self._vehicle, width, height, camera_type="sensor.camera.semantic_segmentation")
+        return self._back_semantic
+
+    def init_semantic_left_camera(self, width: int = 256, height: int = 256) -> LeftCamera:
+        self._left_semantic = LeftCamera(self._session, self._vehicle, width, height, camera_type="sensor.camera.semantic_segmentation")
+        return self._left_semantic
+
+    def init_semantic_right_camera(self, width: int = 256, height: int = 256) -> RightCamera:
+        self._right_semantic = RightCamera(self._session, self._vehicle, width, height, camera_type="sensor.camera.semantic_segmentation")
+        return self._right_semantic
+
+
 
     def init_lidar(self, period_ms: int) -> Lidar:
         self._lidar = Lidar(self._session, self._vehicle, period_ms)
@@ -178,6 +203,19 @@ class CarlaEgoVehicle(EgoVehicle):
 
         if self._right_rgb is not None:
             self._right_rgb.destroy()
+
+        if self._front_semantic is not None:
+            self._front_semantic.destroy()
+            
+        if self._back_semantic is not None:
+            self._back_semantic.destroy()
+
+        if self._left_semantic is not None:
+            self._left_semantic.destroy()
+
+        if self._right_semantic is not None:
+            self._right_semantic.destroy()
+
 
         if self._imu is not None:
             self._imu.destroy()

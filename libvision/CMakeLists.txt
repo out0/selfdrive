@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CUDA_ARCHITECTURES all-major)
 SET(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 
-project(gpd LANGUAGES CXX CUDA VERSION 1.0.0 DESCRIPTION "Local goal point discover lib")
+project(vision LANGUAGES CXX CUDA VERSION 1.0.0 DESCRIPTION "Local goal point discover lib")
 
 include(GNUInstallDirs)
 
@@ -62,9 +62,7 @@ SET(TARGET_H
 
 add_library(
   ${CMAKE_PROJECT_NAME} SHARED
-  src/gpd.cu  
-  src/gpd_pre_compute.cu  
-  src/gpd_python_bind.cpp
+  src/bev.cu
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

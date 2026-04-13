@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 project(driveless LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless")
 
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_CUDA_ARCHITECTURES all-major)
+set(CMAKE_CUDA_ARCHITECTURES all-major)
 
 # Optional: explicitly set NVCC if needed
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")

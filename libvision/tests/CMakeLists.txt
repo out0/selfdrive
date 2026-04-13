@@ -47,13 +47,8 @@ add_executable(
   ${CMAKE_PROJECT_NAME} 
   src/unittests.cpp
   src/test_utils.cpp
-  #src/test_gpd_with_heading.cpp
-  #src/test_gpd_with_heading_exclusion_zone.cpp
-  #src/test_gpd_lowest_cost_to_goal.cpp
-  src/test_gpd_lowest_cost_to_goal_exclusion_zone.cpp
-  #-------------
-  ../../src/gpd.cu
-  ../../src/gpd_pre_compute.cu
+  src/test_bev.cpp
+  ../src/bev.cu
 )
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
