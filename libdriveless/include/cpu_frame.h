@@ -24,19 +24,6 @@ extern void copy_data(float *ptr, float *dest, long pos);
 extern void copy_data(float *ptr, double *dest, long pos);
 extern void copy_data(float *ptr, int *dest, long pos);
 
-// extern void parallel_clear(double4 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(float4 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(int4 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(double3 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(float3 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(int3 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(double2 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(float2 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(int2 *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(double *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(float *_frame, int width, int height, int numThreadHandlers);
-// extern void parallel_clear(int *_frame, int width, int height, int numThreadHandlers);
-
 template <typename T>
 class CPUframe
 {
