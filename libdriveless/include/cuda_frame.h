@@ -39,6 +39,29 @@ private:
     // static void copyBackData(T *orig, float *dest, long pos);
 
 protected:
+    class ParallelCopy : public ParallelProcessor
+    {
+        T *_data;
+        float *_ptr;
+        int maxPos;
+
+    public:
+        ParallelCopy(int numThreadHandlers, T *frame, float *ptr, int width, int height)
+            : ParallelProcessor(numThreadHandlers, width, width)
+        {
+            this->_data = frame;
+            this->_ptr = ptr;
+            this->maxPos = width * height;
+        }
+
+        void handler(int threadId) override
+        {
+            if (threadId >= maxPos)
+                return;
+            copy_data(_ptr, _data, threadId);
+        }
+    };
+
     T &at(std::pair<size_t, size_t> indices)
     {
         if (indices.first >= _width || indices.second >= _height)
@@ -174,37 +197,13 @@ inline void copy_data(float *ptr, int *dest, long pos)
 }
 
 template <typename T>
-class ParallelCopy : public ParallelProcessor
-{
-    T *_data;
-    float *_ptr;
-    int maxPos;
-
-public:
-    ParallelCopy(int numThreadHandlers, T *frame, float *ptr, int width, int height)
-        : ParallelProcessor(numThreadHandlers, width, width)
-    {
-        this->_data = frame;
-        this->_ptr = ptr;
-        this->maxPos = width * height;
-    }
-
-    void handler(int threadId) override
-    {
-        if (threadId >= maxPos)
-            return;
-        copy_data(_ptr, _data, threadId);
-    }
-};
-
-template <typename T>
 void CudaFrame<T>::copyFrom(float *ptr, int numCPUThreadHandlers)
 {
     if (numCPUThreadHandlers <= 0)
         numCPUThreadHandlers = 1;
     else if (numCPUThreadHandlers > 1)
     {
-        ParallelCopy<T>(numCPUThreadHandlers, frame->get(), ptr, (int)_width, (int)_height).runAndWait();
+        CudaFrame<T>::ParallelCopy(numCPUThreadHandlers, frame->get(), ptr, (int)_width, (int)_height).runAndWait();
         return;
     }
     for (int i = 0; i < _height; i++)

@@ -1,7 +1,7 @@
 # require CMake 2.8 or greater
 cmake_minimum_required(VERSION 3.26)
 
-project(unittest LANGUAGES CXX CUDA VERSION 2.0.0 DESCRIPTION "libdriveless test")
+project(unittest LANGUAGES CXX CUDA VERSION 2.1.0 DESCRIPTION "libdriveless test")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_ARCHITECTURES all-major)
@@ -69,6 +69,7 @@ add_executable(
   src/test_world_pose.cpp
   src/test_async_component.cpp
   src/test_search_frame.cpp
+  src/test_cpu_frame.cpp
   src/test_search_frame_set_goal.cpp
   src/test_search_frame_set_goal_vectorized.cpp
   src/test_search_frame_check_fesible_path.cpp
@@ -90,6 +91,7 @@ add_executable(
   ../../src/interpolator.cpp
   ../../src/search_params.cpp
   ../../src/cpu_parallel_processor.cpp
+  ../../src/cpu_frame.cpp
   ../../src/cuda/cuda_frame.cu
   ../../src/cuda/quaternion.cu
   ../../src/cuda/search_frame_color.cu

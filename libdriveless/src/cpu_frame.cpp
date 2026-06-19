@@ -1,0 +1,120 @@
+#include "../include/cpu_frame.h"
+
+void copy_data(float *ptr, float4 *dest, long pos)
+{
+    long posPtr = 4 * pos;
+    dest[pos].x = static_cast<float>(ptr[posPtr]);
+    dest[pos].y = static_cast<float>(ptr[posPtr + 1]);
+    dest[pos].z = static_cast<float>(ptr[posPtr + 2]);
+    dest[pos].w = static_cast<float>(ptr[posPtr + 3]);
+}
+void copy_data(float *ptr, double4 *dest, long pos)
+{
+    long posPtr = 4 * pos;
+    dest[pos].x = static_cast<double>(ptr[posPtr]);
+    dest[pos].y = static_cast<double>(ptr[posPtr + 1]);
+    dest[pos].z = static_cast<double>(ptr[posPtr + 2]);
+    dest[pos].w = static_cast<double>(ptr[posPtr + 3]);
+}
+void copy_data(float *ptr, int4 *dest, long pos)
+{
+    long posPtr = 4 * pos;
+    dest[pos].x = static_cast<int>(ptr[posPtr]);
+    dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
+    dest[pos].z = static_cast<int>(ptr[posPtr + 2]);
+    dest[pos].w = static_cast<int>(ptr[posPtr + 3]);
+}
+void copy_data(float *ptr, float3 *dest, long pos)
+{
+    long posPtr = 3 * pos;
+    dest[pos].x = static_cast<float>(ptr[posPtr]);
+    dest[pos].y = static_cast<float>(ptr[posPtr + 1]);
+    dest[pos].z = static_cast<float>(ptr[posPtr + 2]);
+}
+void copy_data(float *ptr, double3 *dest, long pos)
+{
+    long posPtr = 3 * pos;
+    dest[pos].x = static_cast<double>(ptr[posPtr]);
+    dest[pos].y = static_cast<double>(ptr[posPtr + 1]);
+    dest[pos].z = static_cast<double>(ptr[posPtr + 2]);
+}
+void copy_data(float *ptr, int3 *dest, long pos)
+{
+    long posPtr = 3 * pos;
+    dest[pos].x = static_cast<int>(ptr[posPtr]);
+    dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
+    dest[pos].z = static_cast<int>(ptr[posPtr + 2]);
+}
+void copy_data(float *ptr, float2 *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos].x = static_cast<float>(ptr[posPtr]);
+    dest[pos].y = static_cast<float>(ptr[posPtr + 1]);
+}
+void copy_data(float *ptr, double2 *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos].x = ptr[posPtr];
+    dest[pos].y = ptr[posPtr + 1];
+}
+void copy_data(float *ptr, int2 *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos].x = static_cast<int>(ptr[posPtr]);
+    dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
+}
+void copy_data(float *ptr, float *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos] = static_cast<float>(ptr[posPtr]);
+}
+void copy_data(float *ptr, double *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos] = static_cast<double>(ptr[posPtr]);
+}
+void copy_data(float *ptr, int *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos] = static_cast<int>(ptr[posPtr]);
+}
+
+
+// void parallel_clear(double4 *_frame, int width, int height, int numThreadHandlers)
+// {
+//     ParallelClear<double4>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(float4 *_frame, int width, int height,  int numThreadHandlers) {
+//     ParallelClear<float4>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(int4 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<int4>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(double3 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<double3>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(float3 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<float3>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(int3 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<int3>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(double2 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<double2>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(float2 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<float2>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(int2 *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<int2>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(double *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<double>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(float *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<float>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+// void parallel_clear(int *_frame, int width, int height, int numThreadHandlers) {
+//     ParallelClear<int>(numThreadHandlers, _frame, width, height).runAndWait();
+// }
+
