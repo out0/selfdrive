@@ -5,6 +5,7 @@
 
 #include "cuda_basic.h"
 #include "cuda_ptr.h"
+#include "cpu_parallel_processor.h"
 // CODE:BEGIN
 
 #include <stdexcept>
@@ -35,7 +36,7 @@ private:
     const int _height;
 
     static void copyData(float *ptr, T *dest, long pos);
-    //static void copyBackData(T *orig, float *dest, long pos);
+    // static void copyBackData(T *orig, float *dest, long pos);
 
 protected:
     T &at(std::pair<size_t, size_t> indices)
@@ -51,7 +52,7 @@ protected:
 public:
     CudaFrame(int width, int height);
 
-    virtual void copyFrom(float *ptr);
+    virtual void copyFrom(float *ptr, int numCPUThreadHandlers = 12);
     virtual void clear();
     inline T *getCudaPtr() { return frame->get(); }
 
@@ -88,30 +89,12 @@ CudaFrame<T>::CudaFrame(int width, int height) : _width(width), _height(height)
 }
 
 template <typename T>
-void CudaFrame<T>::copyFrom(float *ptr)
-{
-    for (int i = 0; i < _height; i++)
-        for (int j = 0; j < _width; j++)
-        {
-            long pos = (_width * i + j);
-            CudaFrame<T>::copyData(ptr, frame->get(), pos);
-        }
-}
-
-template <typename T>
 void CudaFrame<T>::clear()
 {
     CUDA_clear(frame->get(), _width, _height);
 }
 
-template <typename T>
-void CudaFrame<T>::copyData(float *ptr, T *dest, long pos)
-{
-    dest[pos] = static_cast<T>(ptr[pos]);
-}
-
-template <>
-inline void CudaFrame<float4>::copyData(float *ptr, float4 *dest, long pos)
+inline void copy_data(float *ptr, float4 *dest, long pos)
 {
     long posPtr = 4 * pos;
     dest[pos].x = static_cast<float>(ptr[posPtr]);
@@ -119,8 +102,7 @@ inline void CudaFrame<float4>::copyData(float *ptr, float4 *dest, long pos)
     dest[pos].z = static_cast<float>(ptr[posPtr + 2]);
     dest[pos].w = static_cast<float>(ptr[posPtr + 3]);
 }
-template <>
-inline void CudaFrame<double4>::copyData(float *ptr, double4 *dest, long pos)
+inline void copy_data(float *ptr, double4 *dest, long pos)
 {
     long posPtr = 4 * pos;
     dest[pos].x = static_cast<double>(ptr[posPtr]);
@@ -128,9 +110,7 @@ inline void CudaFrame<double4>::copyData(float *ptr, double4 *dest, long pos)
     dest[pos].z = static_cast<double>(ptr[posPtr + 2]);
     dest[pos].w = static_cast<double>(ptr[posPtr + 3]);
 }
-
-template <>
-inline void CudaFrame<int4>::copyData(float *ptr, int4 *dest, long pos)
+inline void copy_data(float *ptr, int4 *dest, long pos)
 {
     long posPtr = 4 * pos;
     dest[pos].x = static_cast<int>(ptr[posPtr]);
@@ -138,51 +118,101 @@ inline void CudaFrame<int4>::copyData(float *ptr, int4 *dest, long pos)
     dest[pos].z = static_cast<int>(ptr[posPtr + 2]);
     dest[pos].w = static_cast<int>(ptr[posPtr + 3]);
 }
-template <>
-inline void CudaFrame<float3>::copyData(float *ptr, float3 *dest, long pos)
+inline void copy_data(float *ptr, float3 *dest, long pos)
 {
     long posPtr = 3 * pos;
     dest[pos].x = static_cast<float>(ptr[posPtr]);
     dest[pos].y = static_cast<float>(ptr[posPtr + 1]);
     dest[pos].z = static_cast<float>(ptr[posPtr + 2]);
 }
-template <>
-inline void CudaFrame<double3>::copyData(float *ptr, double3 *dest, long pos)
+inline void copy_data(float *ptr, double3 *dest, long pos)
 {
     long posPtr = 3 * pos;
     dest[pos].x = static_cast<double>(ptr[posPtr]);
     dest[pos].y = static_cast<double>(ptr[posPtr + 1]);
     dest[pos].z = static_cast<double>(ptr[posPtr + 2]);
 }
-template <>
-inline void CudaFrame<int3>::copyData(float *ptr, int3 *dest, long pos)
+inline void copy_data(float *ptr, int3 *dest, long pos)
 {
     long posPtr = 3 * pos;
     dest[pos].x = static_cast<int>(ptr[posPtr]);
     dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
     dest[pos].z = static_cast<int>(ptr[posPtr + 2]);
 }
-template <>
-inline void CudaFrame<float2>::copyData(float *ptr, float2 *dest, long pos)
+inline void copy_data(float *ptr, float2 *dest, long pos)
 {
     long posPtr = 2 * pos;
     dest[pos].x = static_cast<float>(ptr[posPtr]);
     dest[pos].y = static_cast<float>(ptr[posPtr + 1]);
 }
-template <>
-inline void CudaFrame<double2>::copyData(float *ptr, double2 *dest, long pos)
+inline void copy_data(float *ptr, double2 *dest, long pos)
 {
     long posPtr = 2 * pos;
     dest[pos].x = ptr[posPtr];
     dest[pos].y = ptr[posPtr + 1];
 }
-template <>
-inline void CudaFrame<int2>::copyData(float *ptr, int2 *dest, long pos)
+inline void copy_data(float *ptr, int2 *dest, long pos)
 {
     long posPtr = 2 * pos;
     dest[pos].x = static_cast<int>(ptr[posPtr]);
     dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
 }
+inline void copy_data(float *ptr, float *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos] = static_cast<float>(ptr[posPtr]);
+}
+inline void copy_data(float *ptr, double *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos] = static_cast<double>(ptr[posPtr]);
+}
+inline void copy_data(float *ptr, int *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos] = static_cast<int>(ptr[posPtr]);
+}
 
+template <typename T>
+class ParallelCopy : public ParallelProcessor
+{
+    T *_data;
+    float *_ptr;
+    int maxPos;
+
+public:
+    ParallelCopy(int numThreadHandlers, T *frame, float *ptr, int width, int height)
+        : ParallelProcessor(numThreadHandlers, width, width)
+    {
+        this->_data = frame;
+        this->_ptr = ptr;
+        this->maxPos = width * height;
+    }
+
+    void handler(int threadId) override
+    {
+        if (threadId >= maxPos)
+            return;
+        copy_data(_ptr, _data, threadId);
+    }
+};
+
+template <typename T>
+void CudaFrame<T>::copyFrom(float *ptr, int numCPUThreadHandlers)
+{
+    if (numCPUThreadHandlers <= 0)
+        numCPUThreadHandlers = 1;
+    else if (numCPUThreadHandlers > 1)
+    {
+        ParallelCopy<T>(numCPUThreadHandlers, frame->get(), ptr, (int)_width, (int)_height).runAndWait();
+        return;
+    }
+    for (int i = 0; i < _height; i++)
+        for (int j = 0; j < _width; j++)
+        {
+            long pos = (_width * i + j);
+            copy_data(ptr, frame->get(), pos);
+        }
+}
 
 #endif

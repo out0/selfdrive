@@ -1,3 +1,3 @@
 install:
-	pip3 install -e .
-#	pip3 install -e . --break-system-packages
+#	pip3 install -e .
+	pip3 install -e . --break-system-packages

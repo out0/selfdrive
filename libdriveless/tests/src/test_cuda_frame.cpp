@@ -3,6 +3,20 @@
 #include "test_utils.h"
 #include <cmath>
 
+static const long kBigSize = 4L * 10000 * 10000;
+
+static float *initBigPtr()
+{
+    float *ptr = new float[kBigSize];
+    for (long i = 0; i < kBigSize; i++)
+    {
+        ptr[i] = 37.7f;
+    }
+    return ptr;
+}
+
+static float *g_big_ptr = initBigPtr();
+
 TEST(TestCudaFrame, TestSetGet)
 {
     CudaFrame<double3> f1(1000, 1001);
@@ -14,8 +28,8 @@ TEST(TestCudaFrame, TestSetAndClear)
 {
     CudaFrame<double3> f1(1000, 1001);
     f1.clear();
-    
-    f1[{10,10}].x = 20;
+
+    f1[{10, 10}].x = 20;
     double p = f1[{10, 10}].x;
     ASSERT_FLOAT_EQ(20, p);
 
@@ -25,22 +39,38 @@ TEST(TestCudaFrame, TestSetAndClear)
     ASSERT_FLOAT_EQ(0, p);
 }
 
+TEST(TestCudaFrame, TestCopyFromBIG)
+{
+    float *ptr = g_big_ptr;
+    CudaFrame<double4> f3(10000, 10000);
+    f3.copyFrom(ptr, 1);
+}
+
+TEST(TestCudaFrame, TestCopyFromBIG_Parallel)
+{
+    float *ptr = g_big_ptr;
+    CudaFrame<double4> f3(10000, 10000);
+    f3.copyFrom(ptr, 12);
+}
+
 TEST(TestCudaFrame, TestCopyFrom)
 {
     long size = 4 * 1000 * 1000;
     float *ptr = new float[size];
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         ptr[i] = 37.7;
     }
 
     CudaFrame<float3> f1(1000, 1000);
     f1.copyFrom(ptr);
 
-    for(int i = 0; i < 1000; i++)
-        for(int j = 0; j < 1000; j++) {
-            float x = f1[{i,j}].x;
-            float y = f1[{i,j}].y;
-            float z = f1[{i,j}].z;
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++)
+        {
+            float x = f1[{i, j}].x;
+            float y = f1[{i, j}].y;
+            float z = f1[{i, j}].z;
             ASSERT_DEQ(37.7, x);
             ASSERT_DEQ(37.7, y);
             ASSERT_DEQ(37.7, z);
@@ -49,12 +79,13 @@ TEST(TestCudaFrame, TestCopyFrom)
     CudaFrame<float4> f2(1000, 1000);
     f2.copyFrom(ptr);
 
-    for(int i = 0; i < 1000; i++)
-        for(int j = 0; j < 1000; j++) {
-            float x = f2[{i,j}].x;
-            float y = f2[{i,j}].y;
-            float z = f2[{i,j}].z;
-            float w = f2[{i,j}].w;
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++)
+        {
+            float x = f2[{i, j}].x;
+            float y = f2[{i, j}].y;
+            float z = f2[{i, j}].z;
+            float w = f2[{i, j}].w;
             ASSERT_DEQ(37.7, x);
             ASSERT_DEQ(37.7, y);
             ASSERT_DEQ(37.7, z);
@@ -64,54 +95,57 @@ TEST(TestCudaFrame, TestCopyFrom)
     CudaFrame<double4> f3(1000, 1000);
     f3.copyFrom(ptr);
 
-    for(int i = 0; i < 1000; i++)
-        for(int j = 0; j < 1000; j++) {
-            float x = f3[{i,j}].x;
-            float y = f3[{i,j}].y;
-            float z = f3[{i,j}].z;
-            float w = f3[{i,j}].w;
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++)
+        {
+            float x = f3[{i, j}].x;
+            float y = f3[{i, j}].y;
+            float z = f3[{i, j}].z;
+            float w = f3[{i, j}].w;
             ASSERT_DEQ(37.7, x);
             ASSERT_DEQ(37.7, y);
             ASSERT_DEQ(37.7, z);
             ASSERT_DEQ(37.7, w);
-        }        
+        }
 
     CudaFrame<int4> f4(1000, 1000);
     f4.copyFrom(ptr);
 
-    for(int i = 0; i < 1000; i++)
-        for(int j = 0; j < 1000; j++) {
-            int x = f4[{i,j}].x;
-            int y = f4[{i,j}].y;
-            int z = f4[{i,j}].z;
-            int w = f4[{i,j}].w;
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++)
+        {
+            int x = f4[{i, j}].x;
+            int y = f4[{i, j}].y;
+            int z = f4[{i, j}].z;
+            int w = f4[{i, j}].w;
             if (x != 37 || y != 37 || z != 37 || w != 37)
                 FAIL();
-        }             
+        }
 
     CudaFrame<int2> f5(1000, 1000);
     f5.copyFrom(ptr);
 
-    for(int i = 0; i < 1000; i++)
-        for(int j = 0; j < 1000; j++) {
-            int x = f4[{i,j}].x;
-            int y = f4[{i,j}].y;
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++)
+        {
+            int x = f4[{i, j}].x;
+            int y = f4[{i, j}].y;
             if (x != 37 || y != 37)
                 FAIL();
-        }  
-    
+        }
+
     CudaFrame<double2> f6(1000, 1000);
     f6.copyFrom(ptr);
 
-    for(int i = 0; i < 1000; i++)
-        for(int j = 0; j < 1000; j++) {
-            float x = f3[{i,j}].x;
-            float y = f3[{i,j}].y;
+    for (int i = 0; i < 1000; i++)
+        for (int j = 0; j < 1000; j++)
+        {
+            float x = f3[{i, j}].x;
+            float y = f3[{i, j}].y;
             ASSERT_DEQ(37.7, x);
             ASSERT_DEQ(37.7, y);
         }
 }
-
 
 TEST(TestCudaFrame, TestGetPointer)
 {

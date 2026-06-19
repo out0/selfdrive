@@ -39,7 +39,7 @@ public:
 
     void clear() override;
 
-    void copyFrom(float *ptr) override;
+    void copyFrom(float *ptr, int numCPUThreadHandlers = 12) override;
     void copyTo(float *ptr);
 
     inline bool isSafeZoneChecked()

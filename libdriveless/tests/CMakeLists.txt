@@ -61,13 +61,13 @@ add_executable(
   ${CMAKE_PROJECT_NAME} 
   src/unittests.cpp
   src/test_utils.cpp
+  src/test_cuda_frame.cpp
   src/test_angle.cpp
   src/test_waypoint.cpp
   src/test_map_pose.cpp
   src/test_map_pose_nearest_goal_pose.cpp
   src/test_world_pose.cpp
   src/test_async_component.cpp
-  src/test_cuda_frame.cpp
   src/test_search_frame.cpp
   src/test_search_frame_set_goal.cpp
   src/test_search_frame_set_goal_vectorized.cpp
@@ -81,14 +81,15 @@ add_executable(
   src/test_quaternion.cu
   src/test_interpolator.cpp
   src/test_search_params.cpp
-  ../../src/waypoint.cpp
+   ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp
   ../../src/world_pose.cpp
   ../../src/async_component.cpp
   ../../src/coord_conversion.cpp
   ../../src/interpolator.cpp
-  ../../src/search_params.cpp  
+  ../../src/search_params.cpp
+  ../../src/cpu_parallel_processor.cpp
   ../../src/cuda/cuda_frame.cu
   ../../src/cuda/quaternion.cu
   ../../src/cuda/search_frame_color.cu

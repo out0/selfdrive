@@ -55,6 +55,7 @@ add_library(${PROJECT_NAME} SHARED
     src/coord_conversion.cpp
     src/interpolator.cpp
     src/search_params.cpp
+    src/cpu_parallel_processor.cpp
     src/cuda/cuda_frame.cu
     src/cuda/quaternion.cu
     src/cuda/search_frame.cu

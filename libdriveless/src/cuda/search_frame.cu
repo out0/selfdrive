@@ -42,9 +42,9 @@ void SearchFrame::clear()
     _safeZoneVectorialChecked = false;
 }
 
-void SearchFrame::copyFrom(float *ptr)
+void SearchFrame::copyFrom(float *ptr, int numCPUThreadHandlers)
 {
-    CudaFrame::copyFrom(ptr);
+    CudaFrame::copyFrom(ptr, numCPUThreadHandlers);
     _safeZoneChecked = false;
     _safeZoneVectorialChecked = false;
 }
