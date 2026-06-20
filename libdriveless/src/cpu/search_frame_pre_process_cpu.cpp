@@ -173,9 +173,6 @@ public:
 
 void SearchFrameCPU::processSafeDistanceZone(std::pair<int, int> minDistance, bool computeVectorized)
 {
-    int size = width() * height();
-    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
     _params.get()[FRAME_PARAM_MIN_DIST_X] = 0.5 * minDistance.first;
     _params.get()[FRAME_PARAM_MIN_DIST_Z] = 0.5 * minDistance.second;
 
@@ -255,9 +252,6 @@ public:
 
 void SearchFrameCPU::processDistanceToGoal(int x, int z)
 {
-    int size = width() * height();
-    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
     if (_classCosts.get() == nullptr)
     {
         throw std::runtime_error("Class costs were not set. Please set costs before processing distance to goal.");

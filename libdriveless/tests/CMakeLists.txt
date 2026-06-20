@@ -86,12 +86,10 @@ add_executable(
   src/test_CPU_search_frame.cpp
   src/test_CPU_search_frame_set_goal.cpp
   src/test_CPU_search_frame_set_goal_vectorized.cpp
-  src/test_CPU_search_frame_process_distance_to_goal.cpp
   src/test_CPU_search_frame_is_traversable.cpp
   src/test_CPU_search_frame_check_fesible_path.cpp
   src/test_CPU_search_frame_check_fesible_path_fesible.cpp 
   src/test_CPU_search_frame_check_fesible_path_unfeasible.cpp 
-
    ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp

@@ -42,7 +42,7 @@ __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, f
 
             if (classCost[segmentation_class] < 0)
             {
-                // printf("(%d, %d) invalid on %d, %d segmentation_class: %d (x param = %f) class cost %f\n", x, z, xl, zl, segmentation_class, frame[zl * width + xl].x, classCost[segmentation_class]);
+                //printf("(%d, %d) invalid on %d, %d segmentation_class: %d (x param = %f) class cost %f\n", x, z, xl, zl, segmentation_class, frame[zl * width + xl].x, classCost[segmentation_class]);
                 return false;
             }
         }
