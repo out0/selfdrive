@@ -6,65 +6,54 @@
 // CURVED
 // ---------------------------------------------------------------
 
-TEST(TestSearchFrameCPUCheckFeasiblePath, CheckPath_Angle_NoPreProcess_CPU)
+SearchFrameCPU *basicFrame()
 {
-    SearchFrameCPU f1(100, 100, {-1, -1}, {-1, -1}, 1);
+    SearchFrameCPU *f1 = new SearchFrameCPU(100, 100, {-1, -1}, {-1, -1}, 1);
+    f1->setClassCosts({{0.0}, {-1.0}, {0.0}, {0.0}});
+    f1->setClassColors({{0, 0, 0}, {255, 255, 255}, {0, 255, 0}, {0, 0, 255}});
+    return f1;
+}
 
-    std::vector<float> costs({{0.0},
-                              {-1.0},
-                              {0.0}});
-    f1.setClassCosts(costs);
-    f1.setClassColors({{0, 0, 0}, {255, 255, 255}, {0, 255, 0}});
-
+float *blankFrameData()
+{
     const int SIZE = 3 * 100 * 100;
-
     float *ptr = new float[SIZE];
     std::fill(ptr, ptr + SIZE, 0.0f);
+    return ptr;
+}
 
-    auto c1 = testInterpolateHermiteCurve(100, 100, Waypoint(30, 99, angle::deg(0.0)), Waypoint(30, 0, angle::deg(0.0)));
-    for (auto p : c1)
+void toFrameData(float *ptr, std::vector<Waypoint> path)
+{
+    for (auto p : path)
         ptr[3 * (p.z() * 100 + p.x())] = 1.0;
-    auto c2 = testInterpolateHermiteCurve(100, 100, Waypoint(70, 99, angle::deg(0.0)), Waypoint(70, 0, angle::deg(0.0)));
-    for (auto p : c2)
-        ptr[3 * (p.z() * 100 + p.x())] = 1.0;
+}
 
-    // auto c3 = testInterpolateHermiteCurve(100, 100, Waypoint(36, 99, angle::deg(0.0)), Waypoint(36, 0, angle::deg(0.0)));
-    // for (auto p : c3)
-    //     ptr[3 * (p.z() * 100 + p.x())] = 2.0;
 
-    f1.copyFrom(ptr);
+TEST(TestSearchFrameCPUCheckFeasiblePath, CheckPath_Angle_NoPreProcess_CPU)
+{
+    SearchFrameCPU *frame = basicFrame();
 
-    std::vector<Waypoint> path1;
-    for (int i = 99; i >= 0; i--)
-        path1.push_back(Waypoint(37, i, angle::rad(0)));
+    float *ptr = blankFrameData();
+    toFrameData(ptr, testInterpolateHermiteCurve(100, 100, Waypoint(30, 99, angle::deg(0.0)), Waypoint(30, 0, angle::deg(0.0))));
+    toFrameData(ptr, testInterpolateHermiteCurve(100, 100, Waypoint(70, 99, angle::deg(0.0)), Waypoint(70, 0, angle::deg(0.0))));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    frame->copyFrom(ptr);
 
-    std::vector<Waypoint> path2;
-    for (int i = 99; i >= 0; i--)
-        path2.push_back(Waypoint(50, i, angle::rad(0)));
-
-    for (auto p : path2)
-        ptr[3 * (p.z() * 100 + p.x())] = 2.0;
-    f1.copyFrom(ptr);
-
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
-
-    ASSERT_FALSE(res);
-
+    auto path1 = testInterpolateHermiteCurve(100, 100, Waypoint(50, 70, angle::deg(0.0)), Waypoint(50, 0, angle::deg(0.0)));
+    exportSearchFrameCPUToFile(*frame, "output1.png", path1);
+    ASSERT_TRUE(frame->checkFeasiblePath(path1, 10, 10, true));
+    ASSERT_TRUE(frame->checkFeasiblePath(path1, 10, 10, false));
     for (auto p : path1)
-    {
-        if (p.is_checked_as_feasible())
-            FAIL();
-    }
-
-    ASSERT_TRUE(res2);
-
-    for (auto p : path2)
     {
         if (!p.is_checked_as_feasible())
             FAIL();
     }
+
+    auto path2 = testInterpolateHermiteCurve(100, 100, Waypoint(32, 70, angle::deg(0.0)), Waypoint(50, 0, angle::deg(0.0)));
+    exportSearchFrameCPUToFile(*frame, "output2.png", path2);
+    ASSERT_FALSE(frame->checkFeasiblePath(path2, 10, 10, true));
+    ASSERT_FALSE(frame->checkFeasiblePath(path2, 10, 10, false));
+   
 }
 
 TEST(TestSearchFrameCPUCheckFeasiblePath, CheckPath_Angle_PreProcessNoVectorized_CPU)

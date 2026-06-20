@@ -10,6 +10,6 @@ extern bool _ASSERT_DEQ(double a, double b, int tolerance = 4);
 
 extern std::vector<Waypoint> testInterpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2);
 
-void exportSearchFrameCPUToFile(SearchFrameCPU &f, const char *file);
+void exportSearchFrameCPUToFile(SearchFrameCPU &f, const char *file, std::vector<Waypoint> path);
 
 #endif

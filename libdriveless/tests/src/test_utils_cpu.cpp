@@ -11,7 +11,7 @@
 extern bool _ASSERT_DEQ(double a, double b, int tolerance);
 extern std::vector<Waypoint> testInterpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2);
 
-void exportSearchFrameCPUToFile(SearchFrameCPU &f, const char *file) {
+void exportSearchFrameCPUToFile(SearchFrameCPU &f, const char *file, std::vector<Waypoint> path) {
 
     int size = f.width() * f.height() * 3;
 
@@ -23,6 +23,10 @@ void exportSearchFrameCPUToFile(SearchFrameCPU &f, const char *file) {
     // Convert RGB to BGR
     cv::Mat bgr_image;
     cv::cvtColor(rgb_image, bgr_image, cv::COLOR_RGB2BGR);
+
+    for (auto p : path) {
+        bgr_image.at<cv::Vec3b>(p.z(), p.x()) = cv::Vec3b(0, 0, 255);
+    }
 
     // Save to file
     if (cv::imwrite(file, bgr_image))
