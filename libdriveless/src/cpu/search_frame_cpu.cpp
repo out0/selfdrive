@@ -1,0 +1,172 @@
+#include "../../include/search_frame_cpu.h"
+#include <stdexcept>
+
+extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
+extern std::pair<int, int> __checkTraversableAngleBitPairCheck(float heading_rad);
+extern bool check_bit (int traversability, int bit);
+
+SearchFrameCPU::SearchFrameCPU(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound, int numCPUThreadHandlers) : CPUframe<float3>(width, height)
+{
+    // _classColors = nullptr;
+    // _classCosts = nullptr;
+    // _params = nullptr;
+    // _bestValue = nullptr;
+    _classCount = 0;
+    _safeZoneChecked = false;
+    _safeZoneVectorialChecked = false;
+    _distanceToGoalProcessed = false;
+    _numCPUThreadHandlers = numCPUThreadHandlers;
+
+    _params = std::make_unique<int[]>(11);
+    _bestValue = 0;
+
+    _params.get()[FRAME_PARAM_WIDTH] = width;
+    _params.get()[FRAME_PARAM_HEIGHT] = height;
+    _params.get()[FRAME_PARAM_LOWER_BOUND_X] = lowerBound.first;
+    _params.get()[FRAME_PARAM_LOWER_BOUND_Z] = lowerBound.second;
+    _params.get()[FRAME_PARAM_UPPER_BOUND_X] = upperBound.first;
+    _params.get()[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
+    _params.get()[FRAME_PARAM_CENTER_X] = TO_INT(width / 2);
+    _params.get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
+    _params.get()[FRAME_PARAM_MIN_DIST_X] = 0;
+    _params.get()[FRAME_PARAM_MIN_DIST_Z] = 0;
+}
+
+SearchFrameCPU::~SearchFrameCPU()
+{
+}
+
+void SearchFrameCPU::clear()
+{
+    CPUframe<float3>::clear();
+    _safeZoneChecked = false;
+    _safeZoneVectorialChecked = false;
+}
+
+void SearchFrameCPU::copyFrom(float *ptr)
+{
+    CPUframe<float3>::copyFrom(ptr);
+    _safeZoneChecked = false;
+    _safeZoneVectorialChecked = false;
+}
+
+void SearchFrameCPU::copyTo(float *ptr)
+{
+    long pos_cuda = 0;
+    long pos_outp = 0;
+    const int W = width();
+    const int H = height();
+
+    float3 *cuda_ptr = getPtr();
+    for (int z = 0; z < H; z++)
+        for (int x = 0; x < W; x++)
+        {
+            pos_cuda = z * W + x;
+            pos_outp = 3 * pos_cuda;
+            ptr[pos_outp] = cuda_ptr[pos_cuda].x;
+            ptr[pos_outp + 1] = cuda_ptr[pos_cuda].y;
+            ptr[pos_outp + 2] = cuda_ptr[pos_cuda].z;
+        }
+}
+
+void SearchFrameCPU::setClassCosts(std::vector<float> classCosts)
+{
+    if (_classCount > 0 && classCosts.size() != _classCount)
+    {
+        throw std::invalid_argument("invalid number of classed on setClassCosts(). Expected: " + std::to_string(_classCount) + " obtained: " + std::to_string(classCosts.size()));
+    }
+
+    // TO DO: add a verification of class codes to see if they match the class count.
+
+    _classCount = classCosts.size();
+    _classCosts = std::make_unique<float[]>(_classCount);
+
+    int i = 0;
+    for (auto val : classCosts)
+    {
+        _classCosts.get()[i] = val;
+        i++;
+    }
+}
+
+float SearchFrameCPU::getClassCost(unsigned int classId)
+{
+    if (_classCosts == nullptr)
+        throw std::invalid_argument("you need to first call setClassCosts()");
+
+    if (classId >= _classCount)
+    {
+        throw std::invalid_argument("parameter " + std::to_string(classId) + "is bigger than the last class id: " + std::to_string(_classCount - 1));
+    }
+
+    return _classCosts.get()[classId];
+}
+
+float SearchFrameCPU::getClassCostForNode(int x, int z)
+{
+    int classId = static_cast<int>(at({x, z}).x);
+    return getClassCost(classId);
+}
+float SearchFrameCPU::getClassCostForNode(long pos)
+{
+    int classId = static_cast<int>(getPtr()[pos].x);
+    return getClassCost(classId);
+}
+
+bool SearchFrameCPU::isObstacle(int x, int z)
+{
+    int classId = static_cast<int>(at({x, z}).x);
+    return _classCosts.get()[classId] < 0;
+}
+
+bool SearchFrameCPU::isTraversable(int x, int z)
+{
+    int traversability = static_cast<int>(at({x, z}).z);
+    return (traversability & 0x100) > 0;
+}
+
+
+
+
+
+bool SearchFrameCPU::isTraversable(int x, int z, angle heading, bool precision_check)
+{
+
+    if (_safeZoneChecked || _safeZoneVectorialChecked) {
+        int traversability = static_cast<int>(at({x, z}).z);
+
+        // all angle traversable bit
+        if (check_bit(traversability, 0x100)) return true;
+
+        if (_safeZoneVectorialChecked) {
+            auto pair = __checkTraversableAngleBitPairCheck(heading.rad());
+
+            if (pair.second == -1)
+                return check_bit(traversability, pair.first);
+            
+            if (!precision_check)
+                return check_bit(traversability, pair.first) && check_bit(traversability, pair.second);
+        }
+    }
+
+    int min_dist_x = _params.get()[FRAME_PARAM_MIN_DIST_X];
+    int min_dist_z = _params.get()[FRAME_PARAM_MIN_DIST_Z];
+
+    return __computeFeasibleForAngle(getPtr(), getCudaFrameParamsPtr(), getCudaClassCostsPtr(), min_dist_x, min_dist_z, x, z, heading.rad());
+}
+
+double SearchFrameCPU::getCost(int x, int z)
+{
+    return at({x, z}).y;
+}
+
+double SearchFrameCPU::computeVehicleLength(double perceptionHeightSize_m)
+{
+    double dz = abs(_params.get()[FRAME_PARAM_LOWER_BOUND_Z] - _params.get()[FRAME_PARAM_UPPER_BOUND_Z]);
+
+    return 0.5 * perceptionHeightSize_m * dz / height();
+}
+
+void SearchFrameCPU::setValues(int x, int z, float v1, float v2, float v3) {
+    
+}

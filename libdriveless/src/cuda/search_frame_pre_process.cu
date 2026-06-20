@@ -1,56 +1,14 @@
 #include "../../include/search_frame.h"
 #include "../../include/cuda_basic.h"
+#include "../search_frame_params.h"
 #include <stdexcept>
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 
-__device__ const float TRAVERSABILITY_ANGLES[] = {
-    ANGLE_HEADING_MINUS_67_5,
-    ANGLE_HEADING_MINUS_45,
-    ANGLE_HEADING_MINUS_22_5,
-    ANGLE_HEADING_0,
-    ANGLE_HEADING_22_5,
-    ANGLE_HEADING_45,
-    ANGLE_HEADING_67_5,
-    ANGLE_HEADING_90,
-};
 
-const float H_TRAVERSABILITY_ANGLES[] = {
-    ANGLE_HEADING_MINUS_67_5,
-    ANGLE_HEADING_MINUS_45,
-    ANGLE_HEADING_MINUS_22_5,
-    ANGLE_HEADING_0,
-    ANGLE_HEADING_22_5,
-    ANGLE_HEADING_45,
-    ANGLE_HEADING_67_5,
-    ANGLE_HEADING_90,
-};
 
-__device__ const int TRAVERSABILITY_BITS[] = {
-    BIT_HEADING_MINUS_67_5,
-    BIT_HEADING_MINUS_45,
-    BIT_HEADING_MINUS_22_5,
-    BIT_HEADING_0,
-    BIT_HEADING_22_5,
-    BIT_HEADING_45,
-    BIT_HEADING_67_5,
-    BIT_HEADING_90};
-
-const int H_TRAVERSABILITY_BITS[] = {
-    BIT_HEADING_MINUS_67_5,
-    BIT_HEADING_MINUS_45,
-    BIT_HEADING_MINUS_22_5,
-    BIT_HEADING_0,
-    BIT_HEADING_22_5,
-    BIT_HEADING_45,
-    BIT_HEADING_67_5,
-    BIT_HEADING_90};
-
-#define EIGHT_OVER_PI 20.371832716
-
-std::pair<int, int> SearchFrame::checkTraversableAngleBitPairCheck(float heading_rad)
+std::pair<int, int> __checkTraversableAngleBitPairCheck(float heading_rad)
 {
-
     float a = heading_rad;
     if (a > HALF_PI)
         a = a - PI;
@@ -63,6 +21,11 @@ std::pair<int, int> SearchFrame::checkTraversableAngleBitPairCheck(float heading
         return {H_TRAVERSABILITY_BITS[p1], -1};
 
     return {H_TRAVERSABILITY_BITS[p1], H_TRAVERSABILITY_BITS[p1 + 1]};
+}
+
+std::pair<int, int> SearchFrame::checkTraversableAngleBitPairCheck(float heading_rad)
+{
+    return __checkTraversableAngleBitPairCheck(heading_rad);
 }
 
 __device__ __host__ inline bool CHECK_OUT_BOUNDARIES(int width, int height, int x, int z)
@@ -145,7 +108,7 @@ __device__ __host__ void propagateObstacleBottom(float3 *frame, const int width,
     }
 }
 
-__device__ __host__ inline void propagateMinDistance(float3 *frame, float *classCosts, const int width, const int height, const int minDistance, int pos, int x, int z)
+__device__ __host__ void propagateMinDistance(float3 *frame, float *classCosts, const int width, const int height, const int minDistance, int pos, int x, int z)
 {
     bool tl = true;
     bool tr = true;

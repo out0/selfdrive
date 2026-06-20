@@ -57,7 +57,11 @@ add_library(${PROJECT_NAME} SHARED
     src/search_params.cpp
     src/cpu_parallel_processor.cpp
     src/cuda/cuda_frame.cu
-    src/cpu_frame.cpp    
+    src/cpu_frame.cpp
+    src/cpu/search_frame_cpu.cpp
+    src/cpu/search_frame_color_cpu.cpp
+    src/cpu/search_frame_pre_process_cpu.cpp
+    src/cpu/search_frame_path_feasible_cpu.cpp
     src/cuda/quaternion.cu
     src/cuda/search_frame.cu
     src/cuda/search_frame_color.cu

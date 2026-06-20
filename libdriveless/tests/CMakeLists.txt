@@ -61,6 +61,7 @@ add_executable(
   ${CMAKE_PROJECT_NAME} 
   src/unittests.cpp
   src/test_utils.cpp
+  src/test_utils_cpu.cpp
   src/test_cuda_frame.cpp
   src/test_angle.cpp
   src/test_waypoint.cpp
@@ -82,6 +83,15 @@ add_executable(
   src/test_quaternion.cu
   src/test_interpolator.cpp
   src/test_search_params.cpp
+  src/test_CPU_search_frame.cpp
+  src/test_CPU_search_frame_set_goal.cpp
+  src/test_CPU_search_frame_set_goal_vectorized.cpp
+  src/test_CPU_search_frame_process_distance_to_goal.cpp
+  src/test_CPU_search_frame_is_traversable.cpp
+  src/test_CPU_search_frame_check_fesible_path.cpp
+  src/test_CPU_search_frame_check_fesible_path_fesible.cpp 
+  src/test_CPU_search_frame_check_fesible_path_unfeasible.cpp 
+
    ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp
@@ -92,6 +102,10 @@ add_executable(
   ../../src/search_params.cpp
   ../../src/cpu_parallel_processor.cpp
   ../../src/cpu_frame.cpp
+  ../../src/cpu/search_frame_cpu.cpp
+  ../../src/cpu/search_frame_color_cpu.cpp
+  ../../src/cpu/search_frame_pre_process_cpu.cpp
+  ../../src/cpu/search_frame_path_feasible_cpu.cpp
   ../../src/cuda/cuda_frame.cu
   ../../src/cuda/quaternion.cu
   ../../src/cuda/search_frame_color.cu
