@@ -67,7 +67,8 @@ add_library(${PROJECT_NAME} SHARED
     src/cuda/search_frame_color.cu
     src/cuda/search_frame_pre_process.cu
     src/cuda/search_frame_path_feasible.cu
-    src/cuda/search_frame_python_bind.cpp
+    src/cuda/search_frame_python_bind_cuda.cpp
+    src/cpu/search_frame_python_bind_cpu.cpp
 )
 
 # Properties for CUDA shared lib

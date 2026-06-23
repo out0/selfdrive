@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __SEARCH_FRAME_DRIVELESS_H
-#define __SEARCH_FRAME_DRIVELESS_H
+#ifndef __SEARCH_FRAME_CPU_DRIVELESS_H
+#define __SEARCH_FRAME_CPU_DRIVELESS_H
 
 #include "cpu_frame.h"
 #include "waypoint.h"

@@ -1,9 +1,15 @@
 [submodule "FastRRT"]
 	path = FastRRT
 	url = https://github.com/out0/FastRRT.git
+[submodule "FastRRT-cpu"]
+	path = FastRRT-cpu
+	url = https://github.com/out0/FastRRT-cpu.git
 [submodule "datalink"]
 	path = datalink
 	url = https://github.com/out0/datalink.git
 [submodule "serializerpp"]
 	path = serializerpp
 	url = https://github.com/out0/serializerpp.git
+[submodule "libdriveless/FastRRT-cpu"]
+	path = libdriveless/FastRRT-cpu
+	url = https://github.com/out0/FastRRT-cpu

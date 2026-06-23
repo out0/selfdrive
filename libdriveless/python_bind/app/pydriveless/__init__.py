@@ -3,6 +3,7 @@ from .src.coord_conversion import CoordinateConverter
 from .src.map_pose import MapPose
 from .src.quaternion import quaternion
 from .src.search_frame import SearchFrame, float3
+from .src.search_frame_cpu import SearchFrameCPU
 from .src.waypoint import Waypoint
 from .src.world_pose import WorldPose
 from .src.discrete_component import DiscreteComponent

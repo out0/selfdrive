@@ -67,24 +67,21 @@ bool SearchFrameCPU::exportToColorFrame(uchar *dest)
     if (_classColors == nullptr)
         return false;
 
-    uchar3 *resultImgPtr = nullptr;
-    if (!cudaAllocMapped(&resultImgPtr, sizeof(uchar3) * (width() * height())))
-        return false;
-
     int size = width() * height();
-    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
-
-    (new ParallelColorExport(getPtr(), resultImgPtr, width(), height(), _classColors.get(), _classCount, _numCPUThreadHandlers))->runAndWait();
+    uchar3 * ptr = new uchar3[size];
 
 
+    ParallelColorExport(getPtr(), ptr, width(), height(), _classColors.get(), _classCount, _numCPUThreadHandlers).runAndWait();
+
+    ///TODO dest podia fazer parte de ParallelColorExport
     for (int i = 0; i < size; i++) {
         long pos = 3 * i;
-        dest[pos] = resultImgPtr[i].x;
-        dest[pos+1] = resultImgPtr[i].y;
-        dest[pos+2] = resultImgPtr[i].z;
+        dest[pos] = ptr[i].x;
+        dest[pos+1] = ptr[i].y;
+        dest[pos+2] = ptr[i].z;
     }
     
-    cudaFreeHost(resultImgPtr);
+    delete []ptr;
     return true;
 }
 

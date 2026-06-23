@@ -183,11 +183,11 @@ void SearchFrameCPU::processSafeDistanceZone(std::pair<int, int> minDistance, bo
 
     //__CUDA_safe_distance_prepare<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), minDist_px);
     // CUDA(cudaDeviceSynchronize());
-    (new SafeDistancePrepareProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px))->runAndWait();
+    SafeDistancePrepareProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
 
     // __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), minDist_px);
     // CUDA(cudaDeviceSynchronize());
-    (new SafeDistanceObstacleExpansionBasedProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px))->runAndWait();
+    SafeDistanceObstacleExpansionBasedProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
 
     _safeZoneChecked = true;
 
@@ -195,7 +195,7 @@ void SearchFrameCPU::processSafeDistanceZone(std::pair<int, int> minDistance, bo
     {
         //__CUDA_safe_distance_vector_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), min_x, min_z);
         // CUDA(cudaDeviceSynchronize());
-        (new SafeDistanceVectorBasedProcessor(getPtr(), _classCosts.get(), _params.get(), min_x, min_z))->runAndWait();
+        SafeDistanceVectorBasedProcessor(getPtr(), _classCosts.get(), _params.get(), min_x, min_z).runAndWait();
         _safeZoneVectorialChecked = true;
     }
 }
@@ -238,6 +238,7 @@ public:
             const int nodeClass = TO_INT(_frame[pos].x);
             if (_classCosts[nodeClass] < 0)
             {
+                
                 _frame[pos].y = 999999999;
                 return;
             }
@@ -260,7 +261,7 @@ void SearchFrameCPU::processDistanceToGoal(int x, int z)
     // __CUDA_distance_to_goal<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), x, z);
     // CUDA(cudaDeviceSynchronize());
 
-    (new DistanceToGoalProcessor(getPtr(), _classCosts.get(), _params.get(), x, z))->runAndWait();
+    DistanceToGoalProcessor(getPtr(), _classCosts.get(), _params.get(), x, z).runAndWait();
     _distanceToGoalProcessed = true;
 }
 
