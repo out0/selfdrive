@@ -24,4 +24,4 @@ Main features:
 - datalink - Datalink provides fast dual easy client-server connection between two terminals A <------> B
 
 - libvision - C++ library with python bindings that implements basic vision features for self-driving projects.
-# FastRRT
+
