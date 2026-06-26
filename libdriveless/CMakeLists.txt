@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-project(driveless LANGUAGES CXX CUDA VERSION 2.1.0 DESCRIPTION "libdriveless")
+project(driveless LANGUAGES CXX CUDA VERSION 2.2.1 DESCRIPTION "libdriveless")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_ARCHITECTURES all-major)
