@@ -152,6 +152,20 @@ class TestUtils:
                         outp[h, w, :] = [0, 0, 0]
         cv2.imwrite(file, outp)
 
+    def export_safe_distance_frame_minimal_dist_flag(frame: SearchFrame, file: str):
+        outp = np.zeros((frame.height(), frame.width(), 3), dtype=np.uint8)
+        for z in range (frame.height()):
+            for x in range(frame.width()):
+                outp[z, x, :] = [0, 0, 0]
+                if not frame.is_obstacle(x, z):
+                    outp[z, x, :] = [128, 128, 128]
+
+                p = frame.get_traversability(x, z)
+                if p & 0x100 > 0:
+                    outp[z, x, :] = [255, 255, 255]
+
+        cv2.imwrite(file, outp)
+
 
     def build_cuda_frame(conf: TestConfig) -> SearchFrame:
         f = SearchFrame(conf.raw_frame.shape[1], conf.raw_frame.shape[0], conf.lower_bound, conf.upper_bound)

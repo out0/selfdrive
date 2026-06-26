@@ -9,8 +9,8 @@ def exec_fastrrt_gpu(conf: TestConfig) -> FastRRT:
     ego_params: EgoParams = TestUtils.build_ego_params(conf)
     search_params: SearchParams = TestUtils.build_search_params(conf, gpu=True)
 
-    # search_params.frame.process_safe_distance_zone((20, 20), compute_vectorized=True)
-    # search_params.frame.process_distance_to_goal(search_params.goal.x, search_params.goal.z)
+    search_params.frame.process_safe_distance_zone((20, 20), compute_vectorized=True)
+    search_params.frame.process_distance_to_goal(search_params.goal.x, search_params.goal.z)
 
     planner = FastRRT(ego_params=ego_params)
     planner.set_plan_data(search_params)
@@ -64,6 +64,6 @@ def exec_fastrrt_gpu(conf: TestConfig) -> FastRRT:
 
 
 if __name__ == "__main__":
-    conf = TestUtils.read_config("map_cost_18")
+    conf = TestUtils.read_config("map_cost_5")
     exec_fastrrt_gpu(conf)
     pass

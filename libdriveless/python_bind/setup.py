@@ -5,7 +5,7 @@ with open("app/README.md", "r") as f:
 
 setup(
     name="pydriveless",
-    version="0.2.1",
+    version="2.2.1",
     description="Library for basic self-driving vehicles functions",
     package_dir={"": "app"},
     packages=find_packages(where="app"),
