@@ -65,7 +65,8 @@ __global__ static void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, i
         return;
 
     int segClass = frame[pos].x;
-    if (segClass < 0 || segClass >= classCount) return;
+    if (segClass < 0 || segClass >= classCount)
+        return;
 
     output[pos].x = classColors[segClass].x;
     output[pos].y = classColors[segClass].y;

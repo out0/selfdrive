@@ -1,0 +1,18 @@
+{
+    "start": [489, 770, -45],
+    "goal": [428, 338, 45],
+    "segmentation_costs": [-1, 0],
+    "segmentation_colors": [
+        [0,  0, 0],
+        [255,  255,  255]        
+    ],
+    "lower_bound": [-1, -1],
+    "upper_bound": [-1, -1],
+    "og_real_size": [-1, -1],
+    "max_curvature": -1,
+    "max_steering_angle_deg": 40,
+    "vehicle_length_m": 5.412658774,
+    "meters_to_pixel_ratio": [1, 1],
+    "pixel_to_meters_ratio": [1, 1],
+    "world_origin": [0, 0, 0, 0]
+}

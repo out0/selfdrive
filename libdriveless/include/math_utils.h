@@ -15,6 +15,15 @@
     #define TO_INT(x) static_cast<int>(roundf(x))
 #endif
 
+#ifdef __CUDA_ARCH__
+    // On GPU, use CUDA-specific rounding
+    #define TO_FLOAT(x) __int2float_rn(x)
+#else
+    // On CPU, use standard rounding
+    #include <cmath>
+    #define TO_FLOAT(x) static_cast<float>(x)
+#endif
+
 //#define __EQUALITY_TOLERANCE 0.0001
 #define __EQUALITY_TOLERANCE 0.001
 #define __CLOSE_VALUE 0.01
