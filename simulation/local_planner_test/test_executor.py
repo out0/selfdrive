@@ -64,6 +64,6 @@ def exec_fastrrt_gpu(conf: TestConfig) -> FastRRT:
 
 
 if __name__ == "__main__":
-    conf = TestUtils.read_config("map_cost_8")
+    conf = TestUtils.read_config("map_cost_18")
     exec_fastrrt_gpu(conf)
     pass
