@@ -1,9 +1,13 @@
 
-from pydriveless import Waypoint, angle, WorldPose, EgoParams, SearchParams, MapPose
+from .waypoint import Waypoint, angle
+from .world_pose import WorldPose 
+from .map_pose import MapPose
+from .search_params import EgoParams, SearchParams
+from . search_frame import SearchFrame
+from .search_frame_cpu import SearchFrameCPU
+import time
 import json, numpy as np
 import os, cv2
-from pydriveless import SearchFrame, SearchFrameCPU
-import time
 
 PFM = 1
 RGB = 2
@@ -198,7 +202,7 @@ class TestUtils:
             vehicle_length_m=conf.vehicle_length_m,
             world_origin=conf.world_origin
         )
-    def build_search_params(conf: TestConfig, gpu: bool) -> SearchParams:
+    def build_search_params(conf: TestConfig, gpu: bool, timeout: int = 60000) -> SearchParams:
         frame = None
         if gpu:
             frame = TestUtils.build_cuda_frame(conf)
@@ -214,11 +218,12 @@ class TestUtils:
             .with_map_origin(origin=MapPose(0, 0, 0, heading=angle.new_rad(0)))\
             .with_ego_pose(pose=MapPose(0, 0, 0, heading=conf.start.heading))\
             .with_heading_error_tolerance(angle.new_deg(5))\
-            .with_timeout(-1)\
+            .with_timeout(timeout)\
             .with_max_path_size(40)\
             .with_frame(frame)\
             .build()
-            #.with_timeout(60000)\        
+            
+
 class TestTimer:
     # store start times for multiple keys
     start_time = {}
