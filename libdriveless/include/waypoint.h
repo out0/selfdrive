@@ -42,6 +42,7 @@ public:
 //        printf ("checked as feasible: %d, %d\n", x(), z());
         this->__checked_as_feasible = val; 
     }
+
 };
 
 // CODE:END

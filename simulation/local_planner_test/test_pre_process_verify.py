@@ -1,4 +1,4 @@
-from test_utils import *
+from pydriveless import TestUtils
 from pydriveless import EgoParams, SearchParams, SearchFrame
 from pyfastrrt import FastRRT
 
@@ -11,3 +11,4 @@ if __name__ == "__main__":
     frame.process_distance_to_goal(428, 338)
     TestUtils.export_safe_distance_frame_minimal_dist_flag(frame, "output2.png")
     pass
+

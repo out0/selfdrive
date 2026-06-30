@@ -1,4 +1,5 @@
 from pydriveless import EgoParams, SearchParams, TestUtils, TestConfig, TestTimer, Waypoint
+from pydriveless import LocalPlanner, SearchFrame
 from pyfastrrt import FastRRT
 import cv2, time
 
@@ -19,101 +20,72 @@ class PathResult:
              
              self.path = path
              self.cost = cost
-    
-def exec_fastrrt_gpu(conf: TestConfig) -> FastRRT:
-    ego_params: EgoParams = TestUtils.build_ego_params(conf)
-    search_params: SearchParams = TestUtils.build_search_params(conf, gpu=True)
 
-    search_params.frame.process_safe_distance_zone((20, 20), compute_vectorized=True)
-    search_params.frame.process_distance_to_goal(search_params.goal.x, search_params.goal.z)
 
-    planner = FastRRT(ego_params=ego_params)
-    planner.set_plan_data(search_params)
-
-    TestTimer.exec_start("fastrrt_gpu")
-    planner.search_init()
-    search_params.frame.process_safe_distance_zone((20,20), compute_vectorized=True)
-
-#    TestUtils.export_safe_distance_frame(search_params.frame, "output.png")
-
-    num_loops = 0
-    while planner.loop(smart=True):
-        nodes = planner.export_graph_nodes()
-        f = TestUtils.export_color_frame(conf, None)
-        for i in range(nodes.shape[0]):
-                x = nodes[i, 0]
-                z = nodes[i, 1]
-                f[z, x, :] = [0, 0, 255]
-        cv2.imwrite("output.png", f)
-        num_loops += 1
-
-    nodes = planner.export_graph_nodes()
+def export_fastrrt_nodes(planner: FastRRT):
     f = TestUtils.export_color_frame(conf, None)
+    nodes = planner.export_graph_nodes()
     for i in range(nodes.shape[0]):
-        x = nodes[i, 0]
-        z = nodes[i, 1]
-        f[z, x, :] = [0, 0, 255]
+            x = nodes[i, 0]
+            z = nodes[i, 1]
+            f[z, x, :] = [0, 0, 255]
     cv2.imwrite("output.png", f)
 
-    TestTimer.exec_stop("fastrrt_gpu")
-
+def export_path_to_file(planner: FastRRT):
     path, _ = planner.get_planned_path(False)
     with open("path.txt", "w") as arq:
          for p in path:
               arq.write(f"{p}\n")
 
-    while planner.path_optimize():
+
+def exec_local_planner(planner: LocalPlanner, frame: SearchFrame, conf: TestConfig, max_timeout_improving: int) -> FastRRT:
+    TestTimer.exec_start()
+    planner.initialize(True)
+
+    if max_timeout_improving > 0:
+        # num_loops = 0
+        t = time.time()
+        best_path = PathResult()
+        while (time.time() - t) < max_timeout_improving:
+            if not planner.planning_loop():                
+                path, cost = planner.get_planned_path()
+                best_path.replace_if_better(path, cost)
+    else:
+         while planner.planning_loop():
+              pass
+
+    TestTimer.exec_stop()
+
+    while planner.path_optimize_loop():
          pass
 
     if planner.goal_reached():
-        path, _ = planner.get_planned_path()
-        print(f"FastRRT (GPU) found a solution with {len(path)} nodes")
+        path, cost = planner.get_planned_path()
+        TestUtils.save_path(path, "path.txt")
+        print(f"{planner.name()} found a solution with {len(path)} nodes")
 
-        path, _ = planner.get_planned_path(True)
-        TestUtils.export_planner_result(conf, "output.png", path)
+        path, cost  = planner.get_interpolated_planned_path()
+        TestUtils.export_frame_planner_result(conf, frame, "output.png", path)
+   
 
-
-def exec_fastrrt_gpu_path_improv(conf: TestConfig, max_timeout_improving: int) -> FastRRT:
+def exec_fastrrt_costmap(map_name: str):
+    conf = TestUtils.read_config(map_name)
+    safe_dist = (20, 20)
     ego_params: EgoParams = TestUtils.build_ego_params(conf)
     search_params: SearchParams = TestUtils.build_search_params(conf, gpu=True)
 
-    search_params.frame.process_safe_distance_zone((20, 20), compute_vectorized=True)
     search_params.frame.process_distance_to_goal(search_params.goal.x, search_params.goal.z)
+    search_params.frame.process_safe_distance_zone(safe_dist, compute_vectorized=True)
 
-    planner = FastRRT(ego_params=ego_params)
+
+    planner = FastRRT(ego_params=ego_params, smart=True)
     planner.set_plan_data(search_params)
 
-    TestTimer.exec_start("fastrrt_gpu")
-    planner.search_init()
-    search_params.frame.process_safe_distance_zone((20,20), compute_vectorized=True)
-
-#    TestUtils.export_safe_distance_frame(search_params.frame, "output.png")
-
-    # num_loops = 0
-    t = time.time()
-    best_path = PathResult()
-    while (time.time() - t) < max_timeout_improving:
-        if not planner.loop(smart=True):                
-            path, cost = planner.get_planned_path()
-            best_path.replace_if_better(path, cost)
-
-    TestTimer.exec_stop("fastrrt_gpu")
-
-    while planner.path_optimize():
-         pass
-
-    if planner.goal_reached():
-        path = planner.get_planned_path()
-        print(f"FastRRT (GPU) found a solution with {len(path)} nodes")
-
-        path, cost = planner.get_planned_path(True)
-        if cost > 0:
-            TestUtils.export_planner_result(conf, "output.png", path)
-   
+    while True:
+        exec_local_planner(planner, search_params.frame, conf, max_timeout_improving=-1)
 
 
 
 if __name__ == "__main__":
-    conf = TestUtils.read_config("map_cost_8")
-    exec_fastrrt_gpu_path_improv(conf, 0.5)
+    exec_fastrrt_costmap("map_cost_5")
     pass

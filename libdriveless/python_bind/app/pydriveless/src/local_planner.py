@@ -3,6 +3,16 @@ from .waypoint import Waypoint
 
 
 class LocalPlanner(ABC):
+
+    __planner_name: str
+
+    def __init__(self, name: str):
+        self.__planner_name = name
+        super().__init__()
+
+    def name(self) -> str:
+        return self.__planner_name
+
     @abstractmethod
     def initialize(self, copy_intrinsic_costs_from_frame: bool = False) -> None:
         """Initializes the local planner.

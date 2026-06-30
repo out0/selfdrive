@@ -7,7 +7,7 @@ from . search_frame import SearchFrame
 from .search_frame_cpu import SearchFrameCPU
 import time
 import json, numpy as np
-import os, cv2
+import os, cv2, math
 
 PFM = 1
 RGB = 2
@@ -28,6 +28,7 @@ class TestConfig:
     meters_to_pixel_ratio: tuple[float, float]
     pixel_to_meters_ratio: tuple[float, float]
     world_origin: WorldPose
+    min_dist: tuple[int, int]
 
 class TestUtils:
     def __init__(self):
@@ -104,6 +105,7 @@ class TestUtils:
         config.vehicle_length_m = raw_config["vehicle_length_m"]
         config.meters_to_pixel_ratio = raw_config["meters_to_pixel_ratio"]
         config.pixel_to_meters_ratio = raw_config["pixel_to_meters_ratio"]
+        config.min_dist = raw_config["min_distance"]
 
         world_origin_raw = raw_config["world_origin"]
         config.world_origin = WorldPose(
@@ -143,18 +145,31 @@ class TestUtils:
         # TestUtils.__draw_arrow(color_frame, conf.goal.z, conf.goal.x,  90-conf.goal.heading.deg(), color=(128, 30, 128))    
         cv2.imwrite(file, color_frame)
 
-    def export_safe_distance_frame(frame: SearchFrame, file: str):
-        outp = np.zeros((frame.height(), frame.width(), 3), dtype=np.uint8)
-        for h in range (frame.height()):
-            for w in range(frame.width()):
-                outp[h, w, :] = [255, 255, 255]
-                if frame.get_cost(w, h) < 0:
-                    outp[h, w, :] = [0, 0, 255]
-                else:
-                    p = frame.get_traversability(w, h)
-                    if p & 0xF00 > 0:
-                        outp[h, w, :] = [0, 0, 0]
-        cv2.imwrite(file, outp)
+
+    def export_frame_planner_result(conf: TestConfig, frame: SearchFrame, file: str, path: list[Waypoint], path_color=(255, 0,0)):
+        color_frame = frame.get_color_frame()
+        TestUtils.__draw_arrow(color_frame, conf.start.z, conf.start.x,  90-conf.start.heading.deg())
+        TestUtils.__draw_arrow(color_frame, conf.goal.z, conf.goal.x,  90-conf.goal.heading.deg(), color=(128, 30, 128))
+
+        for h in range (color_frame.shape[0]):
+            for w in range(color_frame.shape[1]):
+                p = frame.get_traversability(w, h)
+                if p & 0x100 > 0:
+                    color_frame[h, w, :] = [128, 128, 128]
+        for p in path:
+            color_frame[p.z, p.x, :] = path_color
+        cv2.imwrite(file, color_frame)        
+
+    def export_safe_distance_frame(frame: SearchFrame, file: str) -> np.ndarray:
+        color_frame = frame.get_color_frame()
+
+        for h in range (color_frame.shape[0]):
+            for w in range(color_frame.shape[1]):
+                p = frame.get_traversability(w, h)
+                if p & 0x100 > 0:
+                    color_frame[h, w, :] = [128, 128, 128]
+        cv2.imwrite(file, color_frame)
+        return color_frame
 
     def export_safe_distance_frame_minimal_dist_flag(frame: SearchFrame, file: str):
         outp = np.zeros((frame.height(), frame.width(), 3), dtype=np.uint8)
@@ -220,8 +235,78 @@ class TestUtils:
             .with_heading_error_tolerance(angle.new_deg(5))\
             .with_timeout(timeout)\
             .with_max_path_size(40)\
+            .with_min_distance(conf.min_dist)\
             .with_frame(frame)\
             .build()
+
+    def interpolate_hermite(width: int, height: int, p1: Waypoint, p2: Waypoint) -> list[Waypoint]:
+        curve = []
+        numPoints = int(Waypoint.distance_between(p1, p2))
+
+        dx = p2.x - p1.x
+        dz = p2.z - p1.z
+        d = math.sqrt(dx * dx + dz * dz)
+
+        a1 = p1.heading.rad() - (math.pi / 2);
+        a2 = p2.heading.rad() - (math.pi / 2);
+
+        tan1 = (d * math.cos(a1), d * math.sin(a1))
+        tan2 = (d * math.cos(a2), d * math.sin(a2))
+
+        last_x = -1
+        last_z = -1
+    
+        for i in range(numPoints):
+
+            t = i/(numPoints - 1)
+            t2 = t * t
+            t3 = t2 * t
+
+            # Hermite basis functions
+            h00 = 2 * t3 - 3 * t2 + 1
+            h10 = t3 - 2 * t2 + t
+            h01 = -2 * t3 + 3 * t2
+            h11 = t3 - t2
+
+            x = h00 * p1.x + h10 * tan1[0] + h01 * p2.x + h11 * tan2[0]
+            z = h00 * p1.z + h10 * tan1[1] + h01 * p2.z + h11 * tan2[1]
+
+            cx = int(x)
+            cz = int(z)
+
+            if (cx < 0 or cx >= width):
+                continue
+            if (cz < 0 or cz >= height):
+                continue
+
+            if (cx == last_x and cz == last_z):
+                continue;
+            if (cx < 0 and cx >= width):
+                continue;
+            if (cz < 0 and cz >= height):
+                continue;
+
+            t00 = 6 * t2 - 6 * t
+            t10 = 3 * t2 - 4 * t + 1
+            t01 = -6 * t2 + 6 * t
+            t11 = 3 * t2 - 2 * t
+
+            ddx = t00 * p1.x + t10 * tan1[0] + t01 * p2.x + t11 * tan2[0]
+            ddz = t00 * p1.z + t10 * tan1[1] + t01 * p2.z + t11 * tan2[1]
+
+            heading = math.atan2(ddz, ddx) + (math.pi/2);
+
+            # Interpolated point
+            curve.append(Waypoint(cx, cz, angle.new_rad(heading)))
+            last_x = cx
+            last_z = cz
+        return curve
+    
+    def save_path(path: list[Waypoint], file: str):
+        with open(file, "w") as f:
+            for p in path:
+                f.write(str(p) + "\n")
+
             
 
 class TestTimer:
@@ -250,6 +335,8 @@ class TestTimer:
         execution_time = end - start
         print(f"[exec_{key}] {1000 * execution_time:.6f} ms")
         return execution_time
+    
+
 
 
 if __name__ == "__main__":

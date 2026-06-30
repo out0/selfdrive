@@ -17,7 +17,7 @@ install: bin
 	mkdir -p python_bind/app/pydriveless/cpp
 	cp build/libdriveless.so.2.2.1	python_bind/app/pydriveless/cpp/libdriveless.so
 	cp build/libdriveless.so.2.2.1	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
-	cp build/libdriveless.so.2.2.1	../FastRRT-cpu/python_bind/app/pyfastrrt/cpp/libdriveless.so
+	#cp build/libdriveless.so.2.2.1	../FastRRT-cpu/python_bind/app/pyfastrrt/cpp/libdriveless.so
 	cd python_bind && pip3 install . --break-system-packages
 	#cd python_bind && pip3 install . 
 	cd python_bind && rm -rf build

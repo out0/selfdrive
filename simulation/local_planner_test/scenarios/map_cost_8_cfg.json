@@ -14,5 +14,7 @@
     "vehicle_length_m": 5.412658774,
     "meters_to_pixel_ratio": [1, 1],
     "pixel_to_meters_ratio": [1, 1],
-    "world_origin": [0, 0, 0, 0]
+    "world_origin": [0, 0, 0, 0],
+    "min_distance": [20, 20]
+
 }
