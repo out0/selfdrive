@@ -33,3 +33,4 @@ HiDrive
 *.egg-info
 tmp34534.dat
 yolov8n.pt
+../simulation/local_planner_test/path.txt
