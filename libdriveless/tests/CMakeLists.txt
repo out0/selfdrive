@@ -57,7 +57,7 @@ SET(TARGET_H
     # (headers if any)
 )
 
-if(CUDA_ENABLE)
+if(DRIVELESS_CUDA_ENABLED)
 set_source_files_properties(
   ../../src/quaternion.cpp 
   PROPERTIES LANGUAGE CUDA)
@@ -169,8 +169,8 @@ if(CMAKE_THREAD_LIBS_INIT)
   target_link_libraries(${CMAKE_PROJECT_NAME} "${CMAKE_THREAD_LIBS_INIT}")
 endif()
 
-if(CUDA_ENABLE)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE CUDA_ENABLE)
+if(DRIVELESS_CUDA_ENABLED)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE DRIVELESS_CUDA_ENABLED)
 endif()
 
 target_link_libraries( 

@@ -21,7 +21,7 @@ typedef unsigned char uchar;
 class SearchFrame : public Frame<float3>
 {
 private:
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
     cptr<int> _params;
     cptr<uchar3> _classColors;
     cptr<float> _classCosts;
@@ -70,7 +70,7 @@ public:
 
     inline std::pair<int, int> lowerBound()
     {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return {_params->get()[FRAME_PARAM_LOWER_BOUND_X], _params->get()[FRAME_PARAM_LOWER_BOUND_Z]};
 #else
         return {_params.get()[FRAME_PARAM_LOWER_BOUND_X], _params.get()[FRAME_PARAM_LOWER_BOUND_Z]};
@@ -79,7 +79,7 @@ public:
 
     inline std::pair<int, int> upperBound()
     {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return {_params->get()[FRAME_PARAM_UPPER_BOUND_X], _params->get()[FRAME_PARAM_UPPER_BOUND_Z]};
 #else
         return {_params.get()[FRAME_PARAM_UPPER_BOUND_X], _params.get()[FRAME_PARAM_UPPER_BOUND_Z]};
@@ -182,7 +182,7 @@ public:
     /// @return
     inline int *getFrameParamsPtr()
     {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return _params->get();
 #else
         return _params.get();
@@ -193,7 +193,7 @@ public:
     /// @return
     inline float *getCudaClassCostsPtr()
     {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return _classCosts->get();
 #else
         return _classCosts.get();

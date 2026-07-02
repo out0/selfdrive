@@ -37,7 +37,7 @@ public:
     constexpr inline int width_px() { return _width_px; }
     constexpr inline int height_px() { return _height_px; }
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
     int copyToCuda(CudaPtr<float> mem, int start) {
         return copyToCuda(mem.get(), start);
     }

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <array>
 
-#ifndef CUDA_ENABLE
+#ifndef DRIVELESS_CUDA_ENABLED
 double quaternion_size_sq(DOUBLE4 *p)
 {
     return p->w * p->w + p->x * p->x + p->y * p->y + p->z * p->z;

@@ -3,24 +3,24 @@ all: bin
 bin:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DCUDA_ENABLE=ON
+	cd build && cmake ..
 	cd build && make -j$(nproc)
 
 cpu:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DCUDA_ENABLE=OFF
+	cd build && cmake .. -DCUDA_ENABLED=OFF
 	cd build && make -j$(nproc)
 
 local: bin
-	cp build/libdriveless.so.2.2.1	./libdriveless.so
+	cp build/libdriveless.so.2.3.0	./libdriveless.so
 	rm -rf build
 
 cpu_install: cpu
 	mkdir -p python_bind/app/pydriveless/cpp/
 	mkdir -p ../FastRRT/python_bind/app/pyfastrrt/cpp/	
-	cp build/libdriveless.so.2.2.1	python_bind/app/pydriveless/cpp/libdriveless.so
-	cp build/libdriveless.so.2.2.1	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.0	python_bind/app/pydriveless/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.0	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
 	cd python_bind && pip3 install . --break-system-packages
 	cd python_bind && rm -rf build
 	cd python_bind && rm -rf dist	
@@ -31,8 +31,8 @@ install: bin
 	rm -rf python_bind/app/pydriveless/cpp
 	mkdir -p python_bind/app/pydriveless/cpp
 	mkdir -p ../FastRRT/python_bind/app/pyfastrrt/cpp/
-	cp build/libdriveless.so.2.2.1	python_bind/app/pydriveless/cpp/libdriveless.so
-	cp build/libdriveless.so.2.2.1	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.0	python_bind/app/pydriveless/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.0	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
 	cd python_bind && pip3 install . --break-system-packages
 	cd python_bind && rm -rf build
 	cd python_bind && rm -rf dist	

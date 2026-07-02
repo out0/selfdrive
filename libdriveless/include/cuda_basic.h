@@ -9,7 +9,7 @@
 
 #include "driveless_config.h"
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
 #include <cuda_runtime.h>
 #include <math_constants.h>
 #endif
@@ -52,7 +52,7 @@ if (!cudaAllocMapped(&params, sizeof(int) * 6))
 
 #else
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
 
 
 #if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13

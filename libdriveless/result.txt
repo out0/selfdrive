@@ -1,6 +1,6 @@
 rm -rf build
 mkdir -p build
-cd build && cmake .. -DCUDA_ENABLE=OFF
+cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=OFF
 -- The CXX compiler identification is GNU 13.3.0
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done

@@ -11,11 +11,11 @@
 
 #include "cuda_basic.h"
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
 #include <cuda_runtime.h>
 #endif
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
 
 extern __device__ __host__ double quaternion_size_sq(DOUBLE4 *p);
 extern __device__ __host__ void quaternion_multiply(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);

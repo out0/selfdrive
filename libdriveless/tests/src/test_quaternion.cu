@@ -136,7 +136,7 @@ TEST(QuaternionTst, TestEulerAngleInit)
 
 }
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
 __global__ static void __test_kernel_quaternion(DOUBLE4 *frame, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;

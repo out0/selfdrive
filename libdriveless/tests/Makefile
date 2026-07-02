@@ -3,7 +3,7 @@ all: cuda
 cuda:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DCUDA_ENABLE=ON
+	cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=ON
 	cd build && make -j$(nproc)
 	mv build/unittest .
 	rm -rf build
@@ -11,7 +11,7 @@ cuda:
 cpu:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DCUDA_ENABLE=OFF
+	cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=OFF
 	cd build && make -j$(nproc)
 	mv build/unittest .
 	rm -rf build

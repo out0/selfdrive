@@ -9,7 +9,7 @@
 
 #include "driveless_config.h"
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
 
 
 extern void CUDA_clear(DOUBLE4 *frame, int width, int height);
@@ -33,7 +33,7 @@ template <typename T>
 class Frame
 {
 private:
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
     cptr<T> _frame;
 #else
     std::unique_ptr<T[]> _frame;
@@ -51,7 +51,7 @@ protected:
         }
         long pos = indices.second * _width + indices.first;
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return _frame->get()[pos];
 #else
         return _frame.get()[pos];
@@ -66,7 +66,7 @@ public:
 
     inline T *getPtr()
     {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return _frame->get();
 #else
         return _frame.get();
@@ -95,7 +95,7 @@ public:
             throw std::out_of_range("Index out of bounds!");
         }
 
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
         return _frame[pos];
 #else
         return _frame.get()[pos];
@@ -107,7 +107,7 @@ template <typename T>
 Frame<T>::Frame(int width, int height, int numCPUThreadHandlers) : _width(width), _height(height), _numCPUThreadHandlers(numCPUThreadHandlers)
 {
     size_t size = _width * _height;
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
     this->_frame = std::make_unique<CudaPtr<T>>(size);
 #else
     this->_frame = std::make_unique<T[]>(size);
@@ -117,7 +117,7 @@ Frame<T>::Frame(int width, int height, int numCPUThreadHandlers) : _width(width)
 template <typename T>
 void Frame<T>::clear()
 {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
     CUDA_clear(_frame->get(), _width, _height);
 #else
     ParallelClear<T>(_numCPUThreadHandlers, _frame.get(), _width, _height).runAndWait();
@@ -127,7 +127,7 @@ void Frame<T>::clear()
 template <typename T>
 void Frame<T>::copyFrom(float *ptr)
 {
-#ifdef CUDA_ENABLE
+#ifdef DRIVELESS_CUDA_ENABLED
     ParallelCopy<T>(_numCPUThreadHandlers, _frame->get(), ptr, (int)_width, (int)_height).runAndWait();
 #else
     ParallelCopy<T>(_numCPUThreadHandlers, _frame.get(), ptr, (int)_width, (int)_height).runAndWait();

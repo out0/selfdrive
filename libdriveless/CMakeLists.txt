@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.30)
 
-option(CUDA_ENABLE "true" ON)
+option(CUDA_ENABLED "true" ON)
 
-if(CUDA_ENABLE)
-    project(driveless LANGUAGES CXX CUDA VERSION 2.2.1 DESCRIPTION "libdriveless")
+if(CUDA_ENABLED)
+    project(driveless LANGUAGES CXX CUDA VERSION 2.3.0 DESCRIPTION "libdriveless")
 else()
-    project(driveless LANGUAGES CXX VERSION 2.2.1 DESCRIPTION "libdriveless")
+    project(driveless LANGUAGES CXX VERSION 2.3.0 DESCRIPTION "libdriveless")
 endif()
 
 configure_file(
@@ -16,7 +16,7 @@ configure_file(
 
 set(CMAKE_CXX_STANDARD 20)
 
-if(CUDA_ENABLE)
+if(CUDA_ENABLED)
     set(CMAKE_CUDA_ARCHITECTURES all-major)
 endif()
 
@@ -29,7 +29,7 @@ find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(GSL REQUIRED)
 
-if(CUDA_ENABLE)
+if(DRIVELESS_CUDA_ENABLED)
     find_package(CUDAToolkit REQUIRED)
 
     if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
@@ -63,7 +63,7 @@ message(STATUS "Architecture: ${ARCHITECTURE}")
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
 pkg_search_module(GLIB REQUIRED glib-2.0)
 
-if(CUDA_ENABLE)
+if(DRIVELESS_CUDA_ENABLED)
 # Library sources
 set_source_files_properties(
     src/quaternion.cpp
@@ -81,11 +81,6 @@ add_library(${PROJECT_NAME} SHARED
     src/cuda_basic.cpp
     src/cpu_parallel_processor.cpp
     src/cuda/cuda_frame.cu
-    # src/cpu_frame.cpp
-    # src/cpu/search_frame_cpu.cpp
-    # src/cpu/search_frame_color_cpu.cpp
-    # src/cpu/search_frame_pre_process_cpu.cpp
-    # src/cpu/search_frame_path_feasible_cpu.cpp
     src/cpu_parallel_copy.cpp
     src/cuda/quaternion.cu
     src/cuda/search_frame.cu
@@ -114,9 +109,8 @@ target_include_directories(${PROJECT_NAME}
         ${CUDAToolkit_INCLUDE_DIRS}
 )
 
-if(CUDA_ENABLE)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE CUDA_ENABLE)
-    
+if(CUDA_ENABLED)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC DRIVELESS_CUDA_ENABLED)    
 endif()
 
 
