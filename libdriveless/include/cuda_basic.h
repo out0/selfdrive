@@ -12,6 +12,8 @@
 #ifdef DRIVELESS_CUDA_ENABLED
 #include <cuda_runtime.h>
 #include <math_constants.h>
+#else
+#define CUDART_PI_F             3.141592654F
 #endif
 
 #define THREADS_IN_BLOCK 256
