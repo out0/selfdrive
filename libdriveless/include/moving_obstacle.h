@@ -3,7 +3,7 @@
 #ifndef __MOVING_OBSTACLE_DRIVELESS_H
 #define __MOVING_OBSTACLE_DRIVELESS_H
 
-
+#include "driveless_config.h"
 
 #include "state.h"
 

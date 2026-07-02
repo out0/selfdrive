@@ -8,6 +8,12 @@ else()
     project(driveless LANGUAGES CXX VERSION 2.2.1 DESCRIPTION "libdriveless")
 endif()
 
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/driveless_config.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/driveless_config.h
+    @ONLY
+)
+
 set(CMAKE_CXX_STANDARD 20)
 
 if(CUDA_ENABLE)
@@ -103,6 +109,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
         $<INSTALL_INTERFACE:include>
         ${CUDAToolkit_INCLUDE_DIRS}
 )
@@ -193,6 +200,10 @@ install(EXPORT ${PROJECT_NAME}Targets
     FILE ${PROJECT_NAME}Targets.cmake
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/driveless_config.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/driveless
 )
 
 # Generate package config files

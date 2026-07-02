@@ -1,0 +1,7 @@
+#pragma once
+#ifndef __DRIVELESS_CONFIG_H
+#define __DRIVELESS_CONFIG_H
+
+#cmakedefine CUDA_ENABLE
+
+#endif

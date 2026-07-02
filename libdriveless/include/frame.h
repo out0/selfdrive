@@ -7,6 +7,8 @@
 #include "cpu_parallel_copy.h"
 #include <stdexcept>
 
+#include "driveless_config.h"
+
 #ifdef CUDA_ENABLE
 
 

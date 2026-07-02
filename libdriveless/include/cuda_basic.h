@@ -1,17 +1,18 @@
 #ifndef __CUDA_BASIC_DRIVELESS_H
 #define __CUDA_BASIC_DRIVELESS_H
 
-// CODE:BEGIN
 
-#ifdef __CUDA_ARCH__
-#include <math_constants.h>
-
-#else
-// put the constants here
-#define CUDART_PI_F             3.141592654f
-#endif
-
+#include <stdio.h>
+#include <memory>
+#include <vector>
 #include <cstring>
+
+#include "driveless_config.h"
+
+#ifdef CUDA_ENABLE
+#include <cuda_runtime.h>
+#include <math_constants.h>
+#endif
 
 #define THREADS_IN_BLOCK 256
 #define BIT_HEADING_90 0x80
@@ -52,10 +53,6 @@ if (!cudaAllocMapped(&params, sizeof(int) * 6))
 #else
 
 #ifdef CUDA_ENABLE
-
-#include <cuda_runtime.h>
-#include <stdio.h>
-#include <new>
 
 
 #if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
@@ -190,8 +187,6 @@ public:
 
 };
 
-#include <memory>
-
 template <typename T>
 using cptr = std::unique_ptr<CudaPtr<T>>; 
 template <typename T>
@@ -297,8 +292,6 @@ __device__ __host__ inline int COMPUTE_POS(int width, int x, int z)
 
 #endif
 
-#include <memory>
-#include <vector>
 #include "waypoint.h"
 std::unique_ptr<float4[]> copyToCpuMemory(std::vector<Waypoint> points);
 std::unique_ptr<float4[]> copyToCpuMemory(float *path, int count);

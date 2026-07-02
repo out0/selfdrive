@@ -3,6 +3,7 @@
 #ifndef __SEARCH_FRAME_DRIVELESS_H
 #define __SEARCH_FRAME_DRIVELESS_H
 
+#include "driveless_config.h"
 #include "frame.h"
 #include "frame_params.h"
 #include "waypoint.h"

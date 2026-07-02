@@ -2,10 +2,12 @@
 
 #ifndef __QUATERNION_DRIVELESS_H
 #define __QUATERNION_DRIVELESS_H
+#include "driveless_config.h"
 
 #include "angle.h"
 #include <stdio.h>
 #include <string>
+
 
 #include "cuda_basic.h"
 
