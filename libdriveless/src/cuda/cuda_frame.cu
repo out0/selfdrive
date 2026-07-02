@@ -1,7 +1,7 @@
 
-#include "../../include/cuda_frame.h"
+#include "../../include/frame.h"
 
-__global__ static void __CUDA_KERNEL_Clear(double4 *frame, int width, int height)
+__global__ static void __CUDA_KERNEL_Clear(DOUBLE4 *frame, int width, int height)
 {    
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -132,7 +132,7 @@ __global__ static void __CUDA_KERNEL_Clear(int *frame, int width, int height)
 
     frame[pos] = 0;
 }
-void CUDA_clear(double4 *frame, int width, int height)
+void CUDA_clear(DOUBLE4 *frame, int width, int height)
 {
     int size = width * height;
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;

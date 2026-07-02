@@ -27,11 +27,11 @@ void BEV::compute(
     SearchFrame *left,
     SearchFrame *right)
 {
-    float3 *frontPtr = front->getCudaPtr();
-    float3 *backPtr = back->getCudaPtr();
-    float3 *leftPtr = left->getCudaPtr();
-    float3 *rightPtr = right->getCudaPtr();
-    float3 *resPtr = _data->getCudaPtr();
+    float3 *frontPtr = front->getPtr();
+    float3 *backPtr = back->getPtr();
+    float3 *leftPtr = left->getPtr();
+    float3 *rightPtr = right->getPtr();
+    float3 *resPtr = _data->getPtr();
 
     int carSizeW = _carSizePx.first,
         carSizeH = _carSizePx.second;

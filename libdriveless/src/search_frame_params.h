@@ -44,6 +44,5 @@ const int H_TRAVERSABILITY_BITS[] = {
     BIT_HEADING_67_5,
     BIT_HEADING_90};
 
-#define EIGHT_OVER_PI 20.371832716
 
 #endif

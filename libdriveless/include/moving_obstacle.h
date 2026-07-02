@@ -3,8 +3,10 @@
 #ifndef __MOVING_OBSTACLE_DRIVELESS_H
 #define __MOVING_OBSTACLE_DRIVELESS_H
 
+
+
 #include "state.h"
-#include "cuda_ptr.h"
+
 #include <vector>
 #include <memory>
 
@@ -35,7 +37,7 @@ public:
     constexpr inline int width_px() { return _width_px; }
     constexpr inline int height_px() { return _height_px; }
 
-
+#ifdef CUDA_ENABLE
     int copyToCuda(CudaPtr<float> mem, int start) {
         return copyToCuda(mem.get(), start);
     }
@@ -55,6 +57,7 @@ public:
 
         return mem;
     }
+#endif    
 };
 
 constexpr inline int2 moving_obstacle_pos(float *mem, int pos)

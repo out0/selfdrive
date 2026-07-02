@@ -34,6 +34,6 @@ void SearchFrame::setMovingObstacles(std::vector<MovingObstacle> obstacles)
 
     int half_minDist_px = TO_INT(0.5 * sqrtf(mx * mx + mz * mz));
 
-    __CUDA_propagate_moving_obstacles<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _params->get(), p->get(), obstacles.size() );
+    __CUDA_propagate_moving_obstacles<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _params->get(), p->get(), obstacles.size() );
     CUDA(cudaDeviceSynchronize());
 }

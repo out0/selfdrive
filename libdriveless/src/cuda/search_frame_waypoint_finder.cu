@@ -20,7 +20,7 @@ Waypoint SearchFrame::findBestWaypoint(int goal_x, int goal_z)
     int heading = 0;
 
     for (; heading < 90; heading+=5) {
-        __CUDA_KERNEL_bestWaypointCostForPosNegHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), 
+        __CUDA_KERNEL_bestWaypointCostForPosNegHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), 
             _params->get(), _classCosts->get(), goal_x, goal_z, heading, _bestValue->get());
         CUDA(cudaDeviceSynchronize());
 
@@ -36,7 +36,7 @@ Waypoint SearchFrame::findBestWaypoint(int goal_x, int goal_z)
     waypoint[0] = -1;
     waypoint[1] = -1;
 
-    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), 
+    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), 
         _params->get(), _classCosts->get(), _bestValue->get(), goal_x, goal_z, heading, waypoint);
     CUDA(cudaDeviceSynchronize());
 
@@ -51,7 +51,7 @@ Waypoint SearchFrame::findBestWaypoint(int goal_x, int goal_z, float heading)
 
     *_bestValue = 999999;
 
-    __CUDA_KERNEL_bestWaypointCostForHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), 
+    __CUDA_KERNEL_bestWaypointCostForHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), 
         _params->get(), _classCosts->get(), goal_x, goal_z, heading, _bestValue->get());
     CUDA(cudaDeviceSynchronize());
 
@@ -63,7 +63,7 @@ Waypoint SearchFrame::findBestWaypoint(int goal_x, int goal_z, float heading)
     waypoint[0] = -1;
     waypoint[1] = -1;
 
-    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), 
+    __CUDA_KERNEL_findWaypointForCostAndHeading<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), 
         _params->get(), _classCosts->get(), _bestValue->get(), goal_x, goal_z, heading, waypoint);
     CUDA(cudaDeviceSynchronize());
     

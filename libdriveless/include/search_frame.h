@@ -3,11 +3,11 @@
 #ifndef __SEARCH_FRAME_DRIVELESS_H
 #define __SEARCH_FRAME_DRIVELESS_H
 
-#include "cuda_frame.h"
-#include "cuda_params.h"
+#include "frame.h"
+#include "frame_params.h"
 #include "waypoint.h"
 #include "moving_obstacle.h"
-#include "cuda_ptr.h"
+
 
 // CODE:BEGIN
 
@@ -17,29 +17,37 @@ typedef unsigned char uchar;
 
 #define PATH_FEASIBLE_CPU_THRESHOLD 20
 
-class SearchFrame : public CudaFrame<float3>
+class SearchFrame : public Frame<float3>
 {
 private:
+#ifdef CUDA_ENABLE
     cptr<int> _params;
     cptr<uchar3> _classColors;
     cptr<float> _classCosts;
     cptr<int> _bestValue;
+#else
+    std::unique_ptr<int[]> _params;
+    std::unique_ptr<uchar3[]> _classColors;
+    std::unique_ptr<float[]> _classCosts;
+    int _bestValue;
+#endif
     int _classCount;
     bool _safeZoneChecked;
     bool _safeZoneVectorialChecked;
     bool _distanceToGoalProcessed;
+    int _numCPUThreadHandlers;
     std::pair<int, int> checkTraversableAngleBitPairCheck(float heading_rad);
 
     // std::vector<bool> checkFeasiblePathCPU(std::vector<Waypoint> path, bool computeHeadings);
     // std::vector<bool> checkFeasiblePathGPU(std::vector<Waypoint> path, bool computeHeadings);
 
 public:
-    SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound);
+    SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound, int numCPUThreadHandlers = 12);
     ~SearchFrame();
 
     void clear() override;
 
-    void copyFrom(float *ptr, int numCPUThreadHandlers = 12) override;
+    void copyFrom(float *ptr) override;
     void copyTo(float *ptr);
 
     inline bool isSafeZoneChecked()
@@ -61,12 +69,20 @@ public:
 
     inline std::pair<int, int> lowerBound()
     {
+#ifdef CUDA_ENABLE
         return {_params->get()[FRAME_PARAM_LOWER_BOUND_X], _params->get()[FRAME_PARAM_LOWER_BOUND_Z]};
+#else
+        return {_params.get()[FRAME_PARAM_LOWER_BOUND_X], _params.get()[FRAME_PARAM_LOWER_BOUND_Z]};
+#endif
     }
 
     inline std::pair<int, int> upperBound()
     {
+#ifdef CUDA_ENABLE
         return {_params->get()[FRAME_PARAM_UPPER_BOUND_X], _params->get()[FRAME_PARAM_UPPER_BOUND_Z]};
+#else
+        return {_params.get()[FRAME_PARAM_UPPER_BOUND_X], _params.get()[FRAME_PARAM_UPPER_BOUND_Z]};
+#endif
     }
 
     /// @brief Sets the colors for each class, to allow conversion using exportToColorFrame(). Each class is an int starting at 0. The colors are sequential: the first entry correspond to the color for class 0, the second entry for class 1... so one, so forth.
@@ -93,8 +109,8 @@ public:
     /// @return
     float getClassCostForNode(int x, int z);
     /// @brief Returns the cost associated with a segmentation class by setClassCosts()
-    /// @param pos 
-    /// @return 
+    /// @param pos
+    /// @return
     float getClassCostForNode(long pos);
 
     /// @brief check if the pos x,z is an obstacle (class only, it does not check if it is travessable)
@@ -139,11 +155,10 @@ public:
 
     /// @brief Returns true if a path is feasible. Otherwise, returns false
     /// @param path
-    /// @param minDistX 
-    /// @param minDistZ 
-    /// @return 
+    /// @param minDistX
+    /// @param minDistZ
+    /// @return
     bool checkFeasiblePath(std::vector<Waypoint> &path, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility = false);
-
 
     /// @brief Sets moving obstacles
     /// @param obstacles
@@ -164,23 +179,31 @@ public:
 
     /// @brief Returns the params array that are used to setup this search frame execution
     /// @return
-    inline int *getCudaFrameParamsPtr()
+    inline int *getFrameParamsPtr()
     {
+#ifdef CUDA_ENABLE
         return _params->get();
+#else
+        return _params.get();
+#endif
     }
 
     /// @brief Returns the class cost array that hold the cost of each class of segmentation
     /// @return
     inline float *getCudaClassCostsPtr()
     {
+#ifdef CUDA_ENABLE
         return _classCosts->get();
+#else
+        return _classCosts.get();
+#endif
     }
     /// @brief Returns the number of segmentation classes registered in this search frame
-    /// @return 
-    inline int getClassCount() {
+    /// @return
+    inline int getClassCount()
+    {
         return _classCount;
     }
-
 
     // returns the vehicle length in meters (computed from the values set by lower and upper bound and the height perception size in meters (to properly convert px to m))
     double computeVehicleLength(double perceptionHeightSize_m);
@@ -196,14 +219,14 @@ public:
     static bool computePathHeadings(int width, int height, std::vector<Waypoint> &waypoints);
 
     /// @brief Computes the distance between every pixel in the search frame and an arbitrary (x, z) position
-    /// @param x 
-    /// @param z 
+    /// @param x
+    /// @param z
     void processDistanceToGoal(int x, int z);
 
     /// @brief Returns the computed distance to (x, z) goal (processDistanceToGoal it is required first, to pre-compute the distances)
-    /// @param x 
-    /// @param z 
-    /// @return 
+    /// @param x
+    /// @param z
+    /// @return
     float getDistanceToGoal(int x, int z);
 };
 

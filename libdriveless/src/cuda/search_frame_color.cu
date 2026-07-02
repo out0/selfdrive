@@ -37,7 +37,7 @@ bool SearchFrame::exportToColorFrame(uchar *dest)
     int size = width() * height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    __CUDA_KERNEL_FrameColor<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), resultImgPtr, width(), height(), _classColors->get(), _classCount);
+    __CUDA_KERNEL_FrameColor<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), resultImgPtr, width(), height(), _classColors->get(), _classCount);
 
     CUDA(cudaDeviceSynchronize());
 

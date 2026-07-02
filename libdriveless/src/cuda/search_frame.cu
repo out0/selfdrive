@@ -5,7 +5,7 @@
 extern __global__ void __CUDA_SetGoal(float3 *frame, float *classCosts, int *_searchSpaceParams, int half_minDist_px, int goal_x, int goal_z);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 
-SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound) : CudaFrame<float3>(width, height)
+SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound, int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), _numCPUThreadHandlers(numCPUThreadHandlers)
 {
     // _classColors = nullptr;
     // _classCosts = nullptr;
@@ -37,14 +37,14 @@ SearchFrame::~SearchFrame()
 
 void SearchFrame::clear()
 {
-    CudaFrame::clear();
+    Frame::clear();
     _safeZoneChecked = false;
     _safeZoneVectorialChecked = false;
 }
 
-void SearchFrame::copyFrom(float *ptr, int numCPUThreadHandlers)
+void SearchFrame::copyFrom(float *ptr)
 {
-    CudaFrame::copyFrom(ptr, numCPUThreadHandlers);
+    Frame::copyFrom(ptr);
     _safeZoneChecked = false;
     _safeZoneVectorialChecked = false;
 }
@@ -56,7 +56,7 @@ void SearchFrame::copyTo(float *ptr)
     const int W = width();
     const int H = height();
 
-    float3 *cuda_ptr = getCudaPtr();
+    float3 *cuda_ptr = getPtr();
     for (int z = 0; z < H; z++)
         for (int x = 0; x < W; x++)
         {
@@ -108,7 +108,7 @@ float SearchFrame::getClassCostForNode(int x, int z)
 }
 float SearchFrame::getClassCostForNode(long pos)
 {
-    int classId = static_cast<int>(getCudaPtr()[pos].x);
+    int classId = static_cast<int>(getPtr()[pos].x);
     return getClassCost(classId);
 }
 
@@ -153,7 +153,7 @@ bool SearchFrame::isTraversable(int x, int z, angle heading, bool precision_chec
     int min_dist_x = _params->get()[FRAME_PARAM_MIN_DIST_X];
     int min_dist_z = _params->get()[FRAME_PARAM_MIN_DIST_Z];
 
-    return __computeFeasibleForAngle(getCudaPtr(), getCudaFrameParamsPtr(), getCudaClassCostsPtr(), min_dist_x, min_dist_z, x, z, heading.rad());
+    return __computeFeasibleForAngle(getPtr(), getFrameParamsPtr(), getCudaClassCostsPtr(), min_dist_x, min_dist_z, x, z, heading.rad());
 }
 
 double SearchFrame::getCost(int x, int z)

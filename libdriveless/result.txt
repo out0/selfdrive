@@ -1,0 +1,46 @@
+rm -rf build
+mkdir -p build
+cd build && cmake .. -DCUDA_ENABLE=OFF
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found PkgConfig: /usr/bin/pkg-config (found version "1.8.1")
+-- Found GSL: /usr/include (found version "2.7.1")
+-- Architecture: x86_64
+-- Checking for module 'glib-2.0'
+--   Found glib-2.0, version 2.80.0
+-- Checking for one of the modules 'glib-2.0'
+-- Configuring done (1.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/cristiano/selfdrive/libdriveless/build
+cd build && make -j
+make[1]: Entering directory '/home/cristiano/selfdrive/libdriveless/build'
+make[2]: Entering directory '/home/cristiano/selfdrive/libdriveless/build'
+make[3]: Entering directory '/home/cristiano/selfdrive/libdriveless/build'
+make[3]: Leaving directory '/home/cristiano/selfdrive/libdriveless/build'
+make[3]: Entering directory '/home/cristiano/selfdrive/libdriveless/build'
+[  5%] Building CXX object CMakeFiles/driveless.dir/src/angle.cpp.o
+[ 11%] Building CXX object CMakeFiles/driveless.dir/src/map_pose.cpp.o
+[ 23%] Building CXX object CMakeFiles/driveless.dir/src/async_component.cpp.o
+[ 17%] Building CXX object CMakeFiles/driveless.dir/src/waypoint.cpp.o
+[ 29%] Building CXX object CMakeFiles/driveless.dir/src/world_pose.cpp.o
+[ 35%] Building CXX object CMakeFiles/driveless.dir/src/interpolator.cpp.o
+[ 52%] Building CXX object CMakeFiles/driveless.dir/src/cpu_parallel_processor.cpp.o
+[ 52%] Building CXX object CMakeFiles/driveless.dir/src/coord_conversion.cpp.o
+[ 52%] Building CXX object CMakeFiles/driveless.dir/src/search_params.cpp.o
+[ 58%] Building CXX object CMakeFiles/driveless.dir/src/cpu/search_frame_cpu.cpp.o
+[ 64%] Building CXX object CMakeFiles/driveless.dir/src/cpu_frame.cpp.o
+[ 70%] Building CXX object CMakeFiles/driveless.dir/src/cpu/search_frame_color_cpu.cpp.o
+[ 76%] Building CXX object CMakeFiles/driveless.dir/src/cpu/search_frame_pre_process_cpu.cpp.o
+[ 82%] Building CXX object CMakeFiles/driveless.dir/src/cpu/search_frame_path_feasible_cpu.cpp.o
+[ 88%] Building CXX object CMakeFiles/driveless.dir/src/cuda/search_frame_python_bind_cuda.cpp.o
+[ 94%] Building CXX object CMakeFiles/driveless.dir/src/cpu/search_frame_python_bind_cpu.cpp.o
+make[3]: Leaving directory '/home/cristiano/selfdrive/libdriveless/build'
+make[2]: Leaving directory '/home/cristiano/selfdrive/libdriveless/build'
+make[1]: Leaving directory '/home/cristiano/selfdrive/libdriveless/build'

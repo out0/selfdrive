@@ -57,11 +57,15 @@ SET(TARGET_H
     # (headers if any)
 )
 
+if(CUDA_ENABLE)
+set_source_files_properties(
+  ../../src/quaternion.cpp 
+  PROPERTIES LANGUAGE CUDA)
+
 add_executable(
   ${CMAKE_PROJECT_NAME} 
   src/unittests.cpp
   src/test_utils.cpp
-  src/test_utils_cpu.cpp
   src/test_cuda_frame.cpp
   src/test_angle.cpp
   src/test_waypoint.cpp
@@ -70,7 +74,6 @@ add_executable(
   src/test_world_pose.cpp
   src/test_async_component.cpp
   src/test_search_frame.cpp
-  src/test_cpu_frame.cpp
   src/test_search_frame_set_goal.cpp
   src/test_search_frame_set_goal_vectorized.cpp
   src/test_search_frame_check_fesible_path.cpp
@@ -83,13 +86,6 @@ add_executable(
   src/test_quaternion.cu
   src/test_interpolator.cpp
   src/test_search_params.cpp
-  src/test_CPU_search_frame.cpp
-  src/test_CPU_search_frame_set_goal.cpp
-  src/test_CPU_search_frame_set_goal_vectorized.cpp
-  src/test_CPU_search_frame_is_traversable.cpp
-  src/test_CPU_search_frame_check_fesible_path.cpp
-  src/test_CPU_search_frame_check_fesible_path_fesible.cpp 
-  src/test_CPU_search_frame_check_fesible_path_unfeasible.cpp 
    ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp
@@ -98,12 +94,10 @@ add_executable(
   ../../src/coord_conversion.cpp
   ../../src/interpolator.cpp
   ../../src/search_params.cpp
+  ../../src/quaternion.cpp  
+  ../../src/cuda_basic.cpp  
   ../../src/cpu_parallel_processor.cpp
-  ../../src/cpu_frame.cpp
-  ../../src/cpu/search_frame_cpu.cpp
-  ../../src/cpu/search_frame_color_cpu.cpp
-  ../../src/cpu/search_frame_pre_process_cpu.cpp
-  ../../src/cpu/search_frame_path_feasible_cpu.cpp
+  ../../src/cpu_parallel_copy.cpp
   ../../src/cuda/cuda_frame.cu
   ../../src/cuda/quaternion.cu
   ../../src/cuda/search_frame_color.cu
@@ -111,7 +105,60 @@ add_executable(
   ../../src/cuda/search_frame_path_feasible.cu
   ../../src/cuda/search_frame_pre_process.cu
   ../../src/cuda/search_frame.cu
+  ../../src/cuda/quaternion.cu
+  ../../src/cuda/collision_check.cu
+  ../../src/cuda/compute_heading.cu
 )
+else()
+set_source_files_properties(
+  ../../src/cuda/collision_check.cu
+  ../../src/cuda/compute_heading.cu
+  PROPERTIES LANGUAGE CXX
+)
+add_executable(
+  ${CMAKE_PROJECT_NAME} 
+  src/unittests.cpp
+  src/test_utils.cpp
+  src/test_cuda_frame.cpp
+  src/test_angle.cpp
+  src/test_waypoint.cpp
+  src/test_map_pose.cpp
+  src/test_map_pose_nearest_goal_pose.cpp
+  src/test_world_pose.cpp
+  src/test_async_component.cpp
+  src/test_search_frame.cpp
+  src/test_search_frame_set_goal.cpp
+  src/test_search_frame_set_goal_vectorized.cpp
+  src/test_search_frame_check_fesible_path.cpp
+  src/test_search_frame_check_fesible_path_fesible.cpp
+  src/test_search_frame_check_fesible_path_unfeasible.cpp
+  src/test_search_frame_is_traversable.cpp
+  src/test_coord_conversion_world_pose.cpp
+  src/test_coord_conversion_map_pose.cpp
+  src/test_coord_conversion_waypoint.cpp
+    src/test_interpolator.cpp
+  src/test_search_params.cpp
+   ../../src/waypoint.cpp
+  ../../src/angle.cpp
+  ../../src/map_pose.cpp
+  ../../src/world_pose.cpp
+  ../../src/async_component.cpp
+  ../../src/coord_conversion.cpp
+  ../../src/interpolator.cpp
+  ../../src/search_params.cpp
+  ../../src/quaternion.cpp
+  ../../src/cuda_basic.cpp
+  ../../src/cpu_parallel_processor.cpp
+  ../../src/cpu_parallel_copy.cpp
+  ../../src/cpu/search_frame_cpu.cpp
+  ../../src/cpu/search_frame_color_cpu.cpp
+  ../../src/cpu/search_frame_pre_process_cpu.cpp
+  ../../src/cpu/search_frame_path_feasible_cpu.cpp
+  ../../src/cuda/collision_check.cu
+  ../../src/cuda/compute_heading.cu
+)
+
+endif()
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
@@ -120,6 +167,10 @@ if(THREADS_HAVE_PTHREAD_ARG)
 endif()
 if(CMAKE_THREAD_LIBS_INIT)
   target_link_libraries(${CMAKE_PROJECT_NAME} "${CMAKE_THREAD_LIBS_INIT}")
+endif()
+
+if(CUDA_ENABLE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE CUDA_ENABLE)
 endif()
 
 target_link_libraries( 

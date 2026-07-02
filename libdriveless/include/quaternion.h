@@ -6,33 +6,51 @@
 #include "angle.h"
 #include <stdio.h>
 #include <string>
-#include <cuda_runtime.h>
-#include "cuda_ptr.h"
 
-#if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
-#define double4 double4_16a
+#include "cuda_basic.h"
+
+#ifdef CUDA_ENABLE
+#include <cuda_runtime.h>
 #endif
 
-__device__ __host__ double quaternion_size_sq(double4 *p);
-__device__ __host__ void quaternion_multiply(double4 *store, double4 *p, double4 *q);
-__device__ __host__ double quaternion_size(double4 *p);
-__device__ __host__ void quaternion_invert(double4 *store, double4 *p);
-__device__ __host__ void quaternion_conjugate(double4 *store, double4 *p);
-__device__ __host__ void quaternion_divide(double4 *store, double4 *p, double4 *q);
-__device__ __host__ void quaternion_rotate(double4 *store, double4 *p, double4 *q);
-__device__ __host__ void quaternion_rotate_x(double4 *store, double4 *p, double angle_rad);
-__device__ __host__ void quaternion_rotate_y(double4 *store, double4 *p, double angle_rad);
-__device__ __host__ void quaternion_rotate_z(double4 *store, double4 *p, double angle_rad);
-__device__ __host__ double quaternion_angle_to_axis(double4 *p, double4 *axis, bool is_neg, bool is_unitary);
-__device__ __host__ bool quaternion_equals(const double4 *p, const double4 *q);
-__device__ __host__ void quaternion_sum(double4 *store, const double4 *p, const double4 *q);
-__device__ __host__ void quaternion_minus(double4 *store, const double4 *p, const double4 *q);
+#ifdef CUDA_ENABLE
 
+extern __device__ __host__ double quaternion_size_sq(DOUBLE4 *p);
+extern __device__ __host__ void quaternion_multiply(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);
+extern __device__ __host__ double quaternion_size(DOUBLE4 *p);
+extern __device__ __host__ void quaternion_invert(DOUBLE4 *store, DOUBLE4 *p);
+extern __device__ __host__ void quaternion_conjugate(DOUBLE4 *store, DOUBLE4 *p);
+extern __device__ __host__ void quaternion_divide(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);
+extern __device__ __host__ void quaternion_rotate(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);
+extern __device__ __host__ void quaternion_rotate_x(DOUBLE4 *store, DOUBLE4 *p, double angle_rad);
+extern __device__ __host__ void quaternion_rotate_y(DOUBLE4 *store, DOUBLE4 *p, double angle_rad);
+extern __device__ __host__ void quaternion_rotate_z(DOUBLE4 *store, DOUBLE4 *p, double angle_rad);
+extern __device__ __host__ double quaternion_angle_to_axis(DOUBLE4 *p, DOUBLE4 *axis, bool is_neg, bool is_unitary);
+extern __device__ __host__ bool quaternion_equals(const DOUBLE4 *p, const DOUBLE4 *q);
+extern __device__ __host__ void quaternion_sum(DOUBLE4 *store, const DOUBLE4 *p, const DOUBLE4 *q);
+extern __device__ __host__ void quaternion_minus(DOUBLE4 *store, const DOUBLE4 *p, const DOUBLE4 *q);
+#else
 
+double quaternion_size_sq(DOUBLE4 *p);
+void quaternion_multiply(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);
+double quaternion_size(DOUBLE4 *p);
+void quaternion_invert(DOUBLE4 *store, DOUBLE4 *p);
+void quaternion_conjugate(DOUBLE4 *store, DOUBLE4 *p);
+void quaternion_divide(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);
+void quaternion_rotate(DOUBLE4 *store, DOUBLE4 *p, DOUBLE4 *q);
+void quaternion_rotate_x(DOUBLE4 *store, DOUBLE4 *p, double angle_rad);
+void quaternion_rotate_y(DOUBLE4 *store, DOUBLE4 *p, double angle_rad);
+void quaternion_rotate_z(DOUBLE4 *store, DOUBLE4 *p, double angle_rad);
+double quaternion_angle_to_axis(DOUBLE4 *p, DOUBLE4 *axis, bool is_neg, bool is_unitary);
+bool quaternion_equals(const DOUBLE4 *p, const DOUBLE4 *q);
+void quaternion_sum(DOUBLE4 *store, const DOUBLE4 *p, const DOUBLE4 *q);
+void quaternion_minus(DOUBLE4 *store, const DOUBLE4 *p, const DOUBLE4 *q);
+
+#endif
 
 class quaternion
 {
-    double4 * data;
+    DOUBLE4 *data;
     bool __is_unitary;
     bool __is_owner;
 
@@ -44,7 +62,7 @@ public:
     quaternion();
     quaternion(double w, double x, double y, double z);
     quaternion(angle yaw_x, angle pitch_y, angle roll_x);
-    quaternion(double4 *data);
+    quaternion(DOUBLE4 *data);
     ~quaternion();
 
     double w() const { return data->w; }
@@ -52,39 +70,42 @@ public:
     double y() const { return data->y; }
     double z() const { return data->z; }
 
-    
-
-    inline void set(double w, double x, double y, double z) {
+    inline void set(double w, double x, double y, double z)
+    {
         data->w = w;
         data->x = x;
         data->y = y;
         data->z = z;
     }
 
-    inline quaternion operator+(const quaternion &other) const {
+    inline quaternion operator+(const quaternion &other) const
+    {
         quaternion q;
         quaternion_sum(q.data, data, other.data);
         return q;
     }
 
     template <typename T>
-    inline quaternion operator+(T other) const { 
-        return quaternion(data->w + other, data->x, data->y, data->z); 
+    inline quaternion operator+(T other) const
+    {
+        return quaternion(data->w + other, data->x, data->y, data->z);
     }
 
-    inline quaternion operator-(const quaternion &other) const { 
+    inline quaternion operator-(const quaternion &other) const
+    {
         quaternion q;
         quaternion_minus(q.data, data, other.data);
         return q;
     }
     template <typename T>
-    inline quaternion operator-(T other) const { 
-        return quaternion(data->w - other, data->x, data->y, data->z); 
+    inline quaternion operator-(T other) const
+    {
+        return quaternion(data->w - other, data->x, data->y, data->z);
     }
 
-    
-    inline quaternion operator/(quaternion &other) { 
-        return quaternion::divide(this, &other); 
+    inline quaternion operator/(quaternion &other)
+    {
+        return quaternion::divide(this, &other);
     }
 
     inline quaternion operator*(quaternion &other)
@@ -96,9 +117,10 @@ public:
         return quaternion::multiply(this, &other);
     }
 
-    quaternion operator-() const {
+    quaternion operator-() const
+    {
         return quaternion(
-            0.0 - data->w, 
+            0.0 - data->w,
             0.0 - data->x,
             0.0 - data->y,
             0.0 - data->z);
@@ -111,16 +133,17 @@ public:
     }
     inline bool operator==(const quaternion &other) const
     {
-//        printf ("oper equal1 (%.2f, %.2f, %.2f, %.2f) == (%.2f, %.2f, %.2f, %.2f)\n", data->w, data->x, data->y, data->z, other.w(), other.x(), other.y(), other.z());
+        //        printf ("oper equal1 (%.2f, %.2f, %.2f, %.2f) == (%.2f, %.2f, %.2f, %.2f)\n", data->w, data->x, data->y, data->z, other.w(), other.x(), other.y(), other.z());
         return quaternion_equals(data, other.data);
     }
     inline bool operator==(quaternion &other) const
     {
-  //      printf ("oper equal2\n");
+        //      printf ("oper equal2\n");
         return quaternion_equals(data, other.data);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const quaternion& q) {
+    friend std::ostream &operator<<(std::ostream &os, const quaternion &q)
+    {
         os << q.to_string();
         return os;
     }
@@ -155,9 +178,9 @@ public:
 
     std::string to_string() const;
 
-    double4 * get_data() {
+    DOUBLE4 *get_data()
+    {
         return data;
     }
 };
 #endif
-

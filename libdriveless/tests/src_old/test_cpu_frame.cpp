@@ -3,16 +3,16 @@
 #include "test_utils.h"
 #include <cmath>
 
-TEST(TestCpuFrame, TestSetGet)
+TEST(TestFrame, TestSetGet)
 {
-    CPUframe<double3> f1(1000, 1001);
+    Frame<double3> f1(1000, 1001);
     ASSERT_EQ(1000, f1.width());
     ASSERT_EQ(1001, f1.height());
 }
 
-TEST(TestCpuFrame, TestSetAndClear)
+TEST(TestFrame, TestSetAndClear)
 {
-    CPUframe<double3> f1(10000, 10001);
+    Frame<double3> f1(10000, 10001);
     f1.clear();
     
     f1[{10,10}].x = 20;
@@ -26,7 +26,7 @@ TEST(TestCpuFrame, TestSetAndClear)
     ASSERT_FLOAT_EQ(0, p);
 }
 
-TEST(TestCpuFrame, TestCopyFrom)
+TEST(TestFrame, TestCopyFrom)
 {
     long size = 4 * 1000 * 1000;
     float *ptr = new float[size];
@@ -34,7 +34,7 @@ TEST(TestCpuFrame, TestCopyFrom)
         ptr[i] = 37.7;
     }
 
-    CPUframe<float3> f1(1000, 1000);
+    Frame<float3> f1(1000, 1000);
     f1.copyFrom(ptr);
 
     for(int i = 0; i < 1000; i++)
@@ -47,7 +47,7 @@ TEST(TestCpuFrame, TestCopyFrom)
             ASSERT_DEQ(37.7, z);
         }
 
-    CPUframe<float4> f2(1000, 1000);
+    Frame<float4> f2(1000, 1000);
     f2.copyFrom(ptr);
 
     for(int i = 0; i < 1000; i++)
@@ -62,7 +62,7 @@ TEST(TestCpuFrame, TestCopyFrom)
             ASSERT_DEQ(37.7, w);
         }
 
-    CPUframe<double4> f3(1000, 1000);
+    Frame<DOUBLE4> f3(1000, 1000);
     f3.copyFrom(ptr);
 
     for(int i = 0; i < 1000; i++)
@@ -77,7 +77,7 @@ TEST(TestCpuFrame, TestCopyFrom)
             ASSERT_DEQ(37.7, w);
         }        
 
-    CPUframe<int4> f4(1000, 1000);
+    Frame<int4> f4(1000, 1000);
     f4.copyFrom(ptr);
 
     for(int i = 0; i < 1000; i++)
@@ -90,7 +90,7 @@ TEST(TestCpuFrame, TestCopyFrom)
                 FAIL();
         }             
 
-    CPUframe<int2> f5(1000, 1000);
+    Frame<int2> f5(1000, 1000);
     f5.copyFrom(ptr);
 
     for(int i = 0; i < 1000; i++)
@@ -101,7 +101,7 @@ TEST(TestCpuFrame, TestCopyFrom)
                 FAIL();
         }  
     
-    CPUframe<double2> f6(1000, 1000);
+    Frame<double2> f6(1000, 1000);
     f6.copyFrom(ptr);
 
     for(int i = 0; i < 1000; i++)
@@ -114,9 +114,9 @@ TEST(TestCpuFrame, TestCopyFrom)
 }
 
 
-TEST(TestCpuFrame, TestGetPointer)
+TEST(TestFrame, TestGetPointer)
 {
-    CPUframe<int3> frame(1000, 1000);
+    Frame<int3> frame(1000, 1000);
     int3 *ptr = frame.getPtr();
 
     ptr[0].x = 100;

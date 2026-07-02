@@ -3,7 +3,14 @@
 
 // CODE:BEGIN
 
+#ifdef __CUDA_ARCH__
 #include <math_constants.h>
+
+#else
+// put the constants here
+#define CUDART_PI_F             3.141592654f
+#endif
+
 #include <cstring>
 
 #define THREADS_IN_BLOCK 256
@@ -15,17 +22,6 @@
 #define BIT_HEADING_MINUS_22_5 0x04
 #define BIT_HEADING_MINUS_45 0x02
 #define BIT_HEADING_MINUS_67_5 0x01
-
-
-// #define BIT_HEADING_0 0x01
-// #define BIT_HEADING_22_5 0x02
-// #define BIT_HEADING_45 0x04
-// #define BIT_HEADING_67_5 0x08
-// #define BIT_HEADING_90 0x10
-// #define BIT_HEADING_MINUS_22_5 0x20
-// #define BIT_HEADING_MINUS_45 0x40
-// #define BIT_HEADING_MINUS_67_5 0x80
-
 
 #define ANGLE_HEADING_0 0.0
 #define ANGLE_HEADING_22_5 CUDART_PI_F / 8
@@ -54,8 +50,19 @@ if (!cudaAllocMapped(&params, sizeof(int) * 6))
 }
 
 #else
+
+#ifdef CUDA_ENABLE
+
 #include <cuda_runtime.h>
 #include <stdio.h>
+#include <new>
+
+
+#if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
+using DOUBLE4=double4_16a;
+#else
+using DOUBLE4=double4;
+#endif
 
 #define CUDA(x) cudaCheckError((x), #x, __FILE__, __LINE__)
 #define CUDA_SUCCESS(x) (CUDA(x) == cudaSuccess)
@@ -140,6 +147,145 @@ inline bool cudaAllocMapped(T **ptr, size_t size)
 }
 
 
+template <typename T> 
+class CudaPtr {
+    T* _data;
+    bool _data_owner;
+    unsigned int _count;
+
+public:
+
+    CudaPtr() { 
+        _data = nullptr;
+        _data_owner = false;
+        _count = 0;
+    }
+
+    CudaPtr(unsigned int count) {
+        if (!cudaAllocMapped(&_data, sizeof(T)*count))
+            throw std::bad_alloc();
+        _data_owner = true;
+        _count = count;
+    }
+
+    CudaPtr(T *val, int count) {
+        _data = val;
+        _data_owner = true;
+        _count = count;
+    }
+
+    ~CudaPtr() {
+        if (!_data_owner || _data == nullptr)
+            return;
+        cudaFreeHost(_data);
+    }
+
+    T* get () {
+        return _data;
+    }
+
+    unsigned int count() {
+        return _count;
+    }
+
+};
+
+#include <memory>
+
+template <typename T>
+using cptr = std::unique_ptr<CudaPtr<T>>; 
+template <typename T>
+using sptr = std::shared_ptr<CudaPtr<T>>; 
+
+
+inline cptr<float4> copyToCudaMemory(float *path, int count)
+{
+    cptr<float4> data = std::make_unique<CudaPtr<float4>>(count);
+    float4 *addr = data->get();
+
+    for (int c = 0; c < count; c++)
+    {
+        int pos = 4 * c;
+        addr[c].x = path[pos];
+        addr[c].y = path[pos + 1];
+        addr[c].z = path[pos + 2];
+        addr[c].w = 0.0;
+    }
+    return data;
+}
+
+#else
+#ifndef __device__ 
+#define __device__ 
+#endif
+#ifndef __host__ 
+#define __host__ 
+#endif
+
+typedef struct uchar2 {
+    unsigned char x;
+    unsigned char y;
+} uchar2;
+typedef struct uchar3 {
+    unsigned char x;
+    unsigned char y;
+    unsigned char z;
+} uchar3;
+typedef struct uchar4 {
+    unsigned char x;
+    unsigned char y;
+    unsigned char z;
+    unsigned char w;
+} uchar4;
+
+typedef struct int2 {
+    int x;
+    int y;
+} int2;
+typedef struct float2 {
+    float x;
+    float y;
+} float2;
+typedef struct double2 {
+    double x;
+    double y;
+} double2;
+typedef struct int3 {
+    int x;
+    int y;
+    int z;
+} int3;
+typedef struct float3 {
+    float x;
+    float y;
+    float z;
+} float3;
+typedef struct double3 {
+    double x;
+    double y;
+    double z;
+} double3;
+typedef struct int4 {
+    int x;
+    int y;
+    int z;
+    int w;
+} int4;
+typedef struct float4 {
+    float x;
+    float y;
+    float z;
+    float w;
+} float4;
+typedef struct double4 {
+    double x;
+    double y;
+    double z;
+    double w;
+} double4;
+
+using DOUBLE4=double4;
+
 #endif
 
 __device__ __host__ inline int COMPUTE_POS(int width, int x, int z)
@@ -150,3 +296,12 @@ __device__ __host__ inline int COMPUTE_POS(int width, int x, int z)
 // CODE:END
 
 #endif
+
+#include <memory>
+#include <vector>
+#include "waypoint.h"
+std::unique_ptr<float4[]> copyToCpuMemory(std::vector<Waypoint> points);
+std::unique_ptr<float4[]> copyToCpuMemory(float *path, int count);
+#endif
+
+

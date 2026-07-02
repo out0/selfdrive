@@ -84,6 +84,6 @@ void GoalPointDiscover::computeExclusionZone(SearchFrame &frame, angle heading)
     if (!frame.isSafeZoneChecked()) {
         throw std::runtime_error("Safe zone check must be performed before computing exclusion zone.");
     }
-    __CUDA_precompute_exclusion_zone<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getCudaPtr(), frame.getCudaFrameParamsPtr(), frame.getCudaClassCostsPtr(), heading.rad());
+    __CUDA_precompute_exclusion_zone<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getPtr(), frame.getFrameParamsPtr(), frame.getCudaClassCostsPtr(), heading.rad());
     CUDA(cudaDeviceSynchronize());
 }

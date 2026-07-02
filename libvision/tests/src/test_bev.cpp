@@ -3,7 +3,7 @@
 #include <cmath>
 #include <tuple>
 #include <driveless/search_frame.h>
-#include <driveless/cuda_ptr.h>
+#include <driveless/cuda_basic.h>
 #include "../../include/bev.h"
 
 TEST(TestBEV, TestBuildBev)

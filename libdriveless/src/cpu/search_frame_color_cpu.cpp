@@ -1,11 +1,11 @@
-#include "../../include/search_frame_cpu.h"
+#include "../../include/search_frame.h"
 #include "../../include/cpu_parallel_processor.h"
 #include <stdexcept>
 #include <tuple>
 
 extern void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, int width, int height, uchar3 *classColors, int classCount);
 
-void SearchFrameCPU::setClassColors(std::vector<std::tuple<int, int, int>> colors)
+void SearchFrame::setClassColors(std::vector<std::tuple<int, int, int>> colors)
 {   
     if (colors.size() == 0)
         return;
@@ -62,7 +62,7 @@ public:
 };
 
 
-bool SearchFrameCPU::exportToColorFrame(uchar *dest)
+bool SearchFrame::exportToColorFrame(uchar *dest)
 {
     if (_classColors == nullptr)
         return false;

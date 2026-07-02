@@ -1,15 +1,12 @@
 #include "../../include/cuda_basic.h"
 #include "../../include/cpu_parallel_processor.h"
-#include "../../include/search_frame_cpu.h"
+#include "../../include/search_frame.h"
 
 #define NUM_POINTS_ON_MEAN 5
 
 extern float ___computeMeanHeading(float4 *waypoints, int pos, int size, bool *valid, int width, int height);
-extern float __computeHeading(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height);
 extern bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern bool checkStateFeasible(float3 *searchFrame, int *params, float *classCosts, float4 *waypoints, int waypoints_size, int current_pos_waypoints, int minDistX, int minDistZ);
-extern float __computeHeading(int p1_x, int p1_y, int p2_x, int p2_y, bool *valid, int width, int height);
-extern float ___computeMeanHeading(float4 *waypoints, int pos, int size, bool *valid, int width, int height);
 extern std::unique_ptr<float4[]> copyToCpuMemory(std::vector<Waypoint> points);
 extern std::unique_ptr<float4[]> copyToCpuMemory(float *path, int count);
 
@@ -18,7 +15,7 @@ extern bool checkFeasiblePathCPU(float *points, int count, float3 *searchFrame, 
 class ParallelCheckFeasiblePath : public ParallelProcessor
 {
     bool _pathFeasible;
-    SearchFrameCPU *_searchFrame;
+    SearchFrame *_searchFrame;
     float4 *_path;
     int _count;
     int *_params;
@@ -30,7 +27,7 @@ class ParallelCheckFeasiblePath : public ParallelProcessor
 public:
     ParallelCheckFeasiblePath(
         float4 *path, int pathSize,
-        SearchFrameCPU *searchFrame,
+        SearchFrame *searchFrame,
         int *params, float *classCosts,
         int numThreadHandlers,
         int minDistX, int minDistZ)
@@ -64,7 +61,7 @@ public:
     }
 };
 
-bool SearchFrameCPU::checkFeasiblePath(std::vector<Waypoint> &path, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility)
+bool SearchFrame::checkFeasiblePath(std::vector<Waypoint> &path, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility)
 {
     std::unique_ptr<float4[]> ptr = copyToCpuMemory(path);
 
@@ -94,7 +91,7 @@ bool SearchFrameCPU::checkFeasiblePath(std::vector<Waypoint> &path, int minDistX
     return res;
 }
 
-bool SearchFrameCPU::checkFeasiblePath(float *path, int count, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility)
+bool SearchFrame::checkFeasiblePath(float *path, int count, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility)
 {
     std::unique_ptr<float4[]> ptr = copyToCpuMemory(path, count);
 
@@ -126,7 +123,7 @@ bool SearchFrameCPU::checkFeasiblePath(float *path, int count, int minDistX, int
     return res;
 }
 
-bool SearchFrameCPU::computePathHeadings(int width, int height, std::vector<Waypoint> &waypoints)
+bool SearchFrame::computePathHeadings(int width, int height, std::vector<Waypoint> &waypoints)
 {
     std::unique_ptr<float4[]> ptr = copyToCpuMemory(waypoints);
     float4 *pathList = ptr.get();

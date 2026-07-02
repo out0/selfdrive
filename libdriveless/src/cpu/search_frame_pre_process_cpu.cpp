@@ -1,4 +1,4 @@
-#include "../../include/search_frame_cpu.h"
+#include "../../include/search_frame.h"
 #include "../../include/cpu_parallel_processor.h"
 #include "../../include/cuda_basic.h"
 #include "../search_frame_params.h"
@@ -11,7 +11,7 @@ extern const float H_TRAVERSABILITY_ANGLES[];
 extern const int TRAVERSABILITY_BITS[];
 extern const int H_TRAVERSABILITY_BITS[];
 
-#define EIGHT_OVER_PI 20.371832716
+
 
 extern std::pair<int, int> __checkTraversableAngleBitPairCheck(float heading_rad);
 extern bool CHECK_OUT_BOUNDARIES(int width, int height, int x, int z);
@@ -171,7 +171,7 @@ public:
     }
 };
 
-void SearchFrameCPU::processSafeDistanceZone(std::pair<int, int> minDistance, bool computeVectorized)
+void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool computeVectorized)
 {
     _params.get()[FRAME_PARAM_MIN_DIST_X] = 0.5 * minDistance.first;
     _params.get()[FRAME_PARAM_MIN_DIST_Z] = 0.5 * minDistance.second;
@@ -181,11 +181,11 @@ void SearchFrameCPU::processSafeDistanceZone(std::pair<int, int> minDistance, bo
 
     int minDist_px = TO_INT(sqrtf(min_x * min_x + min_z * min_z));
 
-    //__CUDA_safe_distance_prepare<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), minDist_px);
+    //__CUDA_safe_distance_prepare<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), minDist_px);
     // CUDA(cudaDeviceSynchronize());
     SafeDistancePrepareProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
 
-    // __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), minDist_px);
+    // __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), minDist_px);
     // CUDA(cudaDeviceSynchronize());
     SafeDistanceObstacleExpansionBasedProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
 
@@ -193,7 +193,7 @@ void SearchFrameCPU::processSafeDistanceZone(std::pair<int, int> minDistance, bo
 
     if (computeVectorized)
     {
-        //__CUDA_safe_distance_vector_based<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), min_x, min_z);
+        //__CUDA_safe_distance_vector_based<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), min_x, min_z);
         // CUDA(cudaDeviceSynchronize());
         SafeDistanceVectorBasedProcessor(getPtr(), _classCosts.get(), _params.get(), min_x, min_z).runAndWait();
         _safeZoneVectorialChecked = true;
@@ -251,21 +251,21 @@ public:
     }
 };
 
-void SearchFrameCPU::processDistanceToGoal(int x, int z)
+void SearchFrame::processDistanceToGoal(int x, int z)
 {
     if (_classCosts.get() == nullptr)
     {
         throw std::runtime_error("Class costs were not set. Please set costs before processing distance to goal.");
     }
 
-    // __CUDA_distance_to_goal<<<numBlocks, THREADS_IN_BLOCK>>>(getCudaPtr(), _classCosts->get(), _params->get(), x, z);
+    // __CUDA_distance_to_goal<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), x, z);
     // CUDA(cudaDeviceSynchronize());
 
     DistanceToGoalProcessor(getPtr(), _classCosts.get(), _params.get(), x, z).runAndWait();
     _distanceToGoalProcessed = true;
 }
 
-float SearchFrameCPU::getDistanceToGoal(int x, int z)
+float SearchFrame::getDistanceToGoal(int x, int z)
 {
     float3 *ptr = getPtr();
     return ptr[z * width() + x].y;

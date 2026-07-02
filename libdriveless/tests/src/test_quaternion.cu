@@ -136,7 +136,8 @@ TEST(QuaternionTst, TestEulerAngleInit)
 
 }
 
-__global__ static void __test_kernel_quaternion(double4 *frame, int width, int height)
+#ifdef CUDA_ENABLE
+__global__ static void __test_kernel_quaternion(DOUBLE4 *frame, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -162,8 +163,8 @@ TEST(QuaternionTst, TestCudaExec)
     int size = width * height;
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-    double4 *frame;
-    cudaAllocMapped(&frame, sizeof(double4) * width * height);
+    DOUBLE4 *frame;
+    cudaAllocMapped(&frame, sizeof(DOUBLE4) * width * height);
 
     for (int i = 0; i < size; i++) {
         quaternion q(&frame[i]);
@@ -182,3 +183,5 @@ TEST(QuaternionTst, TestCudaExec)
     cudaFree(frame);
 
 }
+
+#endif

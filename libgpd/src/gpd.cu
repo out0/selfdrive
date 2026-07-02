@@ -147,8 +147,8 @@ Waypoint GoalPointDiscover::findLowestCostWaypointWithHeading(SearchFrame &frame
     int mx = TO_INT(minDist.first / 2);
     int mz = TO_INT(minDist.second / 2);
 
-    __CUDA_lowest_cost_for_heading<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getCudaPtr(),
-                                                                    frame.getCudaFrameParamsPtr(), 
+    __CUDA_lowest_cost_for_heading<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getPtr(),
+                                                                    frame.getFrameParamsPtr(), 
                                                                     frame.getCudaClassCostsPtr(), 
                                                                     mx, mz, goal_x, goal_z, heading, _bestValue->get());
     CUDA(cudaDeviceSynchronize());
@@ -161,8 +161,8 @@ Waypoint GoalPointDiscover::findLowestCostWaypointWithHeading(SearchFrame &frame
     waypoint[0] = -1;
     waypoint[1] = -1;
 
-    __CUDA_waypoing_with_given_cost_and_heading<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getCudaPtr(),
-                                                                                 frame.getCudaFrameParamsPtr(), 
+    __CUDA_waypoing_with_given_cost_and_heading<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getPtr(),
+                                                                                 frame.getFrameParamsPtr(), 
                                                                                  frame.getCudaClassCostsPtr(), 
                                                                                  mx, mz, goal_x, goal_z, heading, _bestValue->get(), waypoint);
     CUDA(cudaDeviceSynchronize());
@@ -296,7 +296,7 @@ Waypoint GoalPointDiscover::findLowestCostWaypointToGoal(SearchFrame &frame, std
     int mz = TO_INT(minDist.second / 2);
 
     __CUDA_lowest_cost_reachable_waypoint_to_goal_step1<<<numBlocks, THREADS_IN_BLOCK>>>(
-        frame.getCudaPtr(), frame.getCudaFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, next_heading,_bestValue->get());
+        frame.getPtr(), frame.getFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, next_heading,_bestValue->get());
     CUDA(cudaDeviceSynchronize());
 
     if (*_bestValue->get() >= MAX_VAL)
@@ -308,8 +308,8 @@ Waypoint GoalPointDiscover::findLowestCostWaypointToGoal(SearchFrame &frame, std
     waypoint[1] = -1;
     waypoint[2] = 0.0;
 
-    __CUDA_lowest_cost_reachable_waypoint_to_goal_step2<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getCudaPtr(),
-                                                                                         frame.getCudaFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, next_heading, _bestValue->get(), waypoint);
+    __CUDA_lowest_cost_reachable_waypoint_to_goal_step2<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getPtr(),
+                                                                                         frame.getFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, next_heading, _bestValue->get(), waypoint);
     CUDA(cudaDeviceSynchronize());
 
     return Waypoint(TO_INT(waypoint[0]), TO_INT(waypoint[1]), angle::rad(waypoint[2]));
@@ -570,7 +570,7 @@ Waypoint GoalPointDiscover::findLowestErrorWaypointToGoal(SearchFrame &frame, st
     int mz = TO_INT(minDist.second / 2);
 
     __CUDA_lowest_error_reachable_waypoint_to_goal_step1<<<numBlocks, THREADS_IN_BLOCK>>>(
-        frame.getCudaPtr(), frame.getCudaFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, best_heading, _bestValue->get());
+        frame.getPtr(), frame.getFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, best_heading, _bestValue->get());
     CUDA(cudaDeviceSynchronize());
 
     if (*_bestValue->get() >= MAX_VAL)
@@ -579,8 +579,8 @@ Waypoint GoalPointDiscover::findLowestErrorWaypointToGoal(SearchFrame &frame, st
     CudaPtr<int> bestHeadingError(1);
     *(bestHeadingError.get()) = MAX_VAL;
 
-    __CUDA_lowest_error_reachable_waypoint_to_goal_step2<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getCudaPtr(),
-                                                                                          frame.getCudaFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, best_heading, _bestValue->get(), bestHeadingError.get());
+    __CUDA_lowest_error_reachable_waypoint_to_goal_step2<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getPtr(),
+                                                                                          frame.getFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, best_heading, _bestValue->get(), bestHeadingError.get());
     CUDA(cudaDeviceSynchronize());
 
     if (*bestHeadingError.get() >= MAX_VAL)
@@ -592,8 +592,8 @@ Waypoint GoalPointDiscover::findLowestErrorWaypointToGoal(SearchFrame &frame, st
     waypoint[1] = -1;
     waypoint[2] = 0.0;
 
-    __CUDA_lowest_error_reachable_waypoint_to_goal_step3<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getCudaPtr(),
-                                                                                          frame.getCudaFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, best_heading, _bestValue->get(), bestHeadingError.get(), waypoint);
+    __CUDA_lowest_error_reachable_waypoint_to_goal_step3<<<numBlocks, THREADS_IN_BLOCK>>>(frame.getPtr(),
+                                                                                          frame.getFrameParamsPtr(), frame.getCudaClassCostsPtr(), mx, mz, goal_x, goal_z, best_heading, _bestValue->get(), bestHeadingError.get(), waypoint);
     CUDA(cudaDeviceSynchronize());
 
     return Waypoint(TO_INT(waypoint[0]), TO_INT(waypoint[1]), angle::rad(waypoint[2]));

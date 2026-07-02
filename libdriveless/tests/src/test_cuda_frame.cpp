@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../../include/cuda_frame.h"
+#include "../../include/frame.h"
 #include "test_utils.h"
 #include <cmath>
 
@@ -19,14 +19,14 @@ static float *g_big_ptr = initBigPtr();
 
 TEST(TestCudaFrame, TestSetGet)
 {
-    CudaFrame<double3> f1(1000, 1001);
+    Frame<double3> f1(1000, 1001);
     ASSERT_EQ(1000, f1.width());
     ASSERT_EQ(1001, f1.height());
 }
 
 TEST(TestCudaFrame, TestSetAndClear)
 {
-    CudaFrame<double3> f1(1000, 1001);
+    Frame<double3> f1(1000, 1001);
     f1.clear();
 
     f1[{10, 10}].x = 20;
@@ -42,15 +42,15 @@ TEST(TestCudaFrame, TestSetAndClear)
 TEST(TestCudaFrame, TestCopyFromBIG)
 {
     float *ptr = g_big_ptr;
-    CudaFrame<double4> f3(10000, 10000);
-    f3.copyFrom(ptr, 1);
+    Frame<DOUBLE4> f3(10000, 10000);
+    f3.copyFrom(ptr);
 }
 
 TEST(TestCudaFrame, TestCopyFromBIG_Parallel)
 {
     float *ptr = g_big_ptr;
-    CudaFrame<double4> f3(10000, 10000);
-    f3.copyFrom(ptr, 12);
+    Frame<DOUBLE4> f3(10000, 10000);
+    f3.copyFrom(ptr);
 }
 
 TEST(TestCudaFrame, TestCopyFrom)
@@ -62,7 +62,7 @@ TEST(TestCudaFrame, TestCopyFrom)
         ptr[i] = 37.7;
     }
 
-    CudaFrame<float3> f1(1000, 1000);
+    Frame<float3> f1(1000, 1000);
     f1.copyFrom(ptr);
 
     for (int i = 0; i < 1000; i++)
@@ -76,7 +76,7 @@ TEST(TestCudaFrame, TestCopyFrom)
             ASSERT_DEQ(37.7, z);
         }
 
-    CudaFrame<float4> f2(1000, 1000);
+    Frame<float4> f2(1000, 1000);
     f2.copyFrom(ptr);
 
     for (int i = 0; i < 1000; i++)
@@ -92,7 +92,7 @@ TEST(TestCudaFrame, TestCopyFrom)
             ASSERT_DEQ(37.7, w);
         }
 
-    CudaFrame<double4> f3(1000, 1000);
+    Frame<DOUBLE4> f3(1000, 1000);
     f3.copyFrom(ptr);
 
     for (int i = 0; i < 1000; i++)
@@ -108,7 +108,7 @@ TEST(TestCudaFrame, TestCopyFrom)
             ASSERT_DEQ(37.7, w);
         }
 
-    CudaFrame<int4> f4(1000, 1000);
+    Frame<int4> f4(1000, 1000);
     f4.copyFrom(ptr);
 
     for (int i = 0; i < 1000; i++)
@@ -122,7 +122,7 @@ TEST(TestCudaFrame, TestCopyFrom)
                 FAIL();
         }
 
-    CudaFrame<int2> f5(1000, 1000);
+    Frame<int2> f5(1000, 1000);
     f5.copyFrom(ptr);
 
     for (int i = 0; i < 1000; i++)
@@ -134,7 +134,7 @@ TEST(TestCudaFrame, TestCopyFrom)
                 FAIL();
         }
 
-    CudaFrame<double2> f6(1000, 1000);
+    Frame<double2> f6(1000, 1000);
     f6.copyFrom(ptr);
 
     for (int i = 0; i < 1000; i++)
@@ -149,8 +149,8 @@ TEST(TestCudaFrame, TestCopyFrom)
 
 TEST(TestCudaFrame, TestGetPointer)
 {
-    CudaFrame<int3> frame(1000, 1000);
-    int3 *ptr = frame.getCudaPtr();
+    Frame<int3> frame(1000, 1000);
+    int3 *ptr = frame.getPtr();
 
     ptr[0].x = 100;
     ptr[0].y = 101;

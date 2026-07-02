@@ -5,12 +5,11 @@
 
 #include <tuple>
 #include <vector>
-#include <driveless/angle.h>
-#include <driveless/search_frame.h>
-#include <driveless/search_frame_cpu.h>
-#include <driveless/math_utils.h>
-#include <driveless/map_pose.h>
-#include <driveless/world_pose.h>
+#include "angle.h"
+#include "search_frame.h"
+#include "math_utils.h"
+#include "map_pose.h"
+#include "world_pose.h"
 
 class SearchParams
 {
@@ -21,8 +20,8 @@ class SearchParams
     float _distanceToGoalTolerance_px;
     angle _headingErrorTolerance;
     std::pair<int, int> _minDistance;
+
     SearchFrame *_frame;
-    SearchFrameCPU *_frameCpu;
     Waypoint _start;
     Waypoint _goal;
     MapPose _ego_pose;
@@ -32,13 +31,12 @@ class SearchParams
 
     // Private constructor only accessible by Builder
     SearchParams(int timeout_ms, float maxPathSize_px, float distanceToGoalTolerance_px, angle headingErrorTolerance,
-                 std::pair<int, int> minDistance, SearchFrame *frame, SearchFrameCPU *frameCpu, Waypoint start, Waypoint goal, MapPose ego_pose,
+                 std::pair<int, int> minDistance, SearchFrame *frame, Waypoint start, Waypoint goal, MapPose ego_pose,
                  MapPose map_origin, WorldPose world_origin, float velocity_m_s) : _timeout_ms(timeout_ms), _maxPathSize_px(maxPathSize_px),
                                                                                    _distanceToGoalTolerance_px(distanceToGoalTolerance_px),
                                                                                    _headingErrorTolerance(headingErrorTolerance),
                                                                                    _minDistance(minDistance),
                                                                                    _frame(frame),
-                                                                                   _frameCpu(frameCpu),
                                                                                    _start(start),
                                                                                    _goal(goal),
                                                                                    _ego_pose(ego_pose),
@@ -56,8 +54,8 @@ public:
         float _distanceToGoalTolerance_px = 20.0f;
         angle _headingErrorTolerance = angle::deg(5); // Assuming default angle constructor
         std::pair<int, int> _minDistance = {0, 0};
+
         SearchFrame *_frame = nullptr;
-        SearchFrameCPU *_frameCpu = nullptr;
         Waypoint _start;
         Waypoint _goal;
         MapPose _ego_pose;
@@ -106,12 +104,6 @@ public:
             return *this;
         }
 
-        SearchParamsBuilder &withCpuFrame(SearchFrameCPU *frame)
-        {
-            _frameCpu = frame;
-            return *this;
-        }
-
         SearchParamsBuilder &withVelocity(float velocity_m_s)
         {
             _velocity_m_s = velocity_m_s;
@@ -139,7 +131,7 @@ public:
         SearchParams build()
         {
             return SearchParams(_timeout_ms, _maxPathSize_px, _distanceToGoalTolerance_px, _headingErrorTolerance,
-                                _minDistance, _frame, _frameCpu, _start, _goal, _ego_pose, _map_origin, _world_origin, _velocity_m_s);
+                                _minDistance, _frame, _start, _goal, _ego_pose, _map_origin, _world_origin, _velocity_m_s);
         }
     };
 
@@ -157,7 +149,6 @@ public:
     inline angle headingErrorTolerance() { return _headingErrorTolerance; }
     inline std::pair<int, int> minDistance() { return _minDistance; }
     inline SearchFrame *frame() { return _frame; }
-    inline SearchFrameCPU *cpuFrame() { return _frameCpu; }
     inline Waypoint start() { return _start; }
     inline Waypoint goal() { return _goal; }
 

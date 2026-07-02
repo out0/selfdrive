@@ -1,4 +1,4 @@
-#include "../include/cpu_frame.h"
+#include "../include/cpu_parallel_copy.h"
 
 void copy_data(float *ptr, float4 *dest, long pos)
 {
@@ -8,7 +8,7 @@ void copy_data(float *ptr, float4 *dest, long pos)
     dest[pos].z = static_cast<float>(ptr[posPtr + 2]);
     dest[pos].w = static_cast<float>(ptr[posPtr + 3]);
 }
-void copy_data(float *ptr, double4 *dest, long pos)
+void copy_data(float *ptr, DOUBLE4 *dest, long pos)
 {
     long posPtr = 4 * pos;
     dest[pos].x = static_cast<double>(ptr[posPtr]);
@@ -78,4 +78,3 @@ void copy_data(float *ptr, int *dest, long pos)
     long posPtr = 2 * pos;
     dest[pos] = static_cast<int>(ptr[posPtr]);
 }
-

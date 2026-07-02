@@ -1,40 +1,40 @@
-#include "../../include/search_frame_cpu.h"
+#include "../../include/search_frame.h"
 #include <tuple>
 
 extern "C"
 {
     void *search_frame_initialize_cpu(int width, int height, int lowerBoundX, int lowerBoundZ, int upperBoundX, int upperBoundZ)
     {
-        return new SearchFrameCPU(width, height, {lowerBoundX, lowerBoundZ}, {upperBoundX, upperBoundZ});
+        return new SearchFrame(width, height, {lowerBoundX, lowerBoundZ}, {upperBoundX, upperBoundZ});
     }
 
     void search_frame_destroy_cpu(void *self)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         delete frame;
     }
 
     void search_frame_copy_data_cpu(void *self, float *ptr)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         frame->copyFrom(ptr);
     }
 
     void search_frame_copy_back_cpu(void *self, float *ptr)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         frame->copyTo(ptr);
     }
 
     void export_to_color_frame_cpu(void *self, uchar *dest)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         frame->exportToColorFrame(dest);
     }
 
     void set_class_colors_cpu(void *self, int numClasses, uint *colors)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         std::vector<std::tuple<int, int, int>> classColors;
         classColors.reserve(numClasses);
 
@@ -49,7 +49,7 @@ extern "C"
 
     void set_class_costs_cpu(void *self, int numClasses, float *costs)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         std::vector<float> classCosts;
         classCosts.reserve(numClasses);
 
@@ -62,13 +62,13 @@ extern "C"
 
     float get_class_cost_cpu(void *self, int classId)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->getClassCost(classId);
     }
 
     bool is_obstacle_cpu(void *self, int x, int z)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->isObstacle(x, z);
     }
 
@@ -78,7 +78,7 @@ extern "C"
     /// @return
     double get_cost_cpu(void *self, int x, int z)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->getCost(x, z);
     }
 
@@ -87,7 +87,7 @@ extern "C"
     /// @param z
     void process_safe_distance_zone_cpu(void *self, bool compute_vectorized, int minDistX, int minDistZ)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->processSafeDistanceZone({minDistX, minDistZ}, compute_vectorized);
     }
 
@@ -97,31 +97,31 @@ extern "C"
     /// @return
     bool check_feasible_path_cpu(void *self, float *path, int count, int minDistX, int minDistZ, bool feasibleInfoForAllPoints)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->checkFeasiblePath(path, count, minDistX, minDistZ, feasibleInfoForAllPoints);
     }
 
     int get_traversability_cpu(void *self, int x, int z)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return static_cast<int>((*frame)[{x, z}].z);
     }
 
     bool is_traversable_cpu(void *self, int x, int z)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->isTraversable(x, z);
     }
 
     bool is_traversable_on_angle_cpu(void *self, int x, int z, float angle_rad, bool precision_check)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->isTraversable(x, z, angle::rad(angle_rad), precision_check);
     }
 
     void read_cell_cpu(void *self, int x, int z, float *res)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         float3 p = (*frame)[{x, z}];
         res[0] = p.x;
         res[1] = p.y;
@@ -129,7 +129,7 @@ extern "C"
     }
     void write_cell_cpu(void *self, int x, int z, float v1, float v2, float v3)
     {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         (*frame)[{x, z}].x = v1;
         (*frame)[{x, z}].y = v2;
         (*frame)[{x, z}].z = v3;
@@ -138,27 +138,27 @@ extern "C"
 
 
     void process_distance_to_goal_cpu(void *self, int x, int z) {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         frame->processDistanceToGoal(x, z);
     }
 
     float get_distance_to_goal_cpu(void *self, int x, int z) {
-        SearchFrameCPU *frame = (SearchFrameCPU *)self;
+        SearchFrame *frame = (SearchFrame *)self;
         return frame->getDistanceToGoal(x, z);
     }
 
     bool is_safe_zone_checked_cpu(void *self) {
-         SearchFrameCPU *frame = (SearchFrameCPU *)self;
+         SearchFrame *frame = (SearchFrame *)self;
          return frame->isSafeZoneChecked();
     }
 
     bool is_vectorial_safe_zone_checked_cpu(void *self) {
-         SearchFrameCPU *frame = (SearchFrameCPU *)self;
+         SearchFrame *frame = (SearchFrame *)self;
          return frame->isVectorialSafeZoneChecked();
     }
 
     bool is_distance_to_goal_processed_cpu(void *self) {
-         SearchFrameCPU *frame = (SearchFrameCPU *)self;
+         SearchFrame *frame = (SearchFrame *)self;
          return frame->isDistanceToGoalProcessed();
     }
 
