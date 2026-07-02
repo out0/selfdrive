@@ -9,7 +9,7 @@ bin:
 cpu:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DCUDA_ENABLED=OFF
+	cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=OFF
 	cd build && make -j$(nproc)
 
 local: bin

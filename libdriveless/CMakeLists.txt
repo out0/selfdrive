@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.30)
 
-option(CUDA_ENABLED "true" ON)
+option(DRIVELESS_CUDA_ENABLED "true" ON)
 
-if(CUDA_ENABLED)
+if(DRIVELESS_CUDA_ENABLED)
     project(driveless LANGUAGES CXX CUDA VERSION 2.3.0 DESCRIPTION "libdriveless")
 else()
     project(driveless LANGUAGES CXX VERSION 2.3.0 DESCRIPTION "libdriveless")
@@ -16,7 +16,7 @@ configure_file(
 
 set(CMAKE_CXX_STANDARD 20)
 
-if(CUDA_ENABLED)
+if(DRIVELESS_CUDA_ENABLED)
     set(CMAKE_CUDA_ARCHITECTURES all-major)
 endif()
 
@@ -109,8 +109,9 @@ target_include_directories(${PROJECT_NAME}
         ${CUDAToolkit_INCLUDE_DIRS}
 )
 
-if(CUDA_ENABLED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC DRIVELESS_CUDA_ENABLED)    
+if(DRIVELESS_CUDA_ENABLED)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC DRIVELESS_CUDA_ENABLED)
+    
 endif()
 
 
