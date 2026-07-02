@@ -17,6 +17,7 @@ local: bin
 	rm -rf build
 
 cpu_install: cpu
+	cd build && sudo make install
 	mkdir -p python_bind/app/pydriveless/cpp/
 	mkdir -p ../FastRRT/python_bind/app/pyfastrrt/cpp/	
 	cp build/libdriveless.so.2.3.0	python_bind/app/pydriveless/cpp/libdriveless.so
