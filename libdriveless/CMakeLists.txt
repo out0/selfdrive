@@ -140,6 +140,7 @@ add_library(${PROJECT_NAME} SHARED
     src/cpu/search_frame_path_feasible_cpu.cpp
     src/cpu/search_frame_python_bind_cpu.cpp
     src/cuda/collision_check.cu
+    src/cuda/compute_heading.cu
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

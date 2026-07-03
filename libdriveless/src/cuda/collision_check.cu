@@ -67,16 +67,7 @@ __device__ __host__ bool checkStateFeasible(float3 *searchFrame, int *params, fl
         return true;
     }
 
-    // if (computeHeading)
-    // {
-    //     bool valid = true;
-    //     heading = ___computeMeanHeading(waypoints, current_pos_waypoints, waypoints_size, &valid, width, height);
-    //     waypoints[current_pos_waypoints].z = heading;
-    // }
-    // else
     heading = waypoints[current_pos_waypoints].z;
-    // printf ("heading: %f\n", heading);
-
     bool res = __computeFeasibleForAngle(searchFrame, params, classCosts, minDistX, minDistZ, x, z, heading);
 
     if (!res)
