@@ -13,4 +13,6 @@ std::vector<Waypoint> testInterpolateHermiteCurve(int width, int height, Waypoin
 
 void exportSearchFrameToFile(SearchFrame &f, const char *file);
 
+void export_safe_distance_frame_minimal_dist_flag(SearchFrame &f, const char *file, std::vector<Waypoint> &path);
+
 #endif

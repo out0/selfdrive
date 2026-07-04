@@ -128,7 +128,9 @@ bool SearchFrame::isTraversable(int x, int z)
 
 
 
-
+int SearchFrame::getTraversability(int x, int z) {
+    return static_cast<int>(at({x, z}).z);
+}
 
 bool SearchFrame::isTraversable(int x, int z, angle heading, bool precision_check)
 {

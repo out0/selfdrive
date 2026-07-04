@@ -128,7 +128,9 @@ inline bool check_bit (int traversability, int bit) {
     return traversability & bit > 0;
 }
 
-
+int SearchFrame::getTraversability(int x, int z) {
+    return static_cast<int>(at({x, z}).z);
+}
 
 bool SearchFrame::isTraversable(int x, int z, angle heading, bool precision_check)
 {

@@ -7,6 +7,7 @@ extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *pa
 extern __device__ __host__ bool checkStateFeasible(float3 *searchFrame, int *params, float *classCosts, float4 *waypoints, int waypoints_size, int current_pos_waypoints, int minDistX, int minDistZ);
 extern __device__ __host__ float ___computeMeanHeading(float4 *waypoints, int pos, int size, bool *valid, int width, int height);
 
+
 __global__ static void __CUDA_checkFeasiblePathGPU(float3 *searchFrame, int *params, float *classCosts, float4 *pathList, int size, bool *feasible, int minDistX, int minDistZ)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;

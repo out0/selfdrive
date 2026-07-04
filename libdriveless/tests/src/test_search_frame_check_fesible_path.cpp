@@ -37,21 +37,27 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_NoPreProcess_CPU)
     // exportSearchFrameToFile(f1, "output.png");
 
     std::vector<Waypoint> path1;
-    for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
+    for (int i = 99; i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
     bool res = f1.checkFeasiblePath(path1, 10, 10, true);
 
     std::vector<Waypoint> path2;
-    for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
+    for (int i = 99; i >= 0; i--)
         path2.push_back(Waypoint(36, i, angle::rad(0)));
 
     bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+
+    
+    f1.processSafeDistanceZone({10, 10}, false);
+    export_safe_distance_frame_minimal_dist_flag(f1, "output2.png", path2);
 
     ASSERT_FALSE(res);
 
     for (auto p : path1)
     {
+        int q = f1.getTraversability(p.x(), p.z());
+        printf("traversability: (%d,%d) = %d, %d & 0x100 = %d\n", p.x(), p.z(), q, q, q & 0x100);
         if (p.is_checked_as_feasible())
             FAIL();
     }

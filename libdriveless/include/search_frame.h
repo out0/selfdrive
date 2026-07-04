@@ -132,6 +132,12 @@ public:
     /// @return
     bool isTraversable(int x, int z, angle a, bool precision_check);
 
+    /// @brief returns the traversability integer for angle bit check of (x,z)
+    /// @param x 
+    /// @param z 
+    /// @return 
+    int getTraversability(int x, int z);
+
     /// @brief Returns the pre-computed (using setGoal()) cost for pos x,z, given by its distance to the goal, multiplied by the class cost provided by function setClassCosts()
     /// @param x
     /// @param z

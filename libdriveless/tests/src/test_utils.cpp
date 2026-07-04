@@ -8,10 +8,12 @@
 
 #include "test_utils.h"
 
-bool _ASSERT_DEQ(double a, double b, int tolerance) {
+bool _ASSERT_DEQ(double a, double b, int tolerance)
+{
     double p = pow(10, -tolerance);
-    
-    if (abs(a - b) > p) {
+
+    if (abs(a - b) > p)
+    {
         printf("ASSERT_DEQ failed: %f != %f, tolerance: %f\n", a, b, p);
         return false;
     }
@@ -19,7 +21,8 @@ bool _ASSERT_DEQ(double a, double b, int tolerance) {
     return true;
 }
 
-void exportSearchFrameToFile(SearchFrame &f, const char *file) {
+void exportSearchFrameToFile(SearchFrame &f, const char *file)
+{
 
     int size = f.width() * f.height() * 3;
 
@@ -46,6 +49,68 @@ void exportSearchFrameToFile(SearchFrame &f, const char *file) {
     delete[] outp;
 }
 
+void export_safe_distance_frame_minimal_dist_flag(SearchFrame &f, const char *file, std::vector<Waypoint> &path)
+{
+    int size = f.width() * f.height() * 3;
+
+    uchar *outp = new uchar[size];
+    f.exportToColorFrame(outp);
+
+    // Convert RGB to BGR
+    int W = f.width();
+
+    for (int z = 0; z < f.height(); z++)
+    {
+        for (int x = 0; x < W; x++)
+        {
+            int pos = 3 * (z * W + x);
+            outp[pos] = 0;
+            outp[pos + 1] = 0;
+            outp[pos + 2] = 0;
+
+            if (f.isObstacle(x, z))
+            {
+                outp[pos] = 255;
+                outp[pos + 1] = 255;
+                outp[pos + 2] = 255;
+            }
+
+            if (f.isTraversable(x, z))
+            {
+                outp[pos] = 128;
+                outp[pos + 1] = 128;
+                outp[pos + 2] = 128;
+            }
+        }
+    }
+
+    for (auto p : path)
+    {
+        int x = p.x();
+        int z = p.z();
+        int pos = 3 * (z * W + x);
+        outp[pos] = 255;
+        outp[pos + 1] = 0;
+        outp[pos + 2] = 0;
+    }
+
+    cv::Mat rgb_image(f.width(), f.height(), CV_8UC3, outp);
+    cv::Mat bgr_image;
+    cv::cvtColor(rgb_image, bgr_image, cv::COLOR_RGB2BGR);
+
+    // Save to file
+    if (cv::imwrite(file, bgr_image))
+    {
+        std::cout << "Image saved successfully.\n";
+    }
+    else
+    {
+        std::cerr << "Failed to save image.\n";
+    }
+
+    // Clean up (if f was dynamically allocated)
+    delete[] outp;
+}
 
 std::vector<Waypoint> testInterpolateHermiteCurve(int width, int height, Waypoint p1, Waypoint p2)
 {

@@ -54,8 +54,6 @@ __device__ __host__ bool checkStateFeasible(float3 *searchFrame, int *params, fl
     const int lower_bound_ego_z = params[FRAME_PARAM_LOWER_BOUND_Z];
     const int upper_bound_ego_x = params[FRAME_PARAM_UPPER_BOUND_X];
     const int upper_bound_ego_z = params[FRAME_PARAM_UPPER_BOUND_Z];
-    // const int width = params[FRAME_PARAM_WIDTH];
-    // const int height = params[FRAME_PARAM_HEIGHT];
 
     int x = waypoints[current_pos_waypoints].x;
     int z = waypoints[current_pos_waypoints].y;
