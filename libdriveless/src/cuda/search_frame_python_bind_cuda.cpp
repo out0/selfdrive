@@ -95,10 +95,10 @@ extern "C"
     /// @param path
     /// @param computeHeadings should compute headings when calculating feasibility
     /// @return
-    bool check_feasible_path(void *self, float *path, int count, int minDistX, int minDistZ, bool feasibleInfoForAllPoints)
+    bool check_feasible_path(void *self, float *path, int count, int minDistX, int minDistZ)
     {
         SearchFrame *frame = (SearchFrame *)self;
-        return frame->checkFeasiblePath(path, count, minDistX, minDistZ, feasibleInfoForAllPoints);
+        return frame->checkFeasiblePath(path, count, minDistX, minDistZ);
     }
 
     int get_traversability(void *self, int x, int z)

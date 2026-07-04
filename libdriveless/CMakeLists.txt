@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.30)
 option(DRIVELESS_CUDA_ENABLED "true" ON)
 
 if(DRIVELESS_CUDA_ENABLED)
-    project(driveless LANGUAGES CXX CUDA VERSION 2.3.0 DESCRIPTION "libdriveless")
+    project(driveless LANGUAGES CXX CUDA VERSION 2.3.1 DESCRIPTION "libdriveless")
 else()
-    project(driveless LANGUAGES CXX VERSION 2.3.0 DESCRIPTION "libdriveless")
+    project(driveless LANGUAGES CXX VERSION 2.3.1 DESCRIPTION "libdriveless")
 endif()
 
 configure_file(
@@ -90,7 +90,6 @@ add_library(${PROJECT_NAME} SHARED
     src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu
     src/cpu_parallel_copy.cpp
-    src/cpu/search_frame_python_bind_cpu.cpp
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -138,7 +137,7 @@ add_library(${PROJECT_NAME} SHARED
     src/cpu/search_frame_cpu.cpp
     src/cpu/search_frame_color_cpu.cpp
     src/cpu/search_frame_pre_process_cpu.cpp
-    src/cpu/search_frame_python_bind_cpu.cpp
+    src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu
     #src/cuda/compute_heading.cu
 )

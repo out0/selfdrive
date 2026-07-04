@@ -159,8 +159,7 @@ class SearchFrame:
             np.ctypeslib.ndpointer(dtype=ctypes.c_float, ndim=1), #path
             ctypes.c_int,                   # count
             ctypes.c_int,                   # minDistX
-            ctypes.c_int,                   # minDistZ
-            ctypes.c_bool                   # copyback information on individual waypoint check 
+            ctypes.c_int                   # minDistZ
         ]        
         SearchFrame.lib.read_cell.restype = None
         SearchFrame.lib.read_cell.argtypes = [
@@ -339,8 +338,7 @@ class SearchFrame:
             f,
             size,
             min_distance[0],
-            min_distance[1],
-            individual_waypoint_check
+            min_distance[1]
         )
 
         if individual_waypoint_check:

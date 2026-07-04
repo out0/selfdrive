@@ -13,15 +13,15 @@ cpu:
 	cd build && make -j$(nproc)
 
 local: bin
-	cp build/libdriveless.so.2.3.0	./libdriveless.so
+	cp build/libdriveless.so.2.3.1	./libdriveless.so
 	rm -rf build
 
 cpu_install: cpu
 	cd build && sudo make install
 	mkdir -p python_bind/app/pydriveless/cpp/
 	mkdir -p ../FastRRT/python_bind/app/pyfastrrt/cpp/	
-	cp build/libdriveless.so.2.3.0	python_bind/app/pydriveless/cpp/libdriveless.so
-	cp build/libdriveless.so.2.3.0	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.1	python_bind/app/pydriveless/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.1	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
 	cd python_bind && pip3 install . --break-system-packages
 	cd python_bind && rm -rf build
 	cd python_bind && rm -rf dist	
@@ -32,8 +32,8 @@ install: bin
 	rm -rf python_bind/app/pydriveless/cpp
 	mkdir -p python_bind/app/pydriveless/cpp
 	mkdir -p ../FastRRT/python_bind/app/pyfastrrt/cpp/
-	cp build/libdriveless.so.2.3.0	python_bind/app/pydriveless/cpp/libdriveless.so
-	cp build/libdriveless.so.2.3.0	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.1	python_bind/app/pydriveless/cpp/libdriveless.so
+	cp build/libdriveless.so.2.3.1	../FastRRT/python_bind/app/pyfastrrt/cpp/libdriveless.so
 	cd python_bind && pip3 install . --break-system-packages
 	cd python_bind && rm -rf build
 	cd python_bind && rm -rf dist	
