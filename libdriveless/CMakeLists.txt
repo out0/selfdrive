@@ -80,16 +80,16 @@ add_library(${PROJECT_NAME} SHARED
     src/quaternion.cpp
     src/cuda_basic.cpp
     src/cpu_parallel_processor.cpp
+    src/search_frame_path_feasible.cpp
+    src/search_frame_path_heading.cpp
     src/cuda/cuda_frame.cu
-    src/cpu_parallel_copy.cpp
     src/cuda/quaternion.cu
     src/cuda/search_frame.cu
     src/cuda/search_frame_color.cu
     src/cuda/search_frame_pre_process.cu
-    src/cuda/search_frame_path_feasible.cu
     src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu
-    src/cuda/compute_heading.cu
+    src/cpu_parallel_copy.cpp
     src/cpu/search_frame_python_bind_cpu.cpp
 )
 
@@ -118,7 +118,6 @@ endif()
 else()
 set_source_files_properties(${PROJECT_NAME}
     src/cuda/collision_check.cu
-    src/cuda/compute_heading.cu
     src/quaternion.cpp 
     PROPERTIES LANGUAGE CXX)
 add_library(${PROJECT_NAME} SHARED
@@ -130,6 +129,8 @@ add_library(${PROJECT_NAME} SHARED
     src/coord_conversion.cpp
     src/interpolator.cpp
     src/search_params.cpp
+    src/search_frame_path_feasible.cpp
+    src/search_frame_path_heading.cpp
     src/cpu_parallel_processor.cpp
     src/cpu_parallel_copy.cpp  
     src/quaternion.cpp
@@ -137,10 +138,9 @@ add_library(${PROJECT_NAME} SHARED
     src/cpu/search_frame_cpu.cpp
     src/cpu/search_frame_color_cpu.cpp
     src/cpu/search_frame_pre_process_cpu.cpp
-    src/cpu/search_frame_path_feasible_cpu.cpp
     src/cpu/search_frame_python_bind_cpu.cpp
     src/cuda/collision_check.cu
-    src/cuda/compute_heading.cu
+    #src/cuda/compute_heading.cu
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

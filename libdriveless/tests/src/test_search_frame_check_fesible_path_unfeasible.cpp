@@ -24,7 +24,7 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_NoPreProcess_CPU)
     for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
         path.push_back(Waypoint(50, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -55,7 +55,7 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_PreProcessNoVectoriz
 
     f1.processSafeDistanceZone({10, 10}, false);
 
-    bool res = f1.checkFeasiblePath(path, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -86,7 +86,7 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_PreProcessWithVector
 
     f1.processSafeDistanceZone({10, 10}, true);
 
-    bool res = f1.checkFeasiblePath(path, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -115,7 +115,7 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_NoPreProcess_GPU)
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
         path.push_back(Waypoint(50, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -146,7 +146,7 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_PreProcessNoVectoriz
 
     f1.processSafeDistanceZone({10, 10}, false);
 
-    bool res = f1.checkFeasiblePath(path, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -177,7 +177,7 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_PreProcessWithVector
 
     f1.processSafeDistanceZone({10, 10}, true);
 
-    bool res = f1.checkFeasiblePath(path, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path, 10, 10);
 
     ASSERT_FALSE(res);
 

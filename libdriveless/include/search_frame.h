@@ -158,14 +158,14 @@ public:
     /// @param path
     /// @param computeHeadings should compute headings when calculating feasibility
     /// @return
-    bool checkFeasiblePath(float *points, int count, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility = false);
+    bool checkFeasiblePath(float *points, int count, int minDistX, int minDistZ);
 
     /// @brief Returns true if a path is feasible. Otherwise, returns false
     /// @param path
     /// @param minDistX
     /// @param minDistZ
     /// @return
-    bool checkFeasiblePath(std::vector<Waypoint> &path, int minDistX, int minDistZ, bool informWaypointIndividualFeasibility = false);
+    bool checkFeasiblePath(std::vector<Waypoint> *path, int minDistX, int minDistZ);
 
     /// @brief Sets moving obstacles
     /// @param obstacles
@@ -223,7 +223,7 @@ public:
     /// @param v3 third channel value
     void setValues(int x, int z, float v1, float v2, float v3);
 
-    static bool computePathHeadings(int width, int height, std::vector<Waypoint> &waypoints);
+    bool computePathHeadings(std::vector<Waypoint> path);
 
     /// @brief Computes the distance between every pixel in the search frame and an arbitrary (x, z) position
     /// @param x

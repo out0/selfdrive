@@ -40,13 +40,13 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_NoPreProcess_CPU)
     for (int i = 99; i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path1, 10, 10);
 
     std::vector<Waypoint> path2;
     for (int i = 99; i >= 0; i--)
-        path2.push_back(Waypoint(36, i, angle::rad(0)));
+        path2.push_back(Waypoint(40, i, angle::rad(0)));
 
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+    bool res2 = f1.checkFeasiblePath(&path2, 10, 10);
 
     
     f1.processSafeDistanceZone({10, 10}, false);
@@ -99,13 +99,13 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_PreProcessNoVectorized_CP
     for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path1, 10, 10);
 
     std::vector<Waypoint> path2;
     for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
-        path2.push_back(Waypoint(36, i, angle::rad(0)));
+        path2.push_back(Waypoint(40, i, angle::rad(0)));
 
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+    bool res2 = f1.checkFeasiblePath(&path2, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -153,13 +153,13 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_PreProcessWithVectorized_
     for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path1, 10, 10);
 
     std::vector<Waypoint> path2;
     for (int i = (PATH_FEASIBLE_CPU_THRESHOLD - 1); i >= 0; i--)
-        path2.push_back(Waypoint(36, i, angle::rad(0)));
+        path2.push_back(Waypoint(40, i, angle::rad(0)));
 
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+    bool res2 = f1.checkFeasiblePath(&path2, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -205,13 +205,13 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_NoPreProcess_GPU)
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path1, 10, 10);
 
     std::vector<Waypoint> path2;
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
-        path2.push_back(Waypoint(36, i, angle::rad(0)));
+        path2.push_back(Waypoint(40, i, angle::rad(0)));
 
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+    bool res2 = f1.checkFeasiblePath(&path2, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -258,13 +258,13 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_PreProcessNoVectorized_GP
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path1, 10, 10);
 
     std::vector<Waypoint> path2;
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
-        path2.push_back(Waypoint(36, i, angle::rad(0)));
+        path2.push_back(Waypoint(40, i, angle::rad(0)));
 
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+    bool res2 = f1.checkFeasiblePath(&path2, 10, 10);
 
     ASSERT_FALSE(res);
 
@@ -311,13 +311,13 @@ TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Angle_PreProcessWithVectorized_
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
         path1.push_back(Waypoint(34, i, angle::rad(0)));
 
-    bool res = f1.checkFeasiblePath(path1, 10, 10, true);
+    bool res = f1.checkFeasiblePath(&path1, 10, 10);
 
     std::vector<Waypoint> path2;
     for (int i = 2 * PATH_FEASIBLE_CPU_THRESHOLD; i >= 0; i--)
-        path2.push_back(Waypoint(36, i, angle::rad(0)));
+        path2.push_back(Waypoint(40, i, angle::rad(0)));
 
-    bool res2 = f1.checkFeasiblePath(path2, 10, 10, true);
+    bool res2 = f1.checkFeasiblePath(&path2, 10, 10);
 
     ASSERT_FALSE(res);
 
