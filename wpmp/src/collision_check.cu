@@ -6,7 +6,7 @@ __device__ __host__ bool is_feasible_for_all_angles(float3 *frame, long pos)
     return TO_INT(frame[pos].z) & 256 > 0;
 }
 
-__device__ __host__ bool collision_check(float3 *frame, int *params, float *classCost, int2 min_distance, int x, int z, float angle_radians)
+__device__ __host__ float traversability_cost(float3 *frame, int *params, float *classCost, int2 min_distance, int x, int z, float angle_radians)
 {
     const int width = params[FRAME_PARAM_WIDTH];
     const int height = params[FRAME_PARAM_HEIGHT];
@@ -17,7 +17,10 @@ __device__ __host__ bool collision_check(float3 *frame, int *params, float *clas
     if (pre_process_collision_dist)
     {
         if (is_feasible_for_all_angles(frame, pos))
-            return true;
+        {
+            int segmentation_class = TO_INT(frame[COMPUTE_POS(width, x, z)].x);
+            return classCost[segmentation_class];
+        }
     }
 
     const int lower_bound_ego_x = params[FRAME_PARAM_LOWER_BOUND_X];
@@ -44,10 +47,11 @@ __device__ __host__ bool collision_check(float3 *frame, int *params, float *clas
                 continue;
 
             int segmentation_class = TO_INT(frame[COMPUTE_POS(width, xl, zl)].x);
-
-            if (classCost[segmentation_class] < 0)
-                return false;
+            float cost = classCost[segmentation_class];
+            if (cost < 0)
+                return -1;
         }
 
-    return true;
+    int segmentation_class = TO_INT(frame[COMPUTE_POS(width, x, z)].x);
+    return classCost[segmentation_class];
 }

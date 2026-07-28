@@ -7,6 +7,16 @@ WGraph::WGraph(int width, int height)
     _node_data = std::make_unique<Frame<float4>>(width, height);
     _graph_size = _node_conf->width() * _node_conf->height();
     _class_costs = nullptr;
+
+    #ifdef DRIVELESS_CUDA_ENABLED
+    _search_space_params = std::make_unique<CudaPtr<int>>(20);
+    _search_space_params->get()[FRAME_PARAM_WIDTH] = width;
+    _search_space_params->get()[FRAME_PARAM_HEIGHT] = height;
+#else
+    _search_space_params = std::make_unique<int[]>(20);
+    _search_space_params.get()[FRAME_PARAM_WIDTH] = width;
+    _search_space_params.get()[FRAME_PARAM_HEIGHT] = height;
+#endif
 }
 
 void WGraph::clear()
@@ -38,7 +48,6 @@ void WGraph::set_search_params(
     int2 upper_bound)
 {
 #ifdef DRIVELESS_CUDA_ENABLED
-    _search_space_params = std::make_unique<CudaPtr<int>>(20);
     _search_space_params->get()[FRAME_PARAM_MIN_DIST_X] = TO_INT((float)min_distance_in_px.x / 2);
     _search_space_params->get()[FRAME_PARAM_MIN_DIST_Z] = TO_INT((float)min_distance_in_px.y / 2);
     _search_space_params->get()[FRAME_PARAM_LOWER_BOUND_X] = lower_bound.x;
@@ -46,7 +55,6 @@ void WGraph::set_search_params(
     _search_space_params->get()[FRAME_PARAM_UPPER_BOUND_X] = upper_bound.x;
     _search_space_params->get()[FRAME_PARAM_UPPER_BOUND_Z] = upper_bound.y;
 #else
-    _search_space_params = std::make_unique<int[]>(20);
     _search_space_params.get()[FRAME_PARAM_MIN_DIST_X] = TO_INT((float)min_distance_in_px.x / 2);
     _search_space_params.get()[FRAME_PARAM_MIN_DIST_Z] = TO_INT((float)min_distance_in_px.y / 2);
     _search_space_params.get()[FRAME_PARAM_LOWER_BOUND_X] = lower_bound.x;

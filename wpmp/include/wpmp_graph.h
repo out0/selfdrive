@@ -50,7 +50,7 @@ public:
 
     void set_frame_class_costs(std::vector<float> costs);
 
-    void compute_goal_wave(float3 *frame, Waypoint &goal);
+    void compute_goal_wave(SearchFrame *frame, Waypoint &goal);
 
     inline std::shared_ptr<Frame<int4>> get_node_conf()
     {

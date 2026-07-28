@@ -14,7 +14,7 @@ typedef struct hermite_check_conf
 extern __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
                                                float wheelbase, float delta_max_rad, interpolation_callback cb, void *result_ptr);
 
-extern __device__ __host__ bool collision_check(float3 *frame, int *params, float *classCost, int2 min_distance, int x, int z, float angle_radians);
+extern __device__ __host__ float traversability_cost(float3 *frame, int *params, float *classCost, int2 min_distance, int x, int z, float angle_radians);
 
 __device__ __host__ float hermite_connection_check(void *ptr, int x, int z, float heading)
 {
@@ -23,12 +23,15 @@ __device__ __host__ float hermite_connection_check(void *ptr, int x, int z, floa
     int *params = conf->params;
     float *class_costs = conf->classCost;
     int2 min_distances = conf->min_distance;
-    const int width = params[FRAME_PARAM_WIDTH];
+    //const int width = params[FRAME_PARAM_WIDTH];
 
-    if (!collision_check(frame, params, class_costs, min_distances, x, z, heading))
-        return -1;
+    return traversability_cost(frame, params, class_costs, min_distances, x, z, heading);
+    // if (cost < 0)
+    //     return -1;
 
-    return frame[COMPUTE_POS(width, x, z)].y;
+    //printf("(%d, %d) is valid with heading: %f deg;\n", x, z, (heading*180)/PI);
+
+    // return frame[COMPUTE_POS(width, x, z)].y;
 };
 
 __device__ __host__ float compute_heading(int x, int z, float3 p2)
@@ -50,7 +53,6 @@ __device__ __host__ float compute_heading(int x, int z, float3 p2)
 
 __device__ __host__ void to_goal_wave(float3 *frame, int *params, float *class_costs, int pos, float3 goal, float wheelbase, float delta_max_rad, int4 *node_conf, float4 *node_data)
 {
-
     const int2 frame_dim = {params[FRAME_PARAM_WIDTH], params[FRAME_PARAM_HEIGHT]};
     int2 min_distances = {params[FRAME_PARAM_MIN_DIST_X], params[FRAME_PARAM_MIN_DIST_Z]};
 
@@ -68,6 +70,8 @@ __device__ __host__ void to_goal_wave(float3 *frame, int *params, float *class_c
     SET_NODE_COST_TO_GOAL(node_data, pos, cost);
     
     if (cost < 0) return;
+
+    //printf("valid cost @ pos= %d: %f\n", pos, cost);
 
     if (is_node)
         SET_NODE_TYPE(node_conf, pos, NODE_TYPE_GRAPH_CONNECTED_TO_GOAL);

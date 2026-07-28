@@ -42,7 +42,7 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
 
     int maxPoints = 2 * TO_INT(d);
     if (maxPoints < 2)
-        return false;
+        return -1;
 
     int last_x = -1;
     int last_z = -1;
@@ -86,7 +86,7 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
         float denom = powf(xp*xp + zp*zp, 1.5f);
         float kappa = (denom > 1e-6f) ? fabsf(xp*zpp - zp*xpp) / denom : 0.0f;
         if (kappa > kappa_max)
-            return false;
+            return -1;
 
         if (x < 0 || x >= plane_width || z < 0 || z >= plane_height)
             continue;
@@ -101,13 +101,13 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
         float point_cost = cb(result_ptr, cx, cz, heading);
 
         if (point_cost < 0)
-            return false;
+            return -1;
 
         last_x = cx;
         last_z = cz;
         curve_cost += point_cost;
     }
 
-    return true;
+    return curve_cost;
 }
 

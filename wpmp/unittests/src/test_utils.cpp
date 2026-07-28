@@ -59,7 +59,7 @@ SearchFrame *createEmptySearchFrame(
     std::pair<int, int> upper_bound)
 {
     SearchFrame *f = new SearchFrame(width, height, lower_bound, upper_bound);
-    f->setClassCosts({0, -1});
+    f->setClassCosts({1, -1});
     f->setClassColors({{0, 0, 0},
                        {255, 255, 255}});
 
@@ -71,7 +71,6 @@ SearchFrame *createEmptySearchFrame(
     delete[] ptr;
     return f;
 }
-
 
 void assertInt2Equal(int2 a, int2 b)
 {
@@ -118,24 +117,20 @@ cv::Mat exportGraph(SearchFrame *frame, WGraph *graph, const std::string &file)
 
             int type = NODE_TYPE(frame_conf->getPtr(), pos);
 
-            if (type == NODE_TYPE_GRAPH_CONNECTED_TO_GOAL)
+            cv::Vec3b &pixel = cimg.at<cv::Vec3b>(h, w);
+
+            switch (type)
             {
-
-                cv::Vec3b &pixel = cimg.at<cv::Vec3b>(h, w);
-
-                switch (type)
-                {
-                case NODE_TYPE_NULL_CONNECTED_TO_GOAL:
-                    pixel[0] = 0;
-                    pixel[1] = 255;
-                    pixel[2] = 0;
-                    break;
-                case NODE_TYPE_GRAPH_CONNECTED_TO_GOAL:
-                    pixel[0] = 0;
-                    pixel[1] = 0;
-                    pixel[2] = 255;
-                    break;
-                }
+            case NODE_TYPE_NULL_CONNECTED_TO_GOAL:
+                pixel[0] = 0;
+                pixel[1] = 255;
+                pixel[2] = 0;
+                break;
+            case NODE_TYPE_GRAPH_CONNECTED_TO_GOAL:
+                pixel[0] = 0;
+                pixel[1] = 0;
+                pixel[2] = 255;
+                break;
             }
         }
     if (!file.empty())

@@ -18,7 +18,7 @@ TEST(TestWGraph, GoalWaveClear)
 
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
-        {0},
+        {1},
         {1},
         {2},
         {3},
@@ -35,13 +35,18 @@ TEST(TestWGraph, GoalWaveClear)
         {255, 255, 255}
     });
 
-    graph.set_physical_params(800, 800, maxSteering, 5.412658773);
+    graph.set_physical_params(800, 800, maxSteering, 15.412658773);
     graph.set_search_params({0, 0}, {-1, -1}, {-1, -1});
     graph.set_frame_class_costs(costs);
 
     Waypoint goal(400, 0, angle::rad(0));
 
-    graph.compute_goal_wave(frame->getPtr(), goal);
+
+    printf("processing safe distance check\n");
+    frame->processSafeDistanceZone({10, 10}, false);
+
+    printf("computing goal wave\n");
+    graph.compute_goal_wave(frame, goal);
 
     exportGraph(frame, &graph, "output.png");
 
