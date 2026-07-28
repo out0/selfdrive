@@ -6,11 +6,17 @@
 __global__ static void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, int width, int height, uchar3 *classColors, int classCount);
 
 void SearchFrame::setClassColors(std::vector<std::tuple<int, int, int>> colors)
-{   
+{
+    if (_classCount > 0 && colors.size() != _classCount)
+    {
+        throw std::invalid_argument("invalid number of classed on setClassColors(). Expected: " + std::to_string(_classCount) + " obtained: " + std::to_string(colors.size()));
+    }
+
     if (colors.size() == 0)
         return;
 
-    if (_classCount > 0 && colors.size() != _classCount) {
+    if (_classCount > 0 && colors.size() != _classCount)
+    {
         throw std::invalid_argument("invalid number of classed on setClassColors(). Expected: " + std::to_string(_classCount) + " obtained: " + std::to_string(colors.size()));
     }
 
@@ -41,13 +47,14 @@ bool SearchFrame::exportToColorFrame(uchar *dest)
 
     CUDA(cudaDeviceSynchronize());
 
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         long pos = 3 * i;
         dest[pos] = resultImgPtr[i].x;
-        dest[pos+1] = resultImgPtr[i].y;
-        dest[pos+2] = resultImgPtr[i].z;
+        dest[pos + 1] = resultImgPtr[i].y;
+        dest[pos + 2] = resultImgPtr[i].z;
     }
-    
+
     cudaFreeHost(resultImgPtr);
     return true;
 }

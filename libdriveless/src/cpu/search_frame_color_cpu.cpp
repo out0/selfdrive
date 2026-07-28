@@ -6,11 +6,17 @@
 extern void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, int width, int height, uchar3 *classColors, int classCount);
 
 void SearchFrame::setClassColors(std::vector<std::tuple<int, int, int>> colors)
-{   
+{
+    if (_classCount > 0 && colors.size() != _classCount)
+    {
+        throw std::invalid_argument("invalid number of classed on setClassColors(). Expected: " + std::to_string(_classCount) + " obtained: " + std::to_string(colors.size()));
+    }
+
     if (colors.size() == 0)
         return;
 
-    if (_classCount > 0 && colors.size() != _classCount) {
+    if (_classCount > 0 && colors.size() != _classCount)
+    {
         throw std::invalid_argument("invalid number of classed on setClassColors(). Expected: " + std::to_string(_classCount) + " obtained: " + std::to_string(colors.size()));
     }
 
@@ -38,7 +44,7 @@ public:
         : ParallelProcessor(numThreadHandlers, width, width)
     {
         this->_frame = frame;
-        this->_output = output; 
+        this->_output = output;
         this->_maxId = width * height;
         this->_classColors = classColors;
         this->_classCount = classCount;
@@ -51,16 +57,14 @@ public:
 
         int pos = threadId;
         int segClass = _frame[pos].x;
-        if (segClass < 0 || segClass >= _classCount) return;
+        if (segClass < 0 || segClass >= _classCount)
+            return;
 
         _output[pos].x = _classColors[segClass].x;
         _output[pos].y = _classColors[segClass].y;
         _output[pos].z = _classColors[segClass].z;
     }
-
-
 };
-
 
 bool SearchFrame::exportToColorFrame(uchar *dest)
 {
@@ -68,20 +72,19 @@ bool SearchFrame::exportToColorFrame(uchar *dest)
         return false;
 
     int size = width() * height();
-    uchar3 * ptr = new uchar3[size];
-
+    uchar3 *ptr = new uchar3[size];
 
     ParallelColorExport(getPtr(), ptr, width(), height(), _classColors.get(), _classCount, _numCPUThreadHandlers).runAndWait();
 
-    ///TODO dest podia fazer parte de ParallelColorExport
-    for (int i = 0; i < size; i++) {
+    /// TODO dest podia fazer parte de ParallelColorExport
+    for (int i = 0; i < size; i++)
+    {
         long pos = 3 * i;
         dest[pos] = ptr[i].x;
-        dest[pos+1] = ptr[i].y;
-        dest[pos+2] = ptr[i].z;
+        dest[pos + 1] = ptr[i].y;
+        dest[pos + 2] = ptr[i].z;
     }
-    
-    delete []ptr;
+
+    delete[] ptr;
     return true;
 }
-

@@ -212,7 +212,7 @@ private:
 
 public:
     DistanceToGoalProcessor(float3 *frame, float *classCosts,
-                            int *searchSpaceParams, int goal_x, int goal_z, int numThreadHandlers = 12) : ParallelProcessor(numThreadHandlers, _searchSpaceParams[FRAME_PARAM_HEIGHT], _searchSpaceParams[FRAME_PARAM_WIDTH]),
+                            int *searchSpaceParams, int goal_x, int goal_z, int numThreadHandlers = 12) : ParallelProcessor(numThreadHandlers, searchSpaceParams[FRAME_PARAM_HEIGHT], searchSpaceParams[FRAME_PARAM_WIDTH]),
                                                                                                           _frame(frame), _classCosts(classCosts), _searchSpaceParams(searchSpaceParams), _goal_x(goal_x), _goal_z(goal_z)
     {
         _maxId = _searchSpaceParams[FRAME_PARAM_HEIGHT] * _searchSpaceParams[FRAME_PARAM_WIDTH];

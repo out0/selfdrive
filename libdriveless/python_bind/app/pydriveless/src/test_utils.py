@@ -4,7 +4,6 @@ from .world_pose import WorldPose
 from .map_pose import MapPose
 from .search_params import EgoParams, SearchParams
 from . search_frame import SearchFrame
-from .search_frame_cpu import SearchFrameCPU
 import time
 import json, numpy as np
 import os, cv2, math
@@ -188,13 +187,6 @@ class TestUtils:
 
     def build_cuda_frame(conf: TestConfig) -> SearchFrame:
         f = SearchFrame(conf.raw_frame.shape[1], conf.raw_frame.shape[0], conf.lower_bound, conf.upper_bound)
-        f.set_frame_data(conf.raw_frame)
-        f.set_class_costs(np.array(conf.segmentation_costs, dtype=np.float32))
-        f.set_class_colors(np.array(conf.segmentation_colors, dtype=np.int32))
-        return f
-        
-    def build_cpu_frame(conf: TestConfig) -> SearchFrameCPU:
-        f = SearchFrameCPU(conf.raw_frame.shape[1], conf.raw_frame.shape[0], conf.lower_bound, conf.upper_bound)
         f.set_frame_data(conf.raw_frame)
         f.set_class_costs(np.array(conf.segmentation_costs, dtype=np.float32))
         f.set_class_colors(np.array(conf.segmentation_colors, dtype=np.int32))

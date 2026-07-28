@@ -72,13 +72,6 @@ void SearchFrame::copyTo(float *ptr)
 
 void SearchFrame::setClassCosts(std::vector<float> classCosts)
 {
-    if (_classCount > 0 && classCosts.size() != _classCount)
-    {
-        throw std::invalid_argument("invalid number of classed on setClassCosts(). Expected: " + std::to_string(_classCount) + " obtained: " + std::to_string(classCosts.size()));
-    }
-
-    // TO DO: add a verification of class codes to see if they match the class count.
-
     _classCount = classCosts.size();
     _classCosts = std::make_unique<float[]>(_classCount);
 
@@ -88,6 +81,20 @@ void SearchFrame::setClassCosts(std::vector<float> classCosts)
         _classCosts.get()[i] = val;
         i++;
     }
+}
+
+std::vector<float> SearchFrame::getClassCosts() {
+    std::vector<float> res;
+    
+    if (_classCount == 0)
+        return res;
+
+    res.reserve(_classCount);
+    
+    for (int i = 0; i < _classCount; i++) {
+        res.push_back(_classCosts[i]);
+    }
+    return res;
 }
 
 float SearchFrame::getClassCost(unsigned int classId)

@@ -104,6 +104,10 @@ public:
     /// @return
     float getClassCost(unsigned int classId);
 
+    /// @brief Returns the list of all class costs previosly set
+    /// @return 
+    std::vector<float> getClassCosts();
+
     /// @brief Returns the cost associated with a segmentation class by setClassCosts()
     /// @param x
     /// @param z
