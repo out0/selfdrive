@@ -68,6 +68,7 @@ if(DRIVELESS_CUDA_ENABLED)
 set_source_files_properties(
     src/quaternion.cpp
     PROPERTIES LANGUAGE CUDA)
+
 add_library(${PROJECT_NAME} SHARED
     src/angle.cpp
     src/map_pose.cpp
@@ -90,6 +91,8 @@ add_library(${PROJECT_NAME} SHARED
     src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu
     src/cpu_parallel_copy.cpp
+    src/cuda/search_zone_cuda.cu
+    src/cuda/search_zone_obstacle_count.cu
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -118,6 +121,7 @@ else()
 set_source_files_properties(${PROJECT_NAME}
     src/cuda/collision_check.cu
     src/quaternion.cpp 
+    src/cuda/search_zone_obstacle_count.cu
     PROPERTIES LANGUAGE CXX)
 add_library(${PROJECT_NAME} SHARED
     src/angle.cpp
@@ -138,7 +142,10 @@ add_library(${PROJECT_NAME} SHARED
     src/cpu/search_frame_color_cpu.cpp
     src/cpu/search_frame_pre_process_cpu.cpp
     src/cuda/search_frame_python_bind_cuda.cpp
-    src/cuda/collision_check.cu
+    src/cuda/collision_check.cu   
+    src/cpu/search_zone_cpu.cpp
+    src/cuda/search_zone_obstacle_count.cu
+
     #src/cuda/compute_heading.cu
 )
 

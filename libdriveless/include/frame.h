@@ -21,6 +21,7 @@ extern void CUDA_clear(int3 *frame, int width, int height);
 extern void CUDA_clear(double2 *frame, int width, int height);
 extern void CUDA_clear(float2 *frame, int width, int height);
 extern void CUDA_clear(int2 *frame, int width, int height);
+extern void CUDA_clear(uint2 *frame, int width, int height);
 extern void CUDA_clear(double *frame, int width, int height);
 extern void CUDA_clear(float *frame, int width, int height);
 extern void CUDA_clear(int *frame, int width, int height);

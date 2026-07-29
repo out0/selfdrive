@@ -5,7 +5,12 @@
 extern __global__ void __CUDA_SetGoal(float3 *frame, float *classCosts, int *_searchSpaceParams, int half_minDist_px, int goal_x, int goal_z);
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 
-SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound, int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), _numCPUThreadHandlers(numCPUThreadHandlers)
+SearchFrame::SearchFrame(
+    int width, int height, 
+    std::pair<int, int> lowerBound, 
+    std::pair<int, int> upperBound, 
+    std::pair<int, int> searchZoneDim, 
+    int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), _numCPUThreadHandlers(numCPUThreadHandlers), _searchZoneDim(searchZoneDim)
 {
     // _classColors = nullptr;
     // _classCosts = nullptr;
@@ -34,6 +39,8 @@ SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, 
 SearchFrame::~SearchFrame()
 {
 }
+
+
 
 void SearchFrame::clear()
 {

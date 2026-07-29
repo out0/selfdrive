@@ -239,6 +239,12 @@ typedef struct int2 {
     int x;
     int y;
 } int2;
+
+typedef struct uint2 {
+    unsigned int x;
+    unsigned int y;
+} uint2;
+
 typedef struct float2 {
     float x;
     float y;

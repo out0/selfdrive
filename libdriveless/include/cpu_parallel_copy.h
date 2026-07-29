@@ -16,6 +16,7 @@ extern void copy_data(float *ptr, int3 *dest, long pos);
 extern void copy_data(float *ptr, float2 *dest, long pos);
 extern void copy_data(float *ptr, double2 *dest, long pos);
 extern void copy_data(float *ptr, int2 *dest, long pos);
+extern void copy_data(float *ptr, uint2 *dest, long pos);
 extern void copy_data(float *ptr, float *dest, long pos);
 extern void copy_data(float *ptr, double *dest, long pos);
 extern void copy_data(float *ptr, int *dest, long pos);

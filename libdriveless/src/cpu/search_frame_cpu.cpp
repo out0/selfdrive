@@ -3,11 +3,17 @@
 
 extern __device__ __host__ bool __computeFeasibleForAngle(float3 *frame, int *params, float *classCost, int minDistX, int minDistZ, int x, int z, float angle_radians);
 extern std::pair<int, int> __checkTraversableAngleBitPairCheck(float heading_rad);
-inline bool check_bit (int traversability, int bit) {
+inline bool check_bit(int traversability, int bit)
+{
     return traversability & bit > 0;
 }
 
-SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound, int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), _numCPUThreadHandlers(numCPUThreadHandlers)
+SearchFrame::SearchFrame(
+    int width, int height,
+    std::pair<int, int> lowerBound,
+    std::pair<int, int> upperBound,
+    std::pair<int, int> searchZoneDim,
+    int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), _numCPUThreadHandlers(numCPUThreadHandlers), _searchZoneDim(searchZoneDim)
 {
     // _classColors = nullptr;
     // _classCosts = nullptr;
@@ -17,7 +23,7 @@ SearchFrame::SearchFrame(int width, int height, std::pair<int, int> lowerBound, 
     _safeZoneChecked = false;
     _safeZoneVectorialChecked = false;
     _distanceToGoalProcessed = false;
- 
+
     _params = std::make_unique<int[]>(11);
     _bestValue = 0;
 
@@ -79,20 +85,22 @@ void SearchFrame::setClassCosts(std::vector<float> classCosts)
     for (auto val : classCosts)
     {
         _classCosts.get()[i] = val;
-        printf ("_classCosts = %f\n", _classCosts.get()[i]);
+        printf("_classCosts = %f\n", _classCosts.get()[i]);
         i++;
     }
 }
 
-std::vector<float> SearchFrame::getClassCosts() {
+std::vector<float> SearchFrame::getClassCosts()
+{
     std::vector<float> res;
-    
+
     if (_classCount == 0)
         return res;
 
     res.reserve(_classCount);
-    
-    for (int i = 0; i < _classCount; i++) {
+
+    for (int i = 0; i < _classCount; i++)
+    {
         res.push_back(_classCosts[i]);
     }
     return res;
@@ -134,27 +142,29 @@ bool SearchFrame::isTraversable(int x, int z)
     return (traversability & 0x100) > 0;
 }
 
-
-
-int SearchFrame::getTraversability(int x, int z) {
+int SearchFrame::getTraversability(int x, int z)
+{
     return static_cast<int>(at({x, z}).z);
 }
 
 bool SearchFrame::isTraversable(int x, int z, angle heading, bool precision_check)
 {
 
-    if (_safeZoneChecked || _safeZoneVectorialChecked) {
+    if (_safeZoneChecked || _safeZoneVectorialChecked)
+    {
         int traversability = static_cast<int>(at({x, z}).z);
 
         // all angle traversable bit
-        if (check_bit(traversability, 0x100)) return true;
+        if (check_bit(traversability, 0x100))
+            return true;
 
-        if (_safeZoneVectorialChecked) {
+        if (_safeZoneVectorialChecked)
+        {
             auto pair = __checkTraversableAngleBitPairCheck(heading.rad());
 
             if (pair.second == -1)
                 return check_bit(traversability, pair.first);
-            
+
             if (!precision_check)
                 return check_bit(traversability, pair.first) && check_bit(traversability, pair.second);
         }
@@ -178,6 +188,6 @@ double SearchFrame::computeVehicleLength(double perceptionHeightSize_m)
     return 0.5 * perceptionHeightSize_m * dz / height();
 }
 
-void SearchFrame::setValues(int x, int z, float v1, float v2, float v3) {
-    
+void SearchFrame::setValues(int x, int z, float v1, float v2, float v3)
+{
 }

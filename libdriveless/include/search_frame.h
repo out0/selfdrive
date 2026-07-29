@@ -21,15 +21,19 @@ typedef unsigned char uchar;
 class SearchFrame : public Frame<float3>
 {
 private:
+
+std::unique_ptr<Frame<uint2>> _search_zone_info;
 #ifdef DRIVELESS_CUDA_ENABLED
     cptr<int> _params;
     cptr<uchar3> _classColors;
     cptr<float> _classCosts;
     cptr<int> _bestValue;
+    //cptr<float2> _search_zone_info;
 #else
     std::unique_ptr<int[]> _params;
     std::unique_ptr<uchar3[]> _classColors;
     std::unique_ptr<float[]> _classCosts;
+    
     int _bestValue;
 #endif
     int _classCount;
@@ -39,17 +43,27 @@ private:
     int _numCPUThreadHandlers;
     std::pair<int, int> checkTraversableAngleBitPairCheck(float heading_rad);
 
+    std::pair<int, int> _searchZoneDim;
     // std::vector<bool> checkFeasiblePathCPU(std::vector<Waypoint> path, bool computeHeadings);
     // std::vector<bool> checkFeasiblePathGPU(std::vector<Waypoint> path, bool computeHeadings);
 
+    void initialize_search_zones();   
+
 public:
-    SearchFrame(int width, int height, std::pair<int, int> lowerBound, std::pair<int, int> upperBound, int numCPUThreadHandlers = 12);
+    SearchFrame(int width, int height, 
+        std::pair<int, int> lowerBound, 
+        std::pair<int, int> upperBound, 
+        std::pair<int, int> searchZoneDim = {32, 32},
+        int numCPUThreadHandlers = 12);
     ~SearchFrame();
 
     void clear() override;
 
     void copyFrom(float *ptr) override;
     void copyTo(float *ptr);
+
+    void pre_compute_search_zones();   
+
 
     inline bool isSafeZoneChecked()
     {

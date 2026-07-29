@@ -63,6 +63,12 @@ void copy_data(float *ptr, int2 *dest, long pos)
     dest[pos].x = static_cast<int>(ptr[posPtr]);
     dest[pos].y = static_cast<int>(ptr[posPtr + 1]);
 }
+void copy_data(float *ptr, uint2 *dest, long pos)
+{
+    long posPtr = 2 * pos;
+    dest[pos].x = static_cast<unsigned int>(ptr[posPtr]);
+    dest[pos].y = static_cast<unsigned int>(ptr[posPtr + 1]);
+}
 void copy_data(float *ptr, float *dest, long pos)
 {
     long posPtr = 2 * pos;
