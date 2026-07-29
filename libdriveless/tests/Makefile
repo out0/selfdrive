@@ -16,7 +16,11 @@ cpu:
 	mv build/unittest .
 	rm -rf build
 
-test: bin
+test: cuda
+	./unittest
+	rm unittest
+
+cputest: cpu
 	./unittest
 	rm unittest
 

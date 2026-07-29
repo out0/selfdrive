@@ -89,9 +89,12 @@ def execute_tests() -> bool:
     cpp_tests = exec("make test")
     if not cpp_tests:
         return False
-    # if not prepare_system_lib():
-    #     return False
-    
+
+    cpu_cpp_tests = exec("make cputest")
+    if not cpu_cpp_tests:
+        return False
+
+
     if not EXECUTE_PYTHON_TESTS:
         return True
     
