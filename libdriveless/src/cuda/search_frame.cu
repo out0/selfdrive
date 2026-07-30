@@ -171,7 +171,7 @@ bool SearchFrame::isTraversable(int x, int z, angle heading, bool precision_chec
     int min_dist_x = _params->get()[FRAME_PARAM_MIN_DIST_X];
     int min_dist_z = _params->get()[FRAME_PARAM_MIN_DIST_Z];
 
-    return __computeFeasibleForAngle(getPtr(), getFrameParamsPtr(), getCudaClassCostsPtr(), min_dist_x, min_dist_z, x, z, heading.rad());
+    return __computeFeasibleForAngle(getPtr(), getFrameParamsPtr(), getClassCostsPtr(), min_dist_x, min_dist_z, x, z, heading.rad());
 }
 
 double SearchFrame::getCost(int x, int z)
@@ -186,6 +186,3 @@ double SearchFrame::computeVehicleLength(double perceptionHeightSize_m)
     return 0.5 * perceptionHeightSize_m * dz / height();
 }
 
-void SearchFrame::setValues(int x, int z, float v1, float v2, float v3) {
-    
-}

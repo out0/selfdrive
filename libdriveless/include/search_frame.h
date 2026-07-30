@@ -9,8 +9,6 @@
 #include "waypoint.h"
 #include "moving_obstacle.h"
 
-// CODE:BEGIN
-
 #include <vector>
 #include <memory>
 typedef unsigned char uchar;
@@ -27,7 +25,6 @@ private:
     cptr<uchar3> _classColors;
     cptr<float> _classCosts;
     cptr<int> _bestValue;
-    // cptr<float2> _search_zone_info;
 #else
     std::unique_ptr<int[]> _params;
     std::unique_ptr<uchar3[]> _classColors;
@@ -52,7 +49,7 @@ public:
     SearchFrame(int width, int height,
                 std::pair<int, int> lowerBound,
                 std::pair<int, int> upperBound,
-                std::pair<int, int> searchZoneDim = {32, 32},
+                std::pair<int, int> searchZoneDim = {-1, -1},
                 int numCPUThreadHandlers = 12);
     ~SearchFrame();
 
@@ -60,8 +57,6 @@ public:
 
     void copyFrom(float *ptr) override;
     void copyTo(float *ptr);
-
-    void pre_compute_search_zones();
 
     inline bool isSafeZoneChecked()
     {
@@ -75,11 +70,9 @@ public:
     {
         return _distanceToGoalProcessed;
     }
-    // inline std::pair<int, int> minDistance()
-    // {
-    //     return {_params[FRAME_PARAM_MIN_DIST_X], _params[FRAME_PARAM_MIN_DIST_Z]};
-    // }
 
+    /// @brief EGO lower bound (pixel position in the search frame), to be ignored from collision checking
+    /// @return 
     inline std::pair<int, int> lowerBound()
     {
 #ifdef DRIVELESS_CUDA_ENABLED
@@ -89,6 +82,8 @@ public:
 #endif
     }
 
+    /// @brief EGO upper bound (pixel position in the search frame), to be ignored from collision checking
+    /// @return 
     inline std::pair<int, int> upperBound()
     {
 #ifdef DRIVELESS_CUDA_ENABLED
@@ -96,6 +91,13 @@ public:
 #else
         return {_params.get()[FRAME_PARAM_UPPER_BOUND_X], _params.get()[FRAME_PARAM_UPPER_BOUND_Z]};
 #endif
+    }
+
+    /// @brief Search zones dimension
+    /// @return 
+    inline std::pair<int, int> searchZoneDim()
+    {
+        return _searchZoneDim;
     }
 
     /// @brief Sets the colors for each class, to allow conversion using exportToColorFrame(). Each class is an int starting at 0. The colors are sequential: the first entry correspond to the color for class 0, the second entry for class 1... so one, so forth.
@@ -213,7 +215,7 @@ public:
 
     /// @brief Returns the class cost array that hold the cost of each class of segmentation
     /// @return
-    inline float *getCudaClassCostsPtr()
+    inline float *getClassCostsPtr()
     {
 #ifdef DRIVELESS_CUDA_ENABLED
         return _classCosts->get();
@@ -231,14 +233,9 @@ public:
     // returns the vehicle length in meters (computed from the values set by lower and upper bound and the height perception size in meters (to properly convert px to m))
     double computeVehicleLength(double perceptionHeightSize_m);
 
-    /// @brief Sets a new value to a x,z position of the search frame
-    /// @param x x position
-    /// @param z z position
-    /// @param v1 first channel value
-    /// @param v2 second channel value
-    /// @param v3 third channel value
-    void setValues(int x, int z, float v1, float v2, float v3);
-
+    /// @brief Computes the path heading for each waypoint based on mean neighbor heading
+    /// @param path 
+    /// @return 
     bool computePathHeadings(std::vector<Waypoint> path);
 
     /// @brief Computes the distance between every pixel in the search frame and an arbitrary (x, z) position
@@ -251,8 +248,20 @@ public:
     /// @param z
     /// @return
     float getDistanceToGoal(int x, int z);
-};
 
-// CODE:END
+    /// @brief Returns the search zone memory data pointer
+    /// @return 
+    inline uint2* getSearchZonePtr() {
+        return _search_zone_info->getPtr();
+    }
+
+    /// @brief reads the data stored in the (x,z) search zone
+    /// @param x 
+    /// @param z 
+    /// @return 
+    inline uint2 readSearchZoneInfo(int x, int z) {
+        return _search_zone_info.get()[{x, z}];
+    }
+};
 
 #endif

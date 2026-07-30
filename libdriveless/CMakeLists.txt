@@ -91,7 +91,7 @@ add_library(${PROJECT_NAME} SHARED
     src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu
     src/cpu_parallel_copy.cpp
-    src/cuda/search_zone_cuda.cu
+    src/search_zone_initialize.cpp
     src/cuda/search_zone_obstacle_count.cu
 )
 
@@ -143,7 +143,7 @@ add_library(${PROJECT_NAME} SHARED
     src/cpu/search_frame_pre_process_cpu.cpp
     src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu   
-    src/cpu/search_zone_cpu.cpp
+    src/search_zone_initialize.cpp
     src/cuda/search_zone_obstacle_count.cu
 
     #src/cuda/compute_heading.cu
