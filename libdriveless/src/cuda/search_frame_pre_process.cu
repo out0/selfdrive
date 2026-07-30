@@ -14,6 +14,8 @@ extern __device__ __host__ void propagateObstacleRight(float3 *frame, const int 
 extern __device__ __host__ void propagateObstacleTop(float3 *frame, const int width, const int height, const int minDistance, int x_start, int z_start);
 extern __device__ __host__ void propagateObstacleBottom(float3 *frame, const int width, const int height, const int minDistance, int x_start, int z_start);
 extern __device__ __host__ void propagateMinDistance(float3 *frame, float *classCosts, const int width, const int height, const int minDistance, int pos, int x, int z);
+extern __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, int2 search_zone_dim, uint2 *search_zone_info, int pos);
+
 
 std::pair<int, int> SearchFrame::checkTraversableAngleBitPairCheck(float heading_rad)
 {
@@ -56,7 +58,7 @@ __global__ void __CUDA_safe_distance_prepare(float3 *frame, float *classCosts, i
     }
 }
 
-__global__ void __CUDA_safe_distance_obstacle_expansion_based(float3 *frame, float *classCosts, int *_searchSpaceParams, int half_minDist_px)
+ __global__ void __CUDA_safe_distance_obstacle_expansion_based(float3 *frame, float *classCosts, int *_searchSpaceParams, int half_minDist_px, int2 search_zone_dim, uint2 *search_zone_info)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
@@ -81,6 +83,7 @@ __global__ void __CUDA_safe_distance_obstacle_expansion_based(float3 *frame, flo
     {
         // printf("[CUDA] pos %d, %d will propagate distance %d\n", x, z, half_minDist_px);
         propagateMinDistance(frame, classCosts, width, height, half_minDist_px, pos, x, z);
+        count_obstacle_in_search_zones(frame, classCosts, _searchSpaceParams, search_zone_dim, search_zone_info, pos);
     }
 }
 
@@ -137,7 +140,9 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
     __CUDA_safe_distance_prepare<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), minDist_px);
     CUDA(cudaDeviceSynchronize());
 
-    __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), minDist_px);
+    _search_zone_info->clear();
+
+    __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), minDist_px, {_searchZoneDim.first, _searchZoneDim.second}, _search_zone_info->getPtr());
     CUDA(cudaDeviceSynchronize());
 
     _safeZoneChecked = true;

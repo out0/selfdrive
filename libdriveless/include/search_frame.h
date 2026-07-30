@@ -9,7 +9,6 @@
 #include "waypoint.h"
 #include "moving_obstacle.h"
 
-
 // CODE:BEGIN
 
 #include <vector>
@@ -21,19 +20,19 @@ typedef unsigned char uchar;
 class SearchFrame : public Frame<float3>
 {
 private:
+    std::unique_ptr<Frame<uint2>> _search_zone_info;
 
-std::unique_ptr<Frame<uint2>> _search_zone_info;
 #ifdef DRIVELESS_CUDA_ENABLED
     cptr<int> _params;
     cptr<uchar3> _classColors;
     cptr<float> _classCosts;
     cptr<int> _bestValue;
-    //cptr<float2> _search_zone_info;
+    // cptr<float2> _search_zone_info;
 #else
     std::unique_ptr<int[]> _params;
     std::unique_ptr<uchar3[]> _classColors;
     std::unique_ptr<float[]> _classCosts;
-    
+
     int _bestValue;
 #endif
     int _classCount;
@@ -47,14 +46,14 @@ std::unique_ptr<Frame<uint2>> _search_zone_info;
     // std::vector<bool> checkFeasiblePathCPU(std::vector<Waypoint> path, bool computeHeadings);
     // std::vector<bool> checkFeasiblePathGPU(std::vector<Waypoint> path, bool computeHeadings);
 
-    void initialize_search_zones();   
+    void initialize_search_zones();
 
 public:
-    SearchFrame(int width, int height, 
-        std::pair<int, int> lowerBound, 
-        std::pair<int, int> upperBound, 
-        std::pair<int, int> searchZoneDim = {32, 32},
-        int numCPUThreadHandlers = 12);
+    SearchFrame(int width, int height,
+                std::pair<int, int> lowerBound,
+                std::pair<int, int> upperBound,
+                std::pair<int, int> searchZoneDim = {32, 32},
+                int numCPUThreadHandlers = 12);
     ~SearchFrame();
 
     void clear() override;
@@ -62,8 +61,7 @@ public:
     void copyFrom(float *ptr) override;
     void copyTo(float *ptr);
 
-    void pre_compute_search_zones();   
-
+    void pre_compute_search_zones();
 
     inline bool isSafeZoneChecked()
     {
@@ -119,7 +117,7 @@ public:
     float getClassCost(unsigned int classId);
 
     /// @brief Returns the list of all class costs previosly set
-    /// @return 
+    /// @return
     std::vector<float> getClassCosts();
 
     /// @brief Returns the cost associated with a segmentation class by setClassCosts()
@@ -151,9 +149,9 @@ public:
     bool isTraversable(int x, int z, angle a, bool precision_check);
 
     /// @brief returns the traversability integer for angle bit check of (x,z)
-    /// @param x 
-    /// @param z 
-    /// @return 
+    /// @param x
+    /// @param z
+    /// @return
     int getTraversability(int x, int z);
 
     /// @brief Returns the pre-computed (using setGoal()) cost for pos x,z, given by its distance to the goal, multiplied by the class cost provided by function setClassCosts()

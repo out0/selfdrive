@@ -34,6 +34,8 @@ SearchFrame::SearchFrame(
     _params->get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
     _params->get()[FRAME_PARAM_MIN_DIST_X] = 0;
     _params->get()[FRAME_PARAM_MIN_DIST_Z] = 0;
+
+    initialize_search_zones();
 }
 
 SearchFrame::~SearchFrame()

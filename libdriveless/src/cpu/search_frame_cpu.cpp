@@ -13,7 +13,9 @@ SearchFrame::SearchFrame(
     std::pair<int, int> lowerBound,
     std::pair<int, int> upperBound,
     std::pair<int, int> searchZoneDim,
-    int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), _numCPUThreadHandlers(numCPUThreadHandlers), _searchZoneDim(searchZoneDim)
+    int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), 
+    _numCPUThreadHandlers(numCPUThreadHandlers), 
+    _searchZoneDim(searchZoneDim)
 {
     // _classColors = nullptr;
     // _classCosts = nullptr;
@@ -37,10 +39,12 @@ SearchFrame::SearchFrame(
     _params.get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
     _params.get()[FRAME_PARAM_MIN_DIST_X] = 0;
     _params.get()[FRAME_PARAM_MIN_DIST_Z] = 0;
+
 }
 
 SearchFrame::~SearchFrame()
 {
+    
 }
 
 void SearchFrame::clear()

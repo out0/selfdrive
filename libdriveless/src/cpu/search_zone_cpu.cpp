@@ -1,4 +1,4 @@
-#include "../include/search_frame.h"
+#include "../../include/search_frame.h"
 #include <driveless/cpu_parallel_processor.h>
 
 extern __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, int2 search_zone_dim, uint2 *search_zone_info, int pos);

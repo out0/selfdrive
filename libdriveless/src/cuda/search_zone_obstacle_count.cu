@@ -1,4 +1,4 @@
-#include "../include/search_frame.h"
+#include "../../include/search_frame.h"
 
 
 
@@ -19,7 +19,7 @@ __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *cl
 
     if (classCosts[segmentation_class] < 0)
     {
-        int posg = zg * search_zone_dim.x + xg;
+        int posg = zg * WG + xg;
         const int A = xg * WG;
         const int B = zg * HG;
 
