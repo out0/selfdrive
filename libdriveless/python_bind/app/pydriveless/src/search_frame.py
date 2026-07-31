@@ -52,6 +52,14 @@ class SearchFrame:
             upper_bound[0], 
             upper_bound[1])
 
+    def destroy(self) -> None:
+        if getattr(self, "_cuda_ptr", None):
+            SearchFrame.lib.search_frame_destroy(self._cuda_ptr)
+            self._cuda_ptr = None
+
+    def __del__(self):
+        self.destroy()
+
     @classmethod
     def setup_cpp_lib(cls) -> None:
         if hasattr(SearchFrame, "lib"):

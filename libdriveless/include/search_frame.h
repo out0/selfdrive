@@ -260,7 +260,7 @@ public:
     /// @param z 
     /// @return 
     inline uint2 readSearchZoneInfo(int x, int z) {
-        return _search_zone_info.get()[{x, z}];
+        return (*_search_zone_info)[{x, z}];
     }
 };
 

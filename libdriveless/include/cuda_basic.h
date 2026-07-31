@@ -1,7 +1,6 @@
 #ifndef __CUDA_BASIC_DRIVELESS_H
 #define __CUDA_BASIC_DRIVELESS_H
 
-
 #include <stdio.h>
 #include <memory>
 #include <vector>
@@ -13,7 +12,7 @@
 #include <cuda_runtime.h>
 #include <math_constants.h>
 #else
-#define CUDART_PI_F             3.141592654F
+#define CUDART_PI_F 3.141592654F
 #endif
 
 #define THREADS_IN_BLOCK 256
@@ -29,18 +28,17 @@
 #define ANGLE_HEADING_0 0.0
 #define ANGLE_HEADING_22_5 CUDART_PI_F / 8
 #define ANGLE_HEADING_45 CUDART_PI_F / 4
-#define ANGLE_HEADING_67_5 (3*CUDART_PI_F) / 8
+#define ANGLE_HEADING_67_5 (3 * CUDART_PI_F) / 8
 #define ANGLE_HEADING_90 CUDART_PI_F / 2
 #define ANGLE_HEADING_MINUS_22_5 -CUDART_PI_F / 8
 #define ANGLE_HEADING_MINUS_45 -CUDART_PI_F / 4
-#define ANGLE_HEADING_MINUS_67_5 -(3*CUDART_PI_F) / 8
+#define ANGLE_HEADING_MINUS_67_5 -(3 * CUDART_PI_F) / 8
 
-#define TOP 8       // 1000
-#define BOTTOM 4    // 0100
-#define LEFT 2      // 0010
-#define RIGHT  1    // 0001
-#define INSIDE 0    // 0000 
-
+#define TOP 8    // 1000
+#define BOTTOM 4 // 0100
+#define LEFT 2   // 0010
+#define RIGHT 1  // 0001
+#define INSIDE 0 // 0000
 
 // #define MINIMAL_DISTANCE_X 3
 // #define MINIMAL_DISTANCE_Z 2
@@ -56,11 +54,10 @@ if (!cudaAllocMapped(&params, sizeof(int) * 6))
 
 #ifdef DRIVELESS_CUDA_ENABLED
 
-
 #if defined(CUDA_VERSION_MAJOR) && CUDA_VERSION_MAJOR >= 13
-using DOUBLE4=double4_16a;
+using DOUBLE4 = double4_16a;
 #else
-using DOUBLE4=double4;
+using DOUBLE4 = double4;
 #endif
 
 #define CUDA(x) cudaCheckError((x), #x, __FILE__, __LINE__)
@@ -145,55 +142,84 @@ inline bool cudaAllocMapped(T **ptr, size_t size)
     return cudaAllocMapped((void **)ptr, size);
 }
 
-
-template <typename T> 
-class CudaPtr {
-    T* _data;
+template <typename T>
+class CudaPtr
+{
+    T *_data;
     bool _data_owner;
     unsigned int _count;
 
 public:
-
-    CudaPtr() { 
+    CudaPtr()
+    {
         _data = nullptr;
         _data_owner = false;
         _count = 0;
     }
 
-    CudaPtr(unsigned int count) {
-        if (!cudaAllocMapped(&_data, sizeof(T)*count))
+    CudaPtr(unsigned int count)
+    {
+        if (!cudaAllocMapped(&_data, sizeof(T) * count))
             throw std::bad_alloc();
         _data_owner = true;
         _count = count;
     }
 
-    CudaPtr(T *val, int count) {
+    CudaPtr(T *val, int count)
+    {
         _data = val;
-        _data_owner = true;
+        _data_owner = false;
         _count = count;
     }
 
-    ~CudaPtr() {
+    ~CudaPtr()
+    {
         if (!_data_owner || _data == nullptr)
             return;
         cudaFreeHost(_data);
     }
 
-    T* get () {
+    CudaPtr(const CudaPtr &) = delete;
+    CudaPtr &operator=(const CudaPtr &) = delete;
+
+    CudaPtr(CudaPtr &&other) noexcept
+    {
+        _data = other._data;
+        _data_owner = other._data_owner;
+        _count = other._count;
+        other._data = nullptr;
+        other._data_owner = false;
+    }
+    CudaPtr &operator=(CudaPtr &&other) noexcept
+    {
+        if (this != &other)
+        {
+            if (_data_owner && _data)
+                cudaFreeHost(_data);
+            _data = other._data;
+            _data_owner = other._data_owner;
+            _count = other._count;
+            other._data = nullptr;
+            other._data_owner = false;
+        }
+        return *this;
+    }
+
+    T *get()
+    {
         return _data;
     }
 
-    unsigned int count() {
+    unsigned int count()
+    {
         return _count;
     }
-
 };
 
 template <typename T>
-using cptr = std::unique_ptr<CudaPtr<T>>; 
+using cptr = std::unique_ptr<CudaPtr<T>>;
 template <typename T>
-using sptr = std::shared_ptr<CudaPtr<T>>; 
-
+using sptr = std::shared_ptr<CudaPtr<T>>;
 
 inline cptr<float4> copyToCudaMemory(float *path, int count)
 {
@@ -212,82 +238,95 @@ inline cptr<float4> copyToCudaMemory(float *path, int count)
 }
 
 #else
-#ifndef __device__ 
-#define __device__ 
+#ifndef __device__
+#define __device__
 #endif
-#ifndef __host__ 
-#define __host__ 
+#ifndef __host__
+#define __host__
 #endif
 
-typedef struct uchar2 {
+typedef struct uchar2
+{
     unsigned char x;
     unsigned char y;
 } uchar2;
-typedef struct uchar3 {
+typedef struct uchar3
+{
     unsigned char x;
     unsigned char y;
     unsigned char z;
 } uchar3;
-typedef struct uchar4 {
+typedef struct uchar4
+{
     unsigned char x;
     unsigned char y;
     unsigned char z;
     unsigned char w;
 } uchar4;
 
-typedef struct int2 {
+typedef struct int2
+{
     int x;
     int y;
 } int2;
 
-typedef struct uint2 {
+typedef struct uint2
+{
     unsigned int x;
     unsigned int y;
 } uint2;
 
-typedef struct float2 {
+typedef struct float2
+{
     float x;
     float y;
 } float2;
-typedef struct double2 {
+typedef struct double2
+{
     double x;
     double y;
 } double2;
-typedef struct int3 {
+typedef struct int3
+{
     int x;
     int y;
     int z;
 } int3;
-typedef struct float3 {
+typedef struct float3
+{
     float x;
     float y;
     float z;
 } float3;
-typedef struct double3 {
+typedef struct double3
+{
     double x;
     double y;
     double z;
 } double3;
-typedef struct int4 {
+typedef struct int4
+{
     int x;
     int y;
     int z;
     int w;
 } int4;
-typedef struct float4 {
+typedef struct float4
+{
     float x;
     float y;
     float z;
     float w;
 } float4;
-typedef struct double4 {
+typedef struct double4
+{
     double x;
     double y;
     double z;
     double w;
 } double4;
 
-using DOUBLE4=double4;
+using DOUBLE4 = double4;
 
 #endif
 
@@ -304,5 +343,3 @@ __device__ __host__ inline int COMPUTE_POS(int width, int x, int z)
 std::unique_ptr<float4[]> copyToCpuMemory(std::vector<Waypoint> points);
 std::unique_ptr<float4[]> copyToCpuMemory(float *path, int count);
 #endif
-
-
