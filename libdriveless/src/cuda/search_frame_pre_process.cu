@@ -14,7 +14,7 @@ extern __device__ __host__ void propagateObstacleRight(float3 *frame, const int 
 extern __device__ __host__ void propagateObstacleTop(float3 *frame, const int width, const int height, const int minDistance, int x_start, int z_start);
 extern __device__ __host__ void propagateObstacleBottom(float3 *frame, const int width, const int height, const int minDistance, int x_start, int z_start);
 extern __device__ __host__ void propagateMinDistance(float3 *frame, float *classCosts, const int width, const int height, const int minDistance, int pos, int x, int z);
-extern __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, int2 search_zone_dim, uint2 *search_zone_info, int pos);
+extern __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, uint2 *search_zone_info, int pos);
 
 
 std::pair<int, int> SearchFrame::checkTraversableAngleBitPairCheck(float heading_rad)
@@ -83,7 +83,7 @@ __global__ void __CUDA_safe_distance_prepare(float3 *frame, float *classCosts, i
     {
         // printf("[CUDA] pos %d, %d will propagate distance %d\n", x, z, half_minDist_px);
         propagateMinDistance(frame, classCosts, width, height, half_minDist_px, pos, x, z);
-        count_obstacle_in_search_zones(frame, classCosts, _searchSpaceParams, search_zone_dim, search_zone_info, pos);
+        count_obstacle_in_search_zones(frame, classCosts, _searchSpaceParams, search_zone_info, pos);
     }
 }
 

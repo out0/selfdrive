@@ -26,7 +26,7 @@ SearchFrame::SearchFrame(
     _safeZoneVectorialChecked = false;
     _distanceToGoalProcessed = false;
 
-    _params = std::make_unique<int[]>(11);
+    _params = std::make_unique<int[]>(25);
     _bestValue = 0;
 
     _params.get()[FRAME_PARAM_WIDTH] = width;
@@ -40,6 +40,7 @@ SearchFrame::SearchFrame(
     _params.get()[FRAME_PARAM_MIN_DIST_X] = 0;
     _params.get()[FRAME_PARAM_MIN_DIST_Z] = 0;
 
+    initialize_search_zones(_params.get());
 }
 
 SearchFrame::~SearchFrame()

@@ -43,7 +43,7 @@ private:
     // std::vector<bool> checkFeasiblePathCPU(std::vector<Waypoint> path, bool computeHeadings);
     // std::vector<bool> checkFeasiblePathGPU(std::vector<Waypoint> path, bool computeHeadings);
 
-    void initialize_search_zones();
+    void initialize_search_zones(int *params);
 
 public:
     SearchFrame(int width, int height,
@@ -262,6 +262,20 @@ public:
     inline uint2 readSearchZoneInfo(int x, int z) {
         return (*_search_zone_info)[{x, z}];
     }
+
+    /// @brief Returns the search zone (x_zone, z_zone) location of a (x_grid, z_grid) coordinate
+    /// @param x 
+    /// @param z 
+    /// @return 
+    int2 getSearchZoneLocation(int x, int z);
+
+    /// @brief Returns the search zone id (sequential position from 0,0 to max_zone_w, max_zone_h) of a (x_grid, z_grid) coordinate
+    /// @param x 
+    /// @param z 
+    /// @return 
+    int getSearchZoneId(int x, int z);
+
+    
 };
 
 #endif

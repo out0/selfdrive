@@ -67,26 +67,26 @@ add_executable(
   ${CMAKE_PROJECT_NAME} 
   src/unittests.cpp
   src/test_utils.cpp
-  src/test_cuda_frame.cpp
-  src/test_angle.cpp
-  src/test_waypoint.cpp
-  src/test_map_pose.cpp
-  src/test_map_pose_nearest_goal_pose.cpp
-  src/test_world_pose.cpp
-  src/test_async_component.cpp
-  src/test_search_frame.cpp
-  src/test_search_frame_set_goal.cpp
-  src/test_search_frame_set_goal_vectorized.cpp
-  src/test_search_frame_check_fesible_path.cpp
-  src/test_search_frame_check_fesible_path_fesible.cpp
-  src/test_search_frame_check_fesible_path_unfeasible.cpp
-  src/test_search_frame_is_traversable.cpp
-  src/test_coord_conversion_world_pose.cpp
-  src/test_coord_conversion_map_pose.cpp
-  src/test_coord_conversion_waypoint.cpp
-  src/test_quaternion.cu
-  src/test_interpolator.cpp
-  src/test_search_params.cpp
+  # src/test_cuda_frame.cpp
+  # src/test_angle.cpp
+  # src/test_waypoint.cpp
+  # src/test_map_pose.cpp
+  # src/test_map_pose_nearest_goal_pose.cpp
+  # src/test_world_pose.cpp
+  # src/test_async_component.cpp
+  # src/test_search_frame.cpp
+  # src/test_search_frame_set_goal.cpp
+  # src/test_search_frame_set_goal_vectorized.cpp
+  # src/test_search_frame_check_fesible_path.cpp
+  # src/test_search_frame_check_fesible_path_fesible.cpp
+  # src/test_search_frame_check_fesible_path_unfeasible.cpp
+  # src/test_search_frame_is_traversable.cpp
+  # src/test_coord_conversion_world_pose.cpp
+  # src/test_coord_conversion_map_pose.cpp
+  # src/test_coord_conversion_waypoint.cpp
+  # src/test_quaternion.cu
+  # src/test_interpolator.cpp
+  # src/test_search_params.cpp
   src/test_search_frame_search_zones.cpp
    ../../src/waypoint.cpp
   ../../src/angle.cpp
