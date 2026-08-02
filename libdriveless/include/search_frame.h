@@ -72,7 +72,7 @@ public:
     }
 
     /// @brief EGO lower bound (pixel position in the search frame), to be ignored from collision checking
-    /// @return 
+    /// @return
     inline std::pair<int, int> lowerBound()
     {
 #ifdef DRIVELESS_CUDA_ENABLED
@@ -83,7 +83,7 @@ public:
     }
 
     /// @brief EGO upper bound (pixel position in the search frame), to be ignored from collision checking
-    /// @return 
+    /// @return
     inline std::pair<int, int> upperBound()
     {
 #ifdef DRIVELESS_CUDA_ENABLED
@@ -94,7 +94,7 @@ public:
     }
 
     /// @brief Search zones dimension
-    /// @return 
+    /// @return
     inline std::pair<int, int> searchZoneDim()
     {
         return _searchZoneDim;
@@ -234,8 +234,8 @@ public:
     double computeVehicleLength(double perceptionHeightSize_m);
 
     /// @brief Computes the path heading for each waypoint based on mean neighbor heading
-    /// @param path 
-    /// @return 
+    /// @param path
+    /// @return
     bool computePathHeadings(std::vector<Waypoint> path);
 
     /// @brief Computes the distance between every pixel in the search frame and an arbitrary (x, z) position
@@ -250,32 +250,43 @@ public:
     float getDistanceToGoal(int x, int z);
 
     /// @brief Returns the search zone memory data pointer
-    /// @return 
-    inline uint2* getSearchZonePtr() {
+    /// @return
+    inline uint2 *getSearchZonePtr()
+    {
         return _search_zone_info->getPtr();
     }
 
     /// @brief reads the data stored in the (x,z) search zone
-    /// @param x 
-    /// @param z 
-    /// @return 
-    inline uint2 readSearchZoneInfo(int x, int z) {
+    /// @param x
+    /// @param z
+    /// @return
+    inline uint2 readSearchZoneInfo(int x, int z)
+    {
         return (*_search_zone_info)[{x, z}];
     }
 
     /// @brief Returns the search zone (x_zone, z_zone) location of a (x_grid, z_grid) coordinate
-    /// @param x 
-    /// @param z 
-    /// @return 
+    /// @param x
+    /// @param z
+    /// @return
     int2 getSearchZoneLocation(int x, int z);
 
     /// @brief Returns the search zone id (sequential position from 0,0 to max_zone_w, max_zone_h) of a (x_grid, z_grid) coordinate
-    /// @param x 
-    /// @param z 
-    /// @return 
+    /// @param x
+    /// @param z
+    /// @return
     int getSearchZoneId(int x, int z);
 
-    
+    /// @brief Returns the size of the Search Zone grid
+    /// @return
+    inline int2 getSearchZoneGridSize()
+    {
+#ifdef DRIVELESS_CUDA_ENABLED
+        return {_params->get()[FRAME_SEARCH_ZONE_GRID_WIDTH], _params->get()[FRAME_SEARCH_ZONE_GRID_HEIGHT]};
+#else
+        return {_params.get()[FRAME_SEARCH_ZONE_GRID_WIDTH], _params.get()[FRAME_SEARCH_ZONE_GRID_HEIGHT]};
+#endif
+    }
 };
 
 #endif
