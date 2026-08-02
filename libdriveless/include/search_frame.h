@@ -107,7 +107,7 @@ public:
     /// @brief Exports the current frame to dest as a colored frame, based on the segmentation class in frame[i].x and on the conversion colors given by setClassColors()
     /// @param dest
     /// @return true if the export could be performed. The export can fail if we cannot allocate enough GPU memory to perform the conversion task
-    bool exportToColorFrame(uchar *dest);
+    bool exportToColorFrame(uchar *dest, bool show_search_zone_marks = false);
 
     /// @brief Sets the cost for each class. Negative cost means infinite cost (obstacle); the costs are sequential: first entry is for for class 0, second entry is for class 1, etc.
     /// @param classCosts

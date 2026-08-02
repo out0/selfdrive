@@ -66,7 +66,7 @@ public:
     }
 };
 
-bool SearchFrame::exportToColorFrame(uchar *dest)
+bool SearchFrame::exportToColorFrame(uchar *dest, bool show_search_zone_marks)
 {
     if (_classColors == nullptr)
         return false;

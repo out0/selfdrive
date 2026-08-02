@@ -2,6 +2,7 @@
 #include "../../include/search_frame.h"
 #include "test_utils.h"
 #include <cmath>
+
 #include <vector>
 
 namespace
@@ -220,8 +221,15 @@ TEST(TestSearchFrame_SearchZone, ReadSearchZoneInfo_NoObstacle_ReturnsZeroForEve
     std::vector<float> buf = buildBlankFrameBuffer();
     f.copyFrom(buf.data());
     f.processSafeDistanceZone({ZONE_W, ZONE_H}, false);
+
+    f.setClassColors({
+        {0, 0, 0},
+        {255, 255, 255}
+    });
+    exportSearchFrameToFile(f, "output.png", true);
+
     return;
-    
+
     const int gridW = searchZoneGridWidth();
     const int gridH = searchZoneGridHeight();
 

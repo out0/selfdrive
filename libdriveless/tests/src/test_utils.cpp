@@ -21,13 +21,16 @@ bool _ASSERT_DEQ(double a, double b, int tolerance)
     return true;
 }
 
-void exportSearchFrameToFile(SearchFrame &f, const char *file)
+void exportSearchFrameToFile(SearchFrame &f, const char *file, bool show_zones)
 {
 
     int size = f.width() * f.height() * 3;
 
     uchar *outp = new uchar[size];
-    f.exportToColorFrame(outp);
+    if (!f.exportToColorFrame(outp, show_zones)) {
+        printf ("failed to export SearchFrame to color image. Check if the class colors were set.\n");
+        return;
+    }
 
     cv::Mat rgb_image(f.width(), f.height(), CV_8UC3, outp);
 
