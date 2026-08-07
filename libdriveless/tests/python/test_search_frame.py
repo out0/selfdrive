@@ -40,7 +40,7 @@ COLORS = np.array([
             [150, 100, 100],
             [230, 150, 140],
             [180, 165, 180]
-        ], dtype=np.uint32)
+        ], dtype=np.uint42)
 
 class TestSearchFrame(unittest.TestCase):
         

@@ -1,4 +1,5 @@
 #include "../../include/search_frame.h"
+#include "../../include/search_zone_utils.h"
 
 __device__ __host__ int2 zone_location(int2 zone_dim_size, int2 zone_grid_size, int x, int z)
 {
@@ -13,7 +14,25 @@ __device__ __host__ int2 zone_location(int2 zone_dim_size, int2 zone_grid_size, 
     return {xg, zg};
 }
 
-#define SEARCH_ZONE_ID(grid_width, xg, zg) (zg * grid_width + xg)
+__device__ __host__ bool is_zone_border(int x, int z, int xg, int zg, int search_zone_dim_w, int search_zone_dim_h)
+{
+    const int A = xg * search_zone_dim_w;
+    const int B = zg * search_zone_dim_h;
+
+    return (x >= A && x <= (A + search_zone_dim_w - 1)) && (z == B || z == (B + search_zone_dim_h - 1)) ||
+           (z >= B && z <= (B + search_zone_dim_h - 1)) && (x == A || x == (A + search_zone_dim_w - 1));
+}
+
+__device__ __host__ bool is_zone_edge(int x, int z, int xg, int zg, int2 search_zone_dim)
+{
+    const int A = xg * search_zone_dim.x;
+    const int B = zg * search_zone_dim.y;
+
+    return (x == A || x == (A + search_zone_dim.x - 1)) && (z == B || z == (B + search_zone_dim.y - 1));
+}
+
+
+
 
 int2 SearchFrame::getSearchZoneLocation(int x, int z)
 {
@@ -24,18 +43,10 @@ int2 SearchFrame::getSearchZoneLocation(int x, int z)
 int SearchFrame::getSearchZoneId(int x, int z)
 {
     int2 addr = getSearchZoneLocation(x, z);
-    return SEARCH_ZONE_ID(_search_zone_info->width(), addr.x, addr.y);
+    return SEARCH_ZONE_POS(_search_zone_info->width(), addr.x, addr.y);
 }
 
-__device__ __host__ bool is_zone_border(int x, int z, int xg, int zg, int search_zone_dim_w, int search_zone_dim_h) {
-    const int A = xg * search_zone_dim_w;
-    const int B = zg * search_zone_dim_h;
-
-    return (x >= A && x <= (A + search_zone_dim_w - 1)) && (z == B || z == (B + search_zone_dim_h - 1)) || 
-        (z >= B && z <= (B + search_zone_dim_h - 1)) && (x == A || x == (A + search_zone_dim_w - 1));
-}
-
-__device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, uint2 *search_zone_info, int pos)
+__device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, uint4 *search_zone_info, int pos)
 {
     const int width = search_params[FRAME_PARAM_WIDTH];
 
@@ -53,7 +64,7 @@ __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *cl
 
     if (classCosts[segmentation_class] < 0)
     {
-        int posg = SEARCH_ZONE_ID(search_zone_grid_w, location.x, location.y);
+        int posg = SEARCH_ZONE_POS(search_zone_grid_w, location.x, location.y);
 
 #if defined(DRIVELESS_CUDA_ENABLED) && defined(__CUDA_ARCH__)
         atomicInc(&search_zone_info[posg].x, 99999999);
@@ -67,4 +78,3 @@ __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *cl
 #endif
     }
 }
-

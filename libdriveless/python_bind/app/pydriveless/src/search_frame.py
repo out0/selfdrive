@@ -278,7 +278,7 @@ class SearchFrame:
     
     def set_class_colors(self, colors: np.ndarray):
         numClasses = colors.shape[0]        
-        f = np.ascontiguousarray(colors.reshape(numClasses * 3), dtype=np.uint32)
+        f = np.ascontiguousarray(colors.reshape(numClasses * 3), dtype=np.uint42)
         SearchFrame.lib.set_class_colors(self._cuda_ptr, numClasses, f)
         #colors.reshape((numColors, 3))
         

@@ -26,7 +26,8 @@ class ParallelClear : public ParallelProcessor
         {
             if (threadId >= maxPos)
                 return;
-            _data[threadId] = static_cast<T>(0);
+            _data[threadId] = T{};
+            //_data[threadId] = static_cast<T>(0);
         }
     };
 

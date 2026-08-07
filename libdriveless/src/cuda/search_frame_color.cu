@@ -6,6 +6,8 @@
 __global__ static void __CUDA_KERNEL_FrameColor(float3 *frame, uchar3 *output, int width, int height, uchar3 *classColors, int classCount);
 extern __device__ __host__ bool is_zone_border(int x, int z, int xg, int zg, int search_zone_dim_w, int search_zone_dim_h);
 extern __device__ __host__ int2 zone_location(int2 zone_dim_size, int2 zone_grid_size, int x, int z);
+extern __device__ __host__ bool is_zone_edge(int x, int z, int xg, int zg, int2 search_zone_dim);
+
 
 __global__ static void __CUDA_KERNEL_ShowZoneMarks(float3 *frame, uchar3 *output, int width, int height, int *search_params)
 {
@@ -31,6 +33,34 @@ __global__ static void __CUDA_KERNEL_ShowZoneMarks(float3 *frame, uchar3 *output
         output[pos].x = 128;
         output[pos].y = 128;
         output[pos].z = 128;
+    }
+}
+
+
+__global__ static void __CUDA_KERNEL_ShowZoneEdges(float3 *frame, uchar3 *output, int width, int height, int *search_params)
+{
+    int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int z = pos / width;
+    int x = pos - z * width;
+
+    if (z >= height)
+        return;
+    if (x >= width)
+        return;
+
+    const int search_zone_dim_w = search_params[FRAME_SEARCH_ZONE_DIM_WIDTH];
+    const int search_zone_dim_h = search_params[FRAME_SEARCH_ZONE_DIM_HEIGHT];
+    const int search_zone_grid_w = search_params[FRAME_SEARCH_ZONE_GRID_WIDTH];
+    const int search_zone_grid_h = search_params[FRAME_SEARCH_ZONE_GRID_HEIGHT];
+
+    int2 location = zone_location({search_zone_dim_w, search_zone_dim_h}, {search_zone_grid_w, search_zone_grid_h}, x, z);
+
+    if (is_zone_edge(x, z, location.x, location.y, {search_zone_dim_w, search_zone_dim_h}))
+    {
+        output[pos].x = 255;
+        output[pos].y = 255;
+        output[pos].z = 255;
     }
 }
 
@@ -62,7 +92,7 @@ void SearchFrame::setClassColors(std::vector<std::tuple<int, int, int>> colors)
     }
 }
 
-bool SearchFrame::exportToColorFrame(uchar *dest, bool show_search_zone_marks)
+bool SearchFrame::exportToColorFrame(uchar *dest, bool show_search_zone_marks, bool show_search_zone_edges)
 {
     if (_classColors == nullptr)
         return false;
@@ -82,7 +112,11 @@ bool SearchFrame::exportToColorFrame(uchar *dest, bool show_search_zone_marks)
         __CUDA_KERNEL_ShowZoneMarks<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), resultImgPtr, width(), height(), _params->get());
         CUDA(cudaDeviceSynchronize());
     }
-
+    if (show_search_zone_edges)
+    {
+        __CUDA_KERNEL_ShowZoneEdges<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), resultImgPtr, width(), height(), _params->get());
+        CUDA(cudaDeviceSynchronize());
+    }
     for (int i = 0; i < size; i++)
     {
         long pos = 3 * i;

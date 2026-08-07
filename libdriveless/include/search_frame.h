@@ -13,12 +13,10 @@
 #include <memory>
 typedef unsigned char uchar;
 
-#define PATH_FEASIBLE_CPU_THRESHOLD 20
-
 class SearchFrame : public Frame<float3>
 {
 private:
-    std::unique_ptr<Frame<uint2>> _search_zone_info;
+    std::unique_ptr<Frame<uint4>> _search_zone_info;
 
 #ifdef DRIVELESS_CUDA_ENABLED
     cptr<int> _params;
@@ -107,7 +105,7 @@ public:
     /// @brief Exports the current frame to dest as a colored frame, based on the segmentation class in frame[i].x and on the conversion colors given by setClassColors()
     /// @param dest
     /// @return true if the export could be performed. The export can fail if we cannot allocate enough GPU memory to perform the conversion task
-    bool exportToColorFrame(uchar *dest, bool show_search_zone_marks = false);
+    bool exportToColorFrame(uchar *dest, bool show_search_zone_marks = false, bool show_search_zone_edges = false);
 
     /// @brief Sets the cost for each class. Negative cost means infinite cost (obstacle); the costs are sequential: first entry is for for class 0, second entry is for class 1, etc.
     /// @param classCosts
@@ -251,7 +249,7 @@ public:
 
     /// @brief Returns the search zone memory data pointer
     /// @return
-    inline uint2 *getSearchZonePtr()
+    inline uint4 *getSearchZonePtr()
     {
         return _search_zone_info->getPtr();
     }
@@ -260,7 +258,7 @@ public:
     /// @param x
     /// @param z
     /// @return
-    inline uint2 readSearchZoneInfo(int x, int z)
+    inline uint4 readSearchZoneInfo(int x, int z)
     {
         return (*_search_zone_info)[{x, z}];
     }

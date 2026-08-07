@@ -21,13 +21,13 @@ bool _ASSERT_DEQ(double a, double b, int tolerance)
     return true;
 }
 
-void exportSearchFrameToFile(SearchFrame &f, const char *file, bool show_zones)
+void exportSearchFrameToFile(SearchFrame &f, const char *file, bool show_zones, bool show_zone_edges)
 {
 
     int size = f.width() * f.height() * 3;
 
     uchar *outp = new uchar[size];
-    if (!f.exportToColorFrame(outp, show_zones)) {
+    if (!f.exportToColorFrame(outp, show_zones, show_zone_edges)) {
         printf ("failed to export SearchFrame to color image. Check if the class colors were set.\n");
         return;
     }

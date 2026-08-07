@@ -270,11 +270,13 @@ typedef struct int2
     int y;
 } int2;
 
-typedef struct uint2
+typedef struct uint4
 {
     unsigned int x;
     unsigned int y;
-} uint2;
+    unsigned int z;
+    unsigned int w;
+} uint4;
 
 typedef struct float2
 {

@@ -104,7 +104,7 @@ __global__ static void __CUDA_KERNEL_Clear(int2 *frame, int width, int height)
     frame[pos].x = 0;
     frame[pos].y = 0;
 }
-__global__ static void __CUDA_KERNEL_Clear(uint2 *frame, int width, int height)
+__global__ static void __CUDA_KERNEL_Clear(uint4 *frame, int width, int height)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -113,6 +113,8 @@ __global__ static void __CUDA_KERNEL_Clear(uint2 *frame, int width, int height)
 
     frame[pos].x = 0;
     frame[pos].y = 0;
+    frame[pos].z = 0;
+    frame[pos].w = 0;
 }
 __global__ static void __CUDA_KERNEL_Clear(double *frame, int width, int height)
 {
@@ -204,7 +206,7 @@ void CUDA_clear(int2 *frame, int width, int height)
     __CUDA_KERNEL_Clear<<<numBlocks, THREADS_IN_BLOCK>>>(frame, width, height);
     CUDA(cudaDeviceSynchronize());
 }
-void CUDA_clear(uint2 *frame, int width, int height)
+void CUDA_clear(uint4 *frame, int width, int height)
 {
     int size = width * height;
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;

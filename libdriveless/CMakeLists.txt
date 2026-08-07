@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
 
-option(DRIVELESS_CUDA_ENABLED "true" ON)
-
 if(DRIVELESS_CUDA_ENABLED)
     project(driveless LANGUAGES CXX CUDA VERSION 2.3.1 DESCRIPTION "libdriveless")
 else()
@@ -16,20 +14,16 @@ configure_file(
 
 set(CMAKE_CXX_STANDARD 20)
 
-if(DRIVELESS_CUDA_ENABLED)
-    set(CMAKE_CUDA_ARCHITECTURES all-major)
-endif()
-
 # Optional: explicitly set NVCC if needed
-set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
 
 include(GNUInstallDirs)
-
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(GSL REQUIRED)
 
 if(DRIVELESS_CUDA_ENABLED)
+    set(CMAKE_CUDA_ARCHITECTURES all-major)
+    set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
     find_package(CUDAToolkit REQUIRED)
 
     if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
@@ -42,7 +36,6 @@ if(DRIVELESS_CUDA_ENABLED)
 
     add_compile_definitions(CUDA_VERSION_MAJOR=${CUDA_MAJOR})
     add_compile_definitions(CUDA_VERSION_MINOR=${CUDA_MINOR})
-
 endif()
 
 
@@ -110,15 +103,9 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
         ${CUDAToolkit_INCLUDE_DIRS}
 )
-
-if(DRIVELESS_CUDA_ENABLED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC DRIVELESS_CUDA_ENABLED)
-    
-endif()
-
-
+target_compile_definitions(${PROJECT_NAME} PUBLIC DRIVELESS_CUDA_ENABLED)
 else()
-set_source_files_properties(${PROJECT_NAME}
+set_source_files_properties(
     src/cuda/collision_check.cu
     src/quaternion.cpp 
     src/cuda/search_zone_obstacle_count.cu
@@ -162,6 +149,8 @@ target_include_directories(${PROJECT_NAME}
 )
 
 endif()
+
+
 
 # Link dependencies
 

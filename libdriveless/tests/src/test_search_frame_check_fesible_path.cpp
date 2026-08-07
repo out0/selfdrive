@@ -2,6 +2,7 @@
 #include "../../include/search_frame.h"
 #include "test_utils.h"
 #include <cmath>
+#define PATH_FEASIBLE_CPU_THRESHOLD 20
 
 // CURVED
 // ---------------------------------------------------------------

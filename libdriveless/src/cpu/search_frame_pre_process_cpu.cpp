@@ -23,6 +23,7 @@ extern void propagateObstacleRight(float3 *frame, const int width, const int hei
 extern void propagateObstacleTop(float3 *frame, const int width, const int height, const int minDistance, int x_start, int z_start);
 extern void propagateObstacleBottom(float3 *frame, const int width, const int height, const int minDistance, int x_start, int z_start);
 extern void propagateMinDistance(float3 *frame, float *classCosts, const int width, const int height, const int minDistance, int pos, int x, int z);
+extern void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, uint4 *search_zone_info, int pos);
 
 class SafeDistancePrepareProcessor : public ParallelProcessor
 {
@@ -80,11 +81,12 @@ private:
     int *_searchSpaceParams;
     int _half_minDist_px;
     int _maxId;
+    uint4 *_search_zone_info;
 
 public:
-    SafeDistanceObstacleExpansionBasedProcessor(float3 *frame, float *classCosts,
+    SafeDistanceObstacleExpansionBasedProcessor(float3 *frame, uint4 *search_zone_info, float *classCosts,
                                                 int *searchSpaceParams, int half_minDist_px, int numThreadHandlers = 12) : ParallelProcessor(numThreadHandlers, searchSpaceParams[FRAME_PARAM_HEIGHT], searchSpaceParams[FRAME_PARAM_WIDTH]),
-                                                                                                                           _frame(frame), _classCosts(classCosts), _searchSpaceParams(searchSpaceParams), _half_minDist_px(half_minDist_px)
+                                                                                                                           _frame(frame), _search_zone_info(search_zone_info), _classCosts(classCosts), _searchSpaceParams(searchSpaceParams), _half_minDist_px(half_minDist_px)
     {
         _maxId = _searchSpaceParams[FRAME_PARAM_HEIGHT] * _searchSpaceParams[FRAME_PARAM_WIDTH];
     }
@@ -112,6 +114,7 @@ public:
         {
             // printf("[CUDA] pos %d, %d will propagate distance %d\n", x, z, half_minDist_px);
             propagateMinDistance(_frame, _classCosts, width, height, _half_minDist_px, pos, x, z);
+            count_obstacle_in_search_zones(_frame, _classCosts, _searchSpaceParams, _search_zone_info, pos);
         }
     }
 };
@@ -187,7 +190,7 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
 
     // __CUDA_safe_distance_obstacle_expansion_based<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), _classCosts->get(), _params->get(), minDist_px);
     // CUDA(cudaDeviceSynchronize());
-    SafeDistanceObstacleExpansionBasedProcessor(getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
+    SafeDistanceObstacleExpansionBasedProcessor(getPtr(), _search_zone_info->getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
 
     _safeZoneChecked = true;
 

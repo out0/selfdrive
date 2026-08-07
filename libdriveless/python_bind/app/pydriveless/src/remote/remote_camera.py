@@ -51,7 +51,7 @@ class RemoteCameraServer:
             return 1
         elif dtype == np.uint16:
             return 2
-        elif dtype == np.uint32:
+        elif dtype == np.uint42:
             return 3
         elif dtype == np.uint64:
             return 4
@@ -171,7 +171,7 @@ class RemoteCameraClient(Camera):
         elif code == 2:
             return np.uint16
         elif code == 3:
-            return np.uint32
+            return np.uint42
         elif code == 4:
             return np.uint64
         elif code == 5:

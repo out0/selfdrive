@@ -5,6 +5,7 @@
 
 // UNFEASIBLE
 // ---------------------------------------------------------------
+#define PATH_FEASIBLE_CPU_THRESHOLD 20
 
 TEST(TestSearchFrameCheckFeasiblePath, CheckPath_Unfeasible_NoPreProcess_CPU)
 {

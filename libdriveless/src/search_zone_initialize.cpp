@@ -17,5 +17,5 @@ void SearchFrame::initialize_search_zones(int *params)
     params[FRAME_SEARCH_ZONE_DIM_WIDTH] = _searchZoneDim.first;
     params[FRAME_SEARCH_ZONE_DIM_HEIGHT] = _searchZoneDim.second;
 
-    _search_zone_info = std::make_unique<Frame<uint2>>(W, H, _numCPUThreadHandlers);
+    _search_zone_info = std::make_unique<Frame<uint4>>(W, H, _numCPUThreadHandlers);
 }

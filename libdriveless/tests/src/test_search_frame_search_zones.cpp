@@ -221,7 +221,7 @@ TEST(TestSearchFrame_SearchZone, ReadSearchZoneInfo_NoObstacle_ReturnsZeroForEve
     {
         for (int xx = 0; xx < gridSize.x; xx++)
         {
-            uint2 info = f.readSearchZoneInfo(xx, zz);
+            uint4 info = f.readSearchZoneInfo(xx, zz);
             EXPECT_EQ(info.x, 0u) << "zone (" << xx << "," << zz << ") obstacle count";
             EXPECT_EQ(info.y, 0u) << "zone (" << xx << "," << zz << ") border obstacle count";
         }
@@ -244,11 +244,12 @@ TEST(TestSearchFrame_SearchZone, ReadSearchZoneInfo_ObstacleInOneZone)
 
     f.setClassColors({{0, 0, 0},
                       {255, 255, 255}});
-    exportSearchFrameToFile(f, "output.png", true);
+    
+                      exportSearchFrameToFile(f, "output.png", true, true);
 
     int2 gridSize = f.getSearchZoneGridSize();
 
-    uint2 info = f.readSearchZoneInfo(0, 0);
+    uint4 info = f.readSearchZoneInfo(0, 0);
     EXPECT_EQ(info.x, 100);
     EXPECT_EQ(info.y, 36);
 
@@ -256,7 +257,7 @@ TEST(TestSearchFrame_SearchZone, ReadSearchZoneInfo_ObstacleInOneZone)
     {
         for (int w = 0; w < gridSize.x; w++)
         {
-            uint2 info = f.readSearchZoneInfo(w, h);
+            uint4 info = f.readSearchZoneInfo(w, h);
             if (w == 0 && h == 0)
             {
                 EXPECT_EQ(info.x, 100);
@@ -289,7 +290,7 @@ TEST(TestSearchFrameSearchZone, ReadSearchZoneInfo_BorderObstacle_CountsAsObstac
 
     f.processSafeDistanceZone({ZONE_W, ZONE_H}, false);
 
-    uint2 info = f.readSearchZoneInfo(3, 1);
+    uint4 info = f.readSearchZoneInfo(3, 1);
     EXPECT_EQ(info.x, 1u) << "obstacle at pixel (35,10) should be counted in zone (3,1)";
     EXPECT_EQ(info.y, 1u) << "obstacle at pixel (35,10) sits on the border of zone (3,1)";
 }
@@ -312,7 +313,7 @@ TEST(TestSearchFrameSearchZone, ReadSearchZoneInfo_MultipleObstaclesInSameZone_C
 
     f.processSafeDistanceZone({ZONE_W, ZONE_H}, false);
 
-    uint2 info = f.readSearchZoneInfo(4, 2);
+    uint4 info = f.readSearchZoneInfo(4, 2);
     EXPECT_EQ(info.x, 2u);
     EXPECT_EQ(info.y, 1u);
 }
@@ -335,9 +336,9 @@ TEST(TestSearchFrameSearchZone, ReadSearchZoneInfo_ObstaclesInDifferentZones_Are
 
     f.processSafeDistanceZone({ZONE_W, ZONE_H}, false);
 
-    uint2 zoneWithObstacleA = f.readSearchZoneInfo(2, 0);
-    uint2 zoneWithObstacleB = f.readSearchZoneInfo(6, 4);
-    uint2 untouchedZone = f.readSearchZoneInfo(3, 0);
+    uint4 zoneWithObstacleA = f.readSearchZoneInfo(2, 0);
+    uint4 zoneWithObstacleB = f.readSearchZoneInfo(6, 4);
+    uint4 untouchedZone = f.readSearchZoneInfo(3, 0);
 
     EXPECT_EQ(zoneWithObstacleA.x, 1u);
     EXPECT_EQ(zoneWithObstacleA.y, 0u);
@@ -368,7 +369,7 @@ TEST(TestSearchFrameSearchZone, GetSearchZonePtr_MatchesReadSearchZoneInfo)
 
     f.processSafeDistanceZone({ZONE_W, ZONE_H}, false);
 
-    uint2 *ptr = f.getSearchZonePtr();
+    uint4 *ptr = f.getSearchZonePtr();
     ASSERT_NE(ptr, nullptr);
 
     int2 gridSize = f.getSearchZoneGridSize();
@@ -376,8 +377,8 @@ TEST(TestSearchFrameSearchZone, GetSearchZonePtr_MatchesReadSearchZoneInfo)
     const int gridH = gridSize.y;
     const int zoneIndex = 1 * gridW + 3; // (xg=3, zg=1), per readSearchZoneInfo's own formula
 
-    uint2 fromPtr = ptr[zoneIndex];
-    uint2 fromAccessor = f.readSearchZoneInfo(3, 1);
+    uint4 fromPtr = ptr[zoneIndex];
+    uint4 fromAccessor = f.readSearchZoneInfo(3, 1);
 
     EXPECT_EQ(fromPtr.x, fromAccessor.x);
     EXPECT_EQ(fromPtr.y, fromAccessor.y);
@@ -392,7 +393,7 @@ TEST(TestSearchFrameSearchZone, GetSearchZonePtr_MatchesReadSearchZoneInfo)
 // // but readSearchZoneInfo()/Frame::operator[] compute it as
 // //     pos  = zg * GridWidth + xg       (GridWidth = 11 for this 100x100
 // //                                        frame with 10x10 zones)
-// // For zg=1, xg=2: posg = 1*10+2 = 12, which Frame<uint2> resolves back to
+// // For zg=1, xg=2: posg = 1*10+2 = 12, which Frame<uint4> resolves back to
 // // grid coordinates (12 % 11, 12 / 11) = (1, 1) -- NOT (2, 1). This test
 // // places a single obstacle in zone (2,1) and shows:
 // //   1) the intended zone (2,1) does NOT see it (fails today), and
@@ -412,7 +413,7 @@ TEST(TestSearchFrameSearchZone, ReadSearchZoneInfo_NonFirstZoneRow_ExposesFlatIn
 
     f.processSafeDistanceZone({ZONE_W, ZONE_H}, false);
 
-    uint2 intended = f.readSearchZoneInfo(2, 1);
+    uint4 intended = f.readSearchZoneInfo(2, 1);
     EXPECT_EQ(intended.x, 1u)
         << "BUG: obstacle at pixel (25,15) belongs to zone (2,1) but is not reported there. "
         << "count_obstacle_in_search_zones() likely wrote it to the wrong flat index "
@@ -428,7 +429,7 @@ TEST(TestSearchFrameSearchZone, ReadSearchZoneInfo_NonFirstZoneRow_ExposesFlatIn
     const int misplacedX = buggyFlatIndex % gridW;
     const int misplacedZ = buggyFlatIndex / gridW;
 
-    uint2 misplaced = f.readSearchZoneInfo(misplacedX, misplacedZ);
+    uint4 misplaced = f.readSearchZoneInfo(misplacedX, misplacedZ);
     EXPECT_EQ(misplaced.x, 1u)
         << "diagnostic: obstacle intended for zone (2,1) actually landed in zone ("
         << misplacedX << "," << misplacedZ << ")";
