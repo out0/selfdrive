@@ -105,7 +105,7 @@ add_executable(
     ../../src/wpmp_graph.cpp
     ../../src/interpolation.cpp
     ../../src/cuda/cuda_wave_process.cu
-
+    ../../src/search_vision_util.cu
     src/test_utils.cpp
     src/unittests.cpp
     src/test_goal_wave.cpp
@@ -116,6 +116,7 @@ else()
         ../../src/curve.cu
         ../../src/wave_process.cu
         ../../src/wpmp_data.cu      
+        ../../src/search_vision_util.cu
         PROPERTIES LANGUAGE CXX)
 
 
@@ -128,7 +129,7 @@ else()
     ../../src/wpmp_graph.cpp
     ../../src/interpolation.cpp
     ../../src/cpu/cpu_wave_process.cpp
-
+    ../../src/search_vision_util.cu
     src/test_utils.cpp
     src/unittests.cpp
     src/test_goal_wave.cpp

@@ -26,15 +26,23 @@ SearchFrame::SearchFrame(
 
     _params->get()[FRAME_PARAM_WIDTH] = width;
     _params->get()[FRAME_PARAM_HEIGHT] = height;
+    _params->get()[FRAME_PARAM_MIN_DIST_X] = 0;
+    _params->get()[FRAME_PARAM_MIN_DIST_Z] = 0;
     _params->get()[FRAME_PARAM_LOWER_BOUND_X] = lowerBound.first;
     _params->get()[FRAME_PARAM_LOWER_BOUND_Z] = lowerBound.second;
     _params->get()[FRAME_PARAM_UPPER_BOUND_X] = upperBound.first;
     _params->get()[FRAME_PARAM_UPPER_BOUND_Z] = upperBound.second;
     _params->get()[FRAME_PARAM_CENTER_X] = TO_INT(width / 2);
     _params->get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
-    _params->get()[FRAME_PARAM_MIN_DIST_X] = 0;
-    _params->get()[FRAME_PARAM_MIN_DIST_Z] = 0;
-
+    _params->get()[FRAME_DENSITY_WIDTH] = 0;
+    _params->get()[FRAME_DENSITY_HEIGHT] = 0;
+    _params->get()[FRAME_DENSITY_SIZE] = 0;
+    _params->get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_NONE;
+    _params->get()[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED] = 0;
+    _params->get()[FRAME_SEARCH_ZONE_DIM_WIDTH] = 0;
+    _params->get()[FRAME_SEARCH_ZONE_DIM_HEIGHT] = 0;
+    _params->get()[FRAME_SEARCH_ZONE_GRID_WIDTH] = 0;
+    _params->get()[FRAME_SEARCH_ZONE_GRID_HEIGHT] = 0;
     initialize_search_zones(_params->get());
 }
 

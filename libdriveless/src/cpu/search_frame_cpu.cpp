@@ -13,14 +13,10 @@ SearchFrame::SearchFrame(
     std::pair<int, int> lowerBound,
     std::pair<int, int> upperBound,
     std::pair<int, int> searchZoneDim,
-    int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers), 
-    _numCPUThreadHandlers(numCPUThreadHandlers), 
-    _searchZoneDim(searchZoneDim)
+    int numCPUThreadHandlers) : Frame<float3>(width, height, numCPUThreadHandlers),
+                                _numCPUThreadHandlers(numCPUThreadHandlers),
+                                _searchZoneDim(searchZoneDim)
 {
-    // _classColors = nullptr;
-    // _classCosts = nullptr;
-    // _params = nullptr;
-    // _bestValue = nullptr;
     _classCount = 0;
     _safeZoneChecked = false;
     _safeZoneVectorialChecked = false;
@@ -39,13 +35,20 @@ SearchFrame::SearchFrame(
     _params.get()[FRAME_PARAM_CENTER_Z] = TO_INT(height / 2);
     _params.get()[FRAME_PARAM_MIN_DIST_X] = 0;
     _params.get()[FRAME_PARAM_MIN_DIST_Z] = 0;
-
+    _params.get()[FRAME_DENSITY_WIDTH] = 0;
+    _params.get()[FRAME_DENSITY_HEIGHT] = 0;
+    _params.get()[FRAME_DENSITY_SIZE] = 0;
+    _params.get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_NONE;
+    _params.get()[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED] = 0;
+    _params.get()[FRAME_SEARCH_ZONE_DIM_WIDTH] = 0;
+    _params.get()[FRAME_SEARCH_ZONE_DIM_HEIGHT] = 0;
+    _params.get()[FRAME_SEARCH_ZONE_GRID_WIDTH] = 0;
+    _params.get()[FRAME_SEARCH_ZONE_GRID_HEIGHT] = 0;
     initialize_search_zones(_params.get());
 }
 
 SearchFrame::~SearchFrame()
 {
-    
 }
 
 void SearchFrame::clear()

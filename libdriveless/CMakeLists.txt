@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.30)
 
+find_package(CUDAToolkit QUIET)
+
+if(CUDAToolkit_FOUND)
+    set(DRIVELESS_CUDA_ENABLED TRUE)
+    message(STATUS "CUDA support enabled")
+else()
+    set(DRIVELESS_CUDA_ENABLED FALSE)
+    message(STATUS "CUDA support disabled")
+endif()
+
 if(DRIVELESS_CUDA_ENABLED)
     project(driveless LANGUAGES CXX CUDA VERSION 2.3.1 DESCRIPTION "libdriveless")
 else()
