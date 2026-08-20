@@ -1,5 +1,6 @@
 #include <driveless/cuda_basic.h>
 #include <driveless/search_zone_utils.h>
+#include <driveless/frame_params.h>
 
 __device__ __host__ int2 zone_location(int2 zone_dim_size, int2 zone_grid_size, int x, int z)
 {
