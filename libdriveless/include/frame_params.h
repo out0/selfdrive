@@ -24,20 +24,20 @@
 #define FRAME_SEARCH_ZONE_DIM_HEIGHT 13
 #define FRAME_SEARCH_ZONE_GRID_WIDTH 14
 #define FRAME_SEARCH_ZONE_GRID_HEIGHT 15
-// TODO: this code here is a legacy in FastRRT and it is used to position the SZ in it. It must be replaced
-// by the positioning functions later.
+// TODO: this code here is a legacy in FastRRT and it is used to position the SZ in it. 
+// It must be replaced by the positioning functions later.
 #define FRAME_DENSITY_WIDTH 16
 #define FRAME_DENSITY_HEIGHT 17
 #define FRAME_DENSITY_SIZE 18
 
 
-#define PHYSICAL_PARAMS_RATE_W 0
-#define PHYSICAL_PARAMS_RATE_H 1
-#define PHYSICAL_PARAMS_INV_RATE_W 2
-#define PHYSICAL_PARAMS_INV_RATE_H 3
-#define PHYSICAL_PARAMS_MAX_STEERING_RAD 4
-#define PHYSICAL_PARAMS_MAX_STEERING_DEG 5
-#define PHYSICAL_PARAMS_LR 6
-#define PHYSICAL_MAX_CURVATURE 7
+#define PHYSICAL_PARAM_RATE_W 0
+#define PHYSICAL_PARAM_RATE_H 1
+#define PHYSICAL_PARAM_INV_RATE_W 2
+#define PHYSICAL_PARAM_INV_RATE_H 3
+#define PHYSICAL_PARAM_MAX_STEERING_RAD 4
+#define PHYSICAL_PARAM_MAX_STEERING_DEG 5
+#define PHYSICAL_PARAM_WHEELBASE 6
+#define PHYSICAL_PARAM_MAX_CURVATURE 7
 #endif
 

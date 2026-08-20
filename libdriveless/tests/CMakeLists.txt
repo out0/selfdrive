@@ -94,7 +94,7 @@ add_executable(
   src/test_interpolator.cpp
   src/test_search_params.cpp
   src/test_search_frame_search_zones.cpp
-   ../../src/waypoint.cpp
+  ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp
   ../../src/world_pose.cpp
@@ -151,7 +151,7 @@ add_executable(
   src/test_search_frame_search_zones.cpp
   src/test_interpolator.cpp
   src/test_search_params.cpp
-   ../../src/waypoint.cpp
+  ../../src/waypoint.cpp
   ../../src/angle.cpp
   ../../src/map_pose.cpp
   ../../src/world_pose.cpp

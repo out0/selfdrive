@@ -31,7 +31,8 @@ __device__ __host__ bool is_zone_edge(int x, int z, int xg, int zg, int2 search_
     return (x == A || x == (A + search_zone_dim.x - 1)) && (z == B || z == (B + search_zone_dim.y - 1));
 }
 
-__device__ __host__ int4 sz_egdes_frame_pos(int2 sz_location, int2 search_zone_dim, int frame_width) {
+__device__ __host__ int4 sz_egdes_frame_pos(int2 sz_location, int2 search_zone_dim, int frame_width)
+{
     const int A = sz_location.x * search_zone_dim.x;
     const int B = sz_location.y * search_zone_dim.y;
     const int tl = COMPUTE_POS(frame_width, A, B);
@@ -41,3 +42,20 @@ __device__ __host__ int4 sz_egdes_frame_pos(int2 sz_location, int2 search_zone_d
     return {tl, tr, bl, br};
 }
 
+#define DELTA_T 0.1
+
+__device__ __host__ bool is_reachable(int *params, double *physical_params, int2 goal, float goal_heading, bool positive_steer, float velocity_px_s, int x, int z)
+{
+    const double lr = physical_params[PHYSICAL_PARAM_WHEELBASE];
+    const double max_steering = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    const int width = params[FRAME_PARAM_WIDTH];
+    const int height = params[FRAME_PARAM_HEIGHT];
+
+    const float heading = -goal_heading;
+    const float steering = positive_steer ? max_steering : -max_steering;
+    const float tan_steering = tanf(steering);
+    const float beta = atanf(0.5 * tan_steering);
+    const float heading_increment_factor = (velocity_px_s * cosf(beta) * tan_steering) / (2 * lr);
+
+    float xp = TO_FLOAT(goal.x), zp = TO_FLOAT(goal.y);
+}
