@@ -3,13 +3,13 @@ all: bin
 bin:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=ON
+	cd build && cmake .. -DDRIVELESS_CUDA_COMPILE=ON
 	cd build && make -j$(nproc)
 
 cpu:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake .. -DDRIVELESS_CUDA_ENABLED=OFF
+	cd build && cmake .. -DDRIVELESS_CUDA_COMPILE=OFF
 	cd build && make -j$(nproc)
 
 local: bin

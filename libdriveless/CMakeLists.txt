@@ -1,8 +1,22 @@
 cmake_minimum_required(VERSION 3.30)
 
-find_package(CUDAToolkit QUIET)
+set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
+include(CheckLanguage)
+check_language(CUDA)
 
-if(CUDAToolkit_FOUND)
+if(CMAKE_CUDA_COMPILER)
+    message(STATUS "CUDA support EXISTS")
+endif()
+
+if(CMAKE_CUDA_COMPILER AND DRIVELESS_CUDA_COMPILE)
+    project(driveless LANGUAGES CXX CUDA VERSION 2.3.1 DESCRIPTION "libdriveless")
+    find_package(CUDAToolkit REQUIRED)
+else()
+    project(driveless LANGUAGES CXX VERSION 2.3.1 DESCRIPTION "libdriveless")
+endif()
+
+
+if(CUDAToolkit_FOUND AND DRIVELESS_CUDA_COMPILE)
     set(DRIVELESS_CUDA_ENABLED TRUE)
     message(STATUS "CUDA support enabled")
 else()
@@ -10,11 +24,11 @@ else()
     message(STATUS "CUDA support disabled")
 endif()
 
-if(DRIVELESS_CUDA_ENABLED)
-    project(driveless LANGUAGES CXX CUDA VERSION 2.3.1 DESCRIPTION "libdriveless")
-else()
-    project(driveless LANGUAGES CXX VERSION 2.3.1 DESCRIPTION "libdriveless")
-endif()
+# if(DRIVELESS_CUDA_ENABLED)
+#     project(driveless LANGUAGES CXX CUDA VERSION 2.3.1 DESCRIPTION "libdriveless")
+# else()
+#     project(driveless LANGUAGES CXX VERSION 2.3.1 DESCRIPTION "libdriveless")
+# endif()
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/driveless_config.h.in
@@ -34,7 +48,7 @@ find_package(GSL REQUIRED)
 if(DRIVELESS_CUDA_ENABLED)
     set(CMAKE_CUDA_ARCHITECTURES all-major)
     set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc CACHE FILEPATH "Path to nvcc")
-    find_package(CUDAToolkit REQUIRED)
+    #find_package(CUDAToolkit REQUIRED)
 
     if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
         message(STATUS "CUDA Toolkit version is >= 13.0 (found ${CUDAToolkit_VERSION})")
@@ -94,6 +108,7 @@ add_library(${PROJECT_NAME} SHARED
     src/cuda/search_frame_python_bind_cuda.cpp
     src/cuda/collision_check.cu
     src/cpu_parallel_copy.cpp
+    src/cpu_parallel_processor.cpp
     src/search_zone_initialize.cpp
     src/cuda/search_zone_obstacle_count.cu
 )
@@ -135,6 +150,7 @@ add_library(${PROJECT_NAME} SHARED
     src/cpu_parallel_copy.cpp  
     src/quaternion.cpp
     src/cuda_basic.cpp
+    src/cpu_parallel_processor.cpp
     src/cpu/search_frame_cpu.cpp
     src/cpu/search_frame_color_cpu.cpp
     src/cpu/search_frame_pre_process_cpu.cpp
