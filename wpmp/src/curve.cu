@@ -113,8 +113,8 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
 
 void kinematic_curve(int2 start, float heading, int *params, float *physical_params, interpolation_callback cb, void * result_ptr)
 {
-    float wheelbase = physical_params[0];
-    float delta_max_rad = physical_params[1];
+    float wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
+    float delta_max_rad = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
 
     float3 p1 = {TO_FLOAT(start.x), TO_FLOAT(start.y), heading};
     float3 p2 = {TO_FLOAT(params[0]), TO_FLOAT(params[1]), TO_FLOAT(params[2])};

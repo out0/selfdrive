@@ -7,6 +7,7 @@
 #include "frame.h"
 #include "frame_params.h"
 #include "waypoint.h"
+#include "angle.h"
 #include "moving_obstacle.h"
 
 #include <vector>

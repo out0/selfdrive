@@ -13,11 +13,7 @@ class WGraph
 private:
     std::shared_ptr<Frame<int4>> _node_conf;
     std::shared_ptr<Frame<float4>> _node_data;
-
     long _graph_size;
-    float2 _perception_dim_in_meters;
-    float _max_steering_angle_rad;
-    float _wheelbase;
 
 public:
     WGraph(SearchFrame *frame);
@@ -25,12 +21,6 @@ public:
     void clear();
 
     void set_start(int x, int z, float heading);
-
-    void set_physical_params(
-        float perception_width_in_meters,
-        float perception_height_in_meters,
-        angle max_steering_angle,
-        float wheelbase);
 
     void compute_goal_wave(SearchFrame *frame, Waypoint &goal);
 

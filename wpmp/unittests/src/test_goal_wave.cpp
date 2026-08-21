@@ -4,19 +4,20 @@
 #include <thread>
 #include <driveless/search_frame.h>
 #include <driveless/cuda_basic.h>
+#include <driveless/angle.h>
 #include "test_utils.h"
 #include "../../include/wpmp_graph.h"
 
 TEST(TestWGraph, GoalWaveClear)
 {
-//    SearchFrame * frame = createEmptySearchFrame(800, 800, {-1, -1}, {-1, -1});
-    SearchFrame * frame = createEmptySearchFrame(256, 256, {-1, -1}, {-1, -1});
+    SearchFrame * frame = createEmptySearchFrame(800, 800, {-1, -1}, {-1, -1});
+    //SearchFrame * frame = createEmptySearchFrame(256, 256, {-1, -1}, {-1, -1});
 
     WGraph graph(frame);
 
     graph.clear();
-    //graph.set_start(400, 780, 0);
-    graph.set_start(128, 255, 0);
+    graph.set_start(400, 780, 0);
+    //graph.set_start(128, 255, 0);
 
     angle maxSteering = angle::deg(40);
     std::vector<float> costs = {
@@ -37,11 +38,11 @@ TEST(TestWGraph, GoalWaveClear)
         {255, 255, 255}
     });
 
-    // wheelbase is in px!
-    graph.set_physical_params(800, 800, maxSteering, 32*5.412658773);
+    frame->setPhysicalDimensionInMeters(800, 800);
+    frame->setVehicleParams(5.412658773, maxSteering);
 
-    //Waypoint goal(400, 0, angle::rad(0));
-    Waypoint goal(128, 0, angle::rad(0));
+    Waypoint goal(400, 0, angle::rad(0));
+    //Waypoint goal(128, 0, angle::rad(0));
 
 
     printf("processing safe distance check\n");

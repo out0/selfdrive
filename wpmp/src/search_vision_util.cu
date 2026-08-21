@@ -47,16 +47,17 @@ __device__ __host__ int4 sz_egdes_frame_pos(int2 sz_location, int2 search_zone_d
 
 __device__ __host__ bool is_reachable(int *params, double *physical_params, int2 goal, float goal_heading, bool positive_steer, float velocity_px_s, int x, int z)
 {
-    const double lr = physical_params[PHYSICAL_PARAM_WHEELBASE];
-    const double max_steering = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
-    const int width = params[FRAME_PARAM_WIDTH];
-    const int height = params[FRAME_PARAM_HEIGHT];
+    return false;
+    // const double lr = physical_params[PHYSICAL_PARAM_WHEELBASE];
+    // const double max_steering = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    // const int width = params[FRAME_PARAM_WIDTH];
+    // const int height = params[FRAME_PARAM_HEIGHT];
 
-    const float heading = -goal_heading;
-    const float steering = positive_steer ? max_steering : -max_steering;
-    const float tan_steering = tanf(steering);
-    const float beta = atanf(0.5 * tan_steering);
-    const float heading_increment_factor = (velocity_px_s * cosf(beta) * tan_steering) / (2 * lr);
+    // const float heading = -goal_heading;
+    // const float steering = positive_steer ? max_steering : -max_steering;
+    // const float tan_steering = tanf(steering);
+    // const float beta = atanf(0.5 * tan_steering);
+    // const float heading_increment_factor = (velocity_px_s * cosf(beta) * tan_steering) / (2 * lr);
 
-    float xp = TO_FLOAT(goal.x), zp = TO_FLOAT(goal.y);
+    // float xp = TO_FLOAT(goal.x), zp = TO_FLOAT(goal.y);
 }

@@ -78,6 +78,7 @@ if (DRIVELESS_CUDA_ENABLED)
     src/curve.cu
     src/collision_check.cu
     src/wave_process.cu
+    src/wpmp_graph.cu
     src/search_vision_util.cu    
     src/cuda/cuda_wave_process.cu
     src/interpolation.cpp
@@ -87,7 +88,8 @@ else()
         src/curve.cu
         src/collision_check.cu
         src/wave_process.cu    
-        src/search_vision_util.cu        
+        src/search_vision_util.cu
+        src/wpmp_graph.cu
         PROPERTIES LANGUAGE CXX)
 
    add_library(
@@ -95,7 +97,8 @@ else()
     src/curve.cu
     src/collision_check.cu
     src/wave_process.cu
-    src/search_vision_util.cu    
+    src/search_vision_util.cu
+    src/wpmp_graph.cu
     src/interpolation.cpp
     src/cpu/cpu_wave_process.cpp
     

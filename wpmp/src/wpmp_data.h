@@ -6,21 +6,21 @@
 #include <driveless/cuda_basic.h>
 #include <driveless/frame_params.h>
 
-typedef struct SE_conf
-{
-    float3 *frame;
-    int *params;
-    float *class_costs;
-    float wheelbase;
-    float delta_max_rad;
-    int2 min_distances;
-} SE_conf;
+// typedef struct SE_conf
+// {
+//     float3 *frame;
+//     int *params;
+//     float *class_costs;
+//     float wheelbase;
+//     float delta_max_rad;
+//     int2 min_distances;
+// } SE_conf;
 
-typedef struct graph_conf
-{
-    int4 *node_conf;
-    float4 *node_data;
-} graph_conf;
+// typedef struct graph_conf
+// {
+//     int4 *node_conf;
+//     float4 *node_data;
+// } graph_conf;
 
 #define NODE_HEADING(node_data, pos) (node_data[pos].x)
 #define SET_NODE_HEADING(node_data, pos, val) (node_data[pos].x = val)
