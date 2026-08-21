@@ -40,11 +40,11 @@ COLORS = np.array([
             [150, 100, 100],
             [230, 150, 140],
             [180, 165, 180]
-        ], dtype=np.uint42)
+        ], dtype=np.uint32)
 
 class TestSearchFrame(unittest.TestCase):
         
-    def test_get_set(self):
+    def test_get_set_basic(self):
         frame = SearchFrame(100, 101, (45, 55), (55, 45))
         self.assertEqual(frame.width(), 100)
         self.assertEqual(frame.height(), 101)
@@ -61,18 +61,22 @@ class TestSearchFrame(unittest.TestCase):
         c = 0
         for i in range(100):
             for j in range(100):
-                data[i, j] = c
+                data[i, j] = [c, 0, 0]
                 c = (c + 1) % 29
                 
             
         frame.set_frame_data(data)
         f = frame.get_color_frame()
-        
+        c = 0
+
         for i in range(100):
             for j in range(100):
+                #c = (c + 1) % 29
+                c = int(data[i, j, 0])
                 for k in range(3):
-                    f[i, j, k] == COLORS[c][k]
-                c = (c + 1) % 29
+                    if (not f[i, j, k] == COLORS[c][k]):
+                        self.fail()
+                
 
     # def test_export_cuda_frame(self):
     #     frame = SearchFrame(100, 101,  (45, 55), (55, 45))

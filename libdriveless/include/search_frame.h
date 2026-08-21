@@ -23,10 +23,12 @@ private:
     cptr<uchar3> _classColors;
     cptr<float> _classCosts;
     cptr<int> _bestValue;
+    cptr<float> _physical_params;
 #else
     std::unique_ptr<int[]> _params;
     std::unique_ptr<uchar3[]> _classColors;
     std::unique_ptr<float[]> _classCosts;
+    std::unique_ptr<float[]> _physical_params;
 
     int _bestValue;
 #endif
@@ -283,6 +285,68 @@ public:
         return {_params->get()[FRAME_SEARCH_ZONE_GRID_WIDTH], _params->get()[FRAME_SEARCH_ZONE_GRID_HEIGHT]};
 #else
         return {_params.get()[FRAME_SEARCH_ZONE_GRID_WIDTH], _params.get()[FRAME_SEARCH_ZONE_GRID_HEIGHT]};
+#endif
+    }
+
+    /// @brief Defines the dimension in meters represented by the Search Frame
+    /// @param width_m total width in meters
+    /// @param height_m total height in meters
+    void setPhysicalDimensionInMeters(float width_m, float height_m)
+    {
+#ifdef DRIVELESS_CUDA_ENABLED
+        _physical_params->get()[PHYSICAL_PARAM_REAL_WIDTH] = width_m;
+        _physical_params->get()[PHYSICAL_PARAM_REAL_HEIGHT] = height_m;
+        _physical_params->get()[PHYSICAL_PARAM_RATE_W] = width() / width_m;
+        _physical_params->get()[PHYSICAL_PARAM_INV_RATE_W] = width_m / width();
+        _physical_params->get()[PHYSICAL_PARAM_RATE_H] = height() / height_m;
+        _physical_params->get()[PHYSICAL_PARAM_INV_RATE_H] = height_m / height();
+
+        _physical_params->get()[PHYSICAL_PARAM_RATE_SQUARE] = sqrtf(_physical_params->get()[PHYSICAL_PARAM_RATE_W] * _physical_params->get()[PHYSICAL_PARAM_RATE_H]);
+        _physical_params->get()[PHYSICAL_PARAM_INV_RATE_SQUARE] = sqrtf(_physical_params->get()[PHYSICAL_PARAM_INV_RATE_W] * _physical_params->get()[PHYSICAL_PARAM_INV_RATE_H]);
+#else
+        _physical_params.get()[PHYSICAL_PARAM_REAL_WIDTH] = width_m;
+        _physical_params.get()[PHYSICAL_PARAM_REAL_HEIGHT] = height_m;
+        _physical_params.get()[PHYSICAL_PARAM_RATE_W] = width() / width_m;
+        _physical_params.get()[PHYSICAL_PARAM_INV_RATE_W] = width_m / width();
+        _physical_params.get()[PHYSICAL_PARAM_RATE_H] = height() / height_m;
+        _physical_params.get()[PHYSICAL_PARAM_INV_RATE_H] = height_m / height();
+
+        _physical_params.get()[PHYSICAL_PARAM_RATE_SQUARE] = sqrtf(_physical_params.get()[PHYSICAL_PARAM_RATE_W] * _physical_params.get()[PHYSICAL_PARAM_RATE_H]);
+        _physical_params.get()[PHYSICAL_PARAM_INV_RATE_SQUARE] = sqrtf(_physical_params.get()[PHYSICAL_PARAM_INV_RATE_W] * _physical_params.get()[PHYSICAL_PARAM_INV_RATE_H]);
+#endif
+    }
+    void setVehicleParams(float wheelbase_m, angle max_steering_angle)
+    {
+#ifdef DRIVELESS_CUDA_ENABLED
+        _physical_params->get()[PHYSICAL_PARAM_WHEELBASE] = wheelbase_m;
+        _physical_params->get()[PHYSICAL_PARAM_WHEELBASE_PX] = wheelbase_m * _physical_params->get()[PHYSICAL_PARAM_RATE_SQUARE];
+        _physical_params->get()[PHYSICAL_PARAM_MAX_STEERING_RAD] = max_steering_angle.rad();
+        _physical_params->get()[PHYSICAL_PARAM_MAX_STEERING_DEG] = max_steering_angle.deg();
+#else
+        _physical_params.get()[PHYSICAL_PARAM_WHEELBASE] = wheelbase_m;
+        _physical_params.get()[PHYSICAL_PARAM_WHEELBASE_PX] = wheelbase_m * _physical_params.get()[PHYSICAL_PARAM_RATE_SQUARE];
+        _physical_params.get()[PHYSICAL_PARAM_MAX_STEERING_RAD] = max_steering_angle.rad();
+        _physical_params.get()[PHYSICAL_PARAM_MAX_STEERING_DEG] = max_steering_angle.deg();
+#endif
+    }
+
+    void setMaxCurvature(float max_curvature)
+    {
+#ifdef DRIVELESS_CUDA_ENABLED
+        _physical_params->get()[PHYSICAL_PARAM_MAX_CURVATURE] = max_curvature;
+#else
+        _physical_params.get()[PHYSICAL_PARAM_MAX_CURVATURE] = max_curvature;
+#endif
+    }
+
+    /// @brief Returns the params array that are used to setup this search frame execution
+    /// @return
+    inline float *getPhysicalParamsPtr()
+    {
+#ifdef DRIVELESS_CUDA_ENABLED
+        return _physical_params->get();
+#else
+        return _physical_params.get();
 #endif
     }
 };

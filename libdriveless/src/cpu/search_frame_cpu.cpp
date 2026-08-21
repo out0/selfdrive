@@ -23,6 +23,8 @@ SearchFrame::SearchFrame(
     _distanceToGoalProcessed = false;
 
     _params = std::make_unique<int[]>(25);
+    _physical_params = std::make_unique<float[]>(25);
+
     _bestValue = 0;
 
     _params.get()[FRAME_PARAM_WIDTH] = width;

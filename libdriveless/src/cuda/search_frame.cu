@@ -22,6 +22,7 @@ SearchFrame::SearchFrame(
     _distanceToGoalProcessed = false;
 
     _params = std::make_unique<CudaPtr<int>>(25);
+    _physical_params = std::make_unique<CudaPtr<float>>(25);
     _bestValue = std::make_unique<CudaPtr<int>>(1);
 
     _params->get()[FRAME_PARAM_WIDTH] = width;
