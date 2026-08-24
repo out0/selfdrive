@@ -78,7 +78,7 @@ class CurveApp(QWidget):
         controls.addWidget(params_box)
 
         btn_row = QHBoxLayout()
-        self.generate_btn = QPushButton("Generate")
+        self.generate_btn = QPushButton("Generate Hermite")
         self.generate_btn.clicked.connect(self.generate_curve)
         self.save_btn = QPushButton("Save PNG…")
         self.save_btn.clicked.connect(self.save_image)

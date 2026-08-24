@@ -5,15 +5,14 @@ Curve generation
 #include <driveless/frame_params.h>
 #include <driveless/math_utils.h>
 
-__device__ __host__ float distance(float3 p1, float3 p2) {
+__device__ __host__ float distance(float3 p1, float3 p2)
+{
     float dx = p2.x - p1.x;
     float dy = p2.y - p1.y;
-    return sqrtf(dx*dx + dy*dy);
+    return sqrtf(dx * dx + dy * dy);
 }
 
-
 typedef float (*interpolation_callback)(void *, int, int, float);
-
 
 /// @brief Interpolates an hermite curve
 /// @param plane_dim plane dimensions (width, height)
@@ -23,9 +22,9 @@ typedef float (*interpolation_callback)(void *, int, int, float);
 /// @param delta_max_rad max wheel-turning angle in radians
 /// @param cb callback function for each x,y,heading interpolated point
 /// @param result_ptr callback result pointer for permanent results
-/// @return 
+/// @return
 __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
-                                        float wheelbase, float delta_max_rad, interpolation_callback cb, void * result_ptr)
+                                        float wheelbase, float delta_max_rad, interpolation_callback cb, void *result_ptr)
 {
 
     const int plane_width = plane_dim.x;
@@ -56,35 +55,35 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
         float t3 = t2 * t;
 
         // Position basis
-        float h00 = 2*t3 - 3*t2 + 1;
-        float h10 = t3 - 2*t2 + t;
-        float h01 = -2*t3 + 3*t2;
+        float h00 = 2 * t3 - 3 * t2 + 1;
+        float h10 = t3 - 2 * t2 + t;
+        float h01 = -2 * t3 + 3 * t2;
         float h11 = t3 - t2;
 
-        float x = h00*p1.x + h10*tan1.x + h01*p2.x + h11*tan2.x;
-        float z = h00*p1.y + h10*tan1.y + h01*p2.y + h11*tan2.y;
+        float x = h00 * p1.x + h10 * tan1.x + h01 * p2.x + h11 * tan2.x;
+        float z = h00 * p1.y + h10 * tan1.y + h01 * p2.y + h11 * tan2.y;
 
         // First derivative basis
-        float h00d = 6*t2 - 6*t;
-        float h10d = 3*t2 - 4*t + 1;
-        float h01d = -6*t2 + 6*t;
-        float h11d = 3*t2 - 2*t;
+        float h00d = 6 * t2 - 6 * t;
+        float h10d = 3 * t2 - 4 * t + 1;
+        float h01d = -6 * t2 + 6 * t;
+        float h11d = 3 * t2 - 2 * t;
 
-        float xp = h00d*p1.x + h10d*tan1.x + h01d*p2.x + h11d*tan2.x;
-        float zp = h00d*p1.y + h10d*tan1.y + h01d*p2.y + h11d*tan2.y;
+        float xp = h00d * p1.x + h10d * tan1.x + h01d * p2.x + h11d * tan2.x;
+        float zp = h00d * p1.y + h10d * tan1.y + h01d * p2.y + h11d * tan2.y;
 
         // Second derivative basis
-        float h00dd = 12*t - 6;
-        float h10dd = 6*t - 4;
-        float h01dd = -12*t + 6;
-        float h11dd = 6*t - 2;
+        float h00dd = 12 * t - 6;
+        float h10dd = 6 * t - 4;
+        float h01dd = -12 * t + 6;
+        float h11dd = 6 * t - 2;
 
-        float xpp = h00dd*p1.x + h10dd*tan1.x + h01dd*p2.x + h11dd*tan2.x;
-        float zpp = h00dd*p1.y + h10dd*tan1.y + h01dd*p2.y + h11dd*tan2.y;
+        float xpp = h00dd * p1.x + h10dd * tan1.x + h01dd * p2.x + h11dd * tan2.x;
+        float zpp = h00dd * p1.y + h10dd * tan1.y + h01dd * p2.y + h11dd * tan2.y;
 
         // Curvature check — bail immediately, curve gets discarded by caller
-        float denom = powf(xp*xp + zp*zp, 1.5f);
-        float kappa = (denom > 1e-6f) ? fabsf(xp*zpp - zp*xpp) / denom : 0.0f;
+        float denom = powf(xp * xp + zp * zp, 1.5f);
+        float kappa = (denom > 1e-6f) ? fabsf(xp * zpp - zp * xpp) / denom : 0.0f;
         if (kappa > kappa_max)
             return -1;
 
@@ -93,8 +92,10 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
 
         int cx = TO_INT(x);
         int cz = TO_INT(z);
-        if (cx == last_x && cz == last_z) continue;
-        if (cx < 0 || cx >= plane_width || cz < 0 || cz >= plane_height) continue;
+        if (cx == last_x && cz == last_z)
+            continue;
+        if (cx < 0 || cx >= plane_width || cz < 0 || cz >= plane_height)
+            continue;
 
         float heading = atan2f(zp, xp) + HALF_PI;
 
@@ -111,14 +112,61 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
     return curve_cost;
 }
 
-void kinematic_curve(int2 start, float heading, int *params, float *physical_params, interpolation_callback cb, void * result_ptr)
+__device__ __host__ float kinematic_curve(int2 start, float heading, float steering_angle, float velocity_m_s, float max_path_size, int *params, float *physical_params, interpolation_callback cb, void *result_ptr)
 {
-    float wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
-    float delta_max_rad = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    const double max_steering = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    const double wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE];
+    const int minDistX = params[FRAME_PARAM_MIN_DIST_X];
+    const int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
+    const int width = params[FRAME_PARAM_WIDTH];
+    const int height = params[FRAME_PARAM_HEIGHT];
+    const float meters_to_px_ratio = physical_params[PHYSICAL_PARAM_RATE_SQUARE];
 
-    float3 p1 = {TO_FLOAT(start.x), TO_FLOAT(start.y), heading};
-    float3 p2 = {TO_FLOAT(params[0]), TO_FLOAT(params[1]), TO_FLOAT(params[2])};
+    float x = start.x;
+    float z = start.y;
 
-    hermite_curve(make_int2(params[3], params[4]), p1, p2, wheelbase, delta_max_rad, cb, result_ptr);
+    if (steering_angle > max_steering)
+        steering_angle = max_steering;
+    else if (steering_angle < -max_steering)
+        steering_angle = -max_steering;
 
+    const float steer = tanf(steering_angle);
+    const float dt = 0.1;
+    const float ds = velocity_m_s * dt * meters_to_px_ratio;
+    const float beta = atanf(steer / 2);
+    const float heading_increment_factor = ds * cosf(beta) * steer / (2 * wheelbase);
+
+    int max_size = TO_INT(max_path_size) + 1;
+    int size = 0;
+    int last_x = start.x;
+    int last_z = start.y;
+
+    float curve_cost = 0;
+
+    while (max_path_size <= 0 || size < max_size)
+    {
+        x += ds * cosf(heading + beta);
+        z += ds * sinf(heading + beta);
+        heading += heading_increment_factor;
+
+        int cx = TO_INT(x);
+        int cz = TO_INT(z);
+
+        if (cx == last_x && cz == last_z)
+            continue;
+
+        if (cx < 0 || cx >= width || cz < 0 || cz >= height)
+            break;
+
+        size += 1;
+
+        float point_cost = cb(result_ptr, cx, cz, heading);
+
+        if (point_cost < 0)
+            return -1;
+            
+        curve_cost += point_cost;
+    }
+    
+    return curve_cost;
 }

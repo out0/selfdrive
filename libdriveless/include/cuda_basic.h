@@ -330,6 +330,8 @@ typedef struct double4
 
 using DOUBLE4 = double4;
 
+#define make_int2(x, y) ((int2){x, y})
+
 #endif
 
 __device__ __host__ inline int COMPUTE_POS(int width, int x, int z)

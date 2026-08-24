@@ -15,7 +15,9 @@ SearchFrame *createEmptySearchFrame(
     int width,
     int height,
     std::pair<int, int> lower_bound,
-    std::pair<int, int> upper_bound);
+    std::pair<int, int> upper_bound,
+    std::pair<int, int> sz_dim = {-1, -1}
+);
 
 SearchFrame *createEmptySearchFramePtr(int width, int height);
 
@@ -24,5 +26,7 @@ void assertInt2Equal(int2 a, int2 b);
 SearchFrame *buildTestSearchFrame();
 
 cv::Mat exportGraph(SearchFrame *frame, WGraph *graph, const std::string &file);
+
+void showSearchParameters(SearchFrame * frame);
 
 #endif

@@ -37,7 +37,6 @@ __device__ __host__ float hermite_connection_check(void *ptr, int x, int z, floa
 
     // return frame[COMPUTE_POS(width, x, z)].y;
 };
-
 __device__ __host__ float compute_heading(int x, int z, float3 p2)
 {
     double dz = p2.y - z;
@@ -54,7 +53,6 @@ __device__ __host__ float compute_heading(int x, int z, float3 p2)
 
     return HALF_PI - v1;
 }
-
 __device__ __host__ void to_goal_wave(float3 *frame,
                                       int *params,
                                       float *physical_params,
@@ -69,8 +67,8 @@ __device__ __host__ void to_goal_wave(float3 *frame,
     const int2 min_distances = {params[FRAME_PARAM_MIN_DIST_X], params[FRAME_PARAM_MIN_DIST_Z]};
     const int2 zone_dim = {params[FRAME_SEARCH_ZONE_DIM_WIDTH], params[FRAME_SEARCH_ZONE_DIM_HEIGHT]};
     const int2 zone_grid_size = {params[FRAME_SEARCH_ZONE_GRID_WIDTH], params[FRAME_SEARCH_ZONE_GRID_HEIGHT]};
-    const float wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE];
-    const float delta_max_rad = physical_params[PHYSICAL_PARAM_MAX_STEERING_DEG];
+    const float wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
+    const float delta_max_rad = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
 
     int z = pos / frame_dim.x;
     int x = pos - z * frame_dim.x;
@@ -147,8 +145,8 @@ __device__ __host__ void to_goal_wave_2(float3 *frame,
     const int2 frame_dim = {params[FRAME_PARAM_WIDTH], params[FRAME_PARAM_HEIGHT]};
     const int2 zone_dim = {params[FRAME_SEARCH_ZONE_DIM_WIDTH], params[FRAME_SEARCH_ZONE_DIM_HEIGHT]};
     const int2 zone_grid_size = {params[FRAME_SEARCH_ZONE_GRID_WIDTH], params[FRAME_SEARCH_ZONE_GRID_HEIGHT]};
-    const float wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE];
-    const float delta_max_rad = physical_params[PHYSICAL_PARAM_MAX_STEERING_DEG];
+    const float wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
+    const float delta_max_rad = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
 
     int z = pos / frame_dim.x;
     int x = pos - z * frame_dim.x;

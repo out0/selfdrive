@@ -10,13 +10,13 @@
 
 TEST(TestWGraph, GoalWaveClear)
 {
-    SearchFrame * frame = createEmptySearchFrame(800, 800, {-1, -1}, {-1, -1});
+    SearchFrame * frame = createEmptySearchFrame(100, 100, {-1, -1}, {-1, -1}, {8, 8});
     //SearchFrame * frame = createEmptySearchFrame(256, 256, {-1, -1}, {-1, -1});
 
     WGraph graph(frame);
 
     graph.clear();
-    graph.set_start(400, 780, 0);
+    graph.set_start(50, 99, 0);
     //graph.set_start(128, 255, 0);
 
     angle maxSteering = angle::deg(40);
@@ -38,15 +38,18 @@ TEST(TestWGraph, GoalWaveClear)
         {255, 255, 255}
     });
 
-    frame->setPhysicalDimensionInMeters(800, 800);
+    frame->setPhysicalDimensionInMeters(10, 10);
     frame->setVehicleParams(5.412658773, maxSteering);
 
-    Waypoint goal(400, 0, angle::rad(0));
+    Waypoint goal(50, 0, angle::rad(0));
     //Waypoint goal(128, 0, angle::rad(0));
 
 
     printf("processing safe distance check\n");
-    frame->processSafeDistanceZone({10, 10}, false);
+    frame->processSafeDistanceZone({5, 5}, false);
+    frame->processDistanceToGoal(goal.x(), goal.z());
+
+    showSearchParameters(frame);
 
     printf("computing goal wave\n");
 

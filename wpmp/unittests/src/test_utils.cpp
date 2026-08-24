@@ -56,9 +56,10 @@ SearchFrame *createEmptySearchFrame(
     int width,
     int height,
     std::pair<int, int> lower_bound,
-    std::pair<int, int> upper_bound)
+    std::pair<int, int> upper_bound,
+    std::pair<int, int> sz_dim)
 {
-    SearchFrame *f = new SearchFrame(width, height, lower_bound, upper_bound);
+    SearchFrame *f = new SearchFrame(width, height, lower_bound, upper_bound, sz_dim);
     f->setClassCosts({1, -1});
     f->setClassColors({{0, 0, 0},
                        {255, 255, 255}});
@@ -70,6 +71,52 @@ SearchFrame *createEmptySearchFrame(
 
     delete[] ptr;
     return f;
+}
+
+void showSearchParameters(SearchFrame *frame)
+{
+    int *params = frame->getFrameParamsPtr();
+    float *phys_params = frame->getPhysicalParamsPtr();
+
+    printf("FRAME_PARAM_WIDTH: %d\n", params[FRAME_PARAM_WIDTH]);
+    printf("FRAME_PARAM_HEIGHT: %d\n", params[FRAME_PARAM_HEIGHT]);
+    printf("FRAME_PARAM_MIN_DIST_X: %d\n", params[FRAME_PARAM_MIN_DIST_X]);
+    printf("FRAME_PARAM_MIN_DIST_Z: %d\n", params[FRAME_PARAM_MIN_DIST_Z]);
+    printf("FRAME_PARAM_LOWER_BOUND_X: %d\n", params[FRAME_PARAM_LOWER_BOUND_X]);
+    printf("FRAME_PARAM_LOWER_BOUND_Z: %d\n", params[FRAME_PARAM_LOWER_BOUND_Z]);
+    printf("FRAME_PARAM_UPPER_BOUND_X: %d\n", params[FRAME_PARAM_UPPER_BOUND_X]);
+    printf("FRAME_PARAM_UPPER_BOUND_Z: %d\n", params[FRAME_PARAM_UPPER_BOUND_Z]);
+    printf("FRAME_PARAM_CENTER_X: %d\n", params[FRAME_PARAM_CENTER_X]);
+    printf("FRAME_PARAM_CENTER_Z: %d\n", params[FRAME_PARAM_CENTER_Z]);
+    printf("FRAME_SAFE_ZONE_CHECKED: %d\n", frame->isSafeZoneChecked());
+    printf("FRAME_SAFE_ZONE_VECTORIAL_CHECKED: %d\n", frame->isVectorialSafeZoneChecked());
+    printf("FRAME_DISTANCE_TO_GOAL_PROCESSED: %d\n", frame->isDistanceToGoalProcessed());
+    printf("FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED: %d\n", params[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED]);
+    printf("FRAME_SEARCH_ZONE_DIM_WIDTH: %d\n", params[FRAME_SEARCH_ZONE_DIM_WIDTH]);
+    printf("FRAME_SEARCH_ZONE_DIM_HEIGHT: %d\n", params[FRAME_SEARCH_ZONE_DIM_HEIGHT]);
+    printf("FRAME_SEARCH_ZONE_GRID_WIDTH: %d\n", params[FRAME_SEARCH_ZONE_GRID_WIDTH]);
+    printf("FRAME_SEARCH_ZONE_GRID_HEIGHT: %d\n", params[FRAME_SEARCH_ZONE_GRID_HEIGHT]);
+
+    printf ("--------------------\n");
+
+    printf("PHYSICAL_PARAM_REAL_WIDTH: %f\n", phys_params[PHYSICAL_PARAM_REAL_WIDTH]);
+    printf("PHYSICAL_PARAM_REAL_HEIGHT: %f\n", phys_params[PHYSICAL_PARAM_REAL_HEIGHT]);
+
+    printf("PHYSICAL_PARAM_RATE_W: %f\n", phys_params[PHYSICAL_PARAM_RATE_W]);
+    printf("PHYSICAL_PARAM_RATE_H: %f\n", phys_params[PHYSICAL_PARAM_RATE_H]);
+    printf("PHYSICAL_PARAM_RATE_SQUARE: %f\n", phys_params[PHYSICAL_PARAM_RATE_SQUARE]);
+
+    printf("PHYSICAL_PARAM_INV_RATE_W: %f\n", phys_params[PHYSICAL_PARAM_INV_RATE_W]);
+    printf("PHYSICAL_PARAM_INV_RATE_H: %f\n", phys_params[PHYSICAL_PARAM_INV_RATE_H]);
+    printf("PHYSICAL_PARAM_INV_RATE_SQUARE: %f\n", phys_params[PHYSICAL_PARAM_INV_RATE_SQUARE]);
+
+    printf("PHYSICAL_PARAM_MAX_STEERING_RAD: %f\n", phys_params[PHYSICAL_PARAM_MAX_STEERING_RAD]);
+    printf("PHYSICAL_PARAM_MAX_STEERING_DEG: %f\n", phys_params[PHYSICAL_PARAM_MAX_STEERING_DEG]);
+
+    printf("PHYSICAL_PARAM_WHEELBASE: %f\n", phys_params[PHYSICAL_PARAM_WHEELBASE]);
+    printf("PHYSICAL_PARAM_WHEELBASE_PX: %f\n", phys_params[PHYSICAL_PARAM_WHEELBASE_PX]);
+
+    printf("PHYSICAL_PARAM_MAX_CURVATURE: %f\n", phys_params[PHYSICAL_PARAM_MAX_CURVATURE]);
 }
 
 void assertInt2Equal(int2 a, int2 b)

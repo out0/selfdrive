@@ -153,6 +153,7 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
         CUDA(cudaDeviceSynchronize());
         _safeZoneVectorialChecked = true;
     }
+
 }
 
 __global__ void __CUDA_distance_to_goal(float3 *frame, float *classCosts, int *_searchSpaceParams, int goal_x, int goal_z)
