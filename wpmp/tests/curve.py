@@ -30,7 +30,7 @@ from PyQt6.QtWidgets import (
 )
 
 from pydriveless import Waypoint, angle
-from pywpmp import HermiteInterpolator
+from pywpmp import HermiteInterpolator, KinematicInterpolator
 
 CANVAS_W = 800
 CANVAS_H = 800
@@ -87,6 +87,16 @@ class CurveApp(QWidget):
         btn_row.addWidget(self.save_btn)
         controls.addLayout(btn_row)
 
+        btn_row2 = QHBoxLayout()
+        self.generate2_btn = QPushButton("Generate Kinematic")
+        self.generate2_btn.clicked.connect(self.generate_kinematic_curve)
+        self.save2_btn = QPushButton("Save PNG…")
+        self.save2_btn.clicked.connect(self.save_image)
+        self.save2_btn.setEnabled(False)
+        btn_row2.addWidget(self.generate2_btn)
+        btn_row2.addWidget(self.save2_btn)
+        controls.addLayout(btn_row2)
+
         controls.addStretch(1)
         root.addLayout(controls, 0)
 
@@ -107,6 +117,51 @@ class CurveApp(QWidget):
         return box
 
     # ------------------------------------------------------------- logic
+
+    def generate_kinematic_curve(self):
+        try:
+            p1 = Waypoint(int(self.p1_x.value()), int(self.p1_z.value()))
+            p2 = Waypoint(
+                int(self.p2_x.value()),
+                int(self.p2_z.value()),
+                heading=angle.new_deg(self.p2_heading.value()),
+            )
+
+            interpolator = KinematicInterpolator()
+            points = interpolator.kinematic_interpolation(
+                CANVAS_W,
+                CANVAS_H,
+                p1,
+                math.radians(self.turn_angle.value()),
+                self.velocity.value(),
+                1000.0,
+                51.2
+            )
+
+            # RGB canvas, built directly (no cv2 / BGR conversion needed)
+            canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
+
+            for p in points:
+                if 0 <= p.z < CANVAS_H and 0 <= p.x < CANVAS_W:
+                    canvas[p.z, p.x, :] = [0, 255, 0]
+
+            canvas[p1.z, p1.x, :] = [255, 255, 255]
+            canvas[p2.z, p2.x, :] = [255, 255, 255]
+
+            image = QImage(
+                canvas.data,
+                CANVAS_W,
+                CANVAS_H,
+                canvas.strides[0],
+                QImage.Format.Format_RGB888,
+            ).copy()  # copy() so the QImage owns its own buffer
+
+            self._last_image = image
+            self.image_label.setPixmap(QPixmap.fromImage(image))
+            self.save_btn.setEnabled(True)
+
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(self, "Error generating curve", str(exc))
 
     def generate_curve(self):
         try:

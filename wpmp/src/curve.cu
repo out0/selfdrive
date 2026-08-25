@@ -112,29 +112,29 @@ __device__ __host__ float hermite_curve(int2 plane_dim, float3 p1, float3 p2,
     return curve_cost;
 }
 
-__device__ __host__ float kinematic_curve(int2 start, float heading, float steering_angle, float velocity_m_s, float max_path_size, int *params, float *physical_params, interpolation_callback cb, void *result_ptr)
+__device__ __host__ float kinematic_curve(
+    int2 plane_dim,
+    int2 start,
+    float heading,
+    float steering_angle,
+    float velocity_px_s,
+    float max_path_size,
+    float wheelbase_px,
+    interpolation_callback cb,
+    void *result_ptr)
 {
-    const double max_steering = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
-    const double wheelbase = physical_params[PHYSICAL_PARAM_WHEELBASE];
-    const int minDistX = params[FRAME_PARAM_MIN_DIST_X];
-    const int minDistZ = params[FRAME_PARAM_MIN_DIST_Z];
-    const int width = params[FRAME_PARAM_WIDTH];
-    const int height = params[FRAME_PARAM_HEIGHT];
-    const float meters_to_px_ratio = physical_params[PHYSICAL_PARAM_RATE_SQUARE];
+
+    const int width = plane_dim.x;
+    const int height = plane_dim.y;
 
     float x = start.x;
     float z = start.y;
 
-    if (steering_angle > max_steering)
-        steering_angle = max_steering;
-    else if (steering_angle < -max_steering)
-        steering_angle = -max_steering;
-
     const float steer = tanf(steering_angle);
     const float dt = 0.1;
-    const float ds = velocity_m_s * dt * meters_to_px_ratio;
+    const float ds = velocity_px_s * dt;
     const float beta = atanf(steer / 2);
-    const float heading_increment_factor = ds * cosf(beta) * steer / (2 * wheelbase);
+    const float heading_increment_factor = ds * cosf(beta) * steer / (2 * wheelbase_px);
 
     int max_size = TO_INT(max_path_size) + 1;
     int size = 0;
@@ -164,9 +164,9 @@ __device__ __host__ float kinematic_curve(int2 start, float heading, float steer
 
         if (point_cost < 0)
             return -1;
-            
+
         curve_cost += point_cost;
     }
-    
+
     return curve_cost;
 }

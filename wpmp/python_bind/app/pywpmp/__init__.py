@@ -1,2 +1,3 @@
 from .src.wpmp import WPMP
-from .src.curve import HermiteInterpolator
+from .src.hermite_interpolator import HermiteInterpolator
+from .src.kinematic_interpolator import KinematicInterpolator
