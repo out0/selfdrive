@@ -14,9 +14,8 @@ extern float kinematic_curve(
     int2 start,
     float heading,
     float steering_angle,
-    float velocity_px_s,
-    float max_path_size,
-    float wheelbase_px,
+    int max_path_size_px,
+    int wheelbase_px,
     interpolation_callback cb,
     void *result_ptr);
 
@@ -83,17 +82,47 @@ extern "C"
         return cost >= 0;
     }
 
-    bool kinematic_interpolate_c(int plane_width, int plane_height,
-                                 float p1_x, float p1_z, float p1_heading_rad,
-                                 float steering_angle, float velocity_m_s,
-                                 float max_path_size, int *params,
-                                 float *physical_params,
-                                 interpolation_callback cb, void *result_ptr)
+    float cb_interpolation(void *ptr, int x, int z, float heading) {
+        std::vector<float> *points = (std::vector<float> *)ptr;
+        points->push_back(x);
+        points->push_back(z);
+        points->push_back(heading);
+        return 1.0;
+    }
+
+    float *kinematic_interpolate_c(
+        int plane_width,
+        int plane_height,
+        int x,
+        int z,
+        float heading,
+        float steering_angle,
+        int max_path_size_px,
+        int wheelbase_px,
+        int *out_size)
     {
+        std::vector<float> points;
 
-        float3 fp1 = {p1_x, p1_z, p1_heading_rad};
+        float cost = kinematic_curve({plane_width, plane_height}, {x, z},
+                                     heading, steering_angle, max_path_size_px, wheelbase_px, cb_interpolation, &points);
 
-        return kinematic_curve({TO_INT(fp1.x), TO_INT(fp1.y)}, p1_heading_rad,
-                               steering_angle, velocity_m_s, max_path_size, params, physical_params, cb, result_ptr);
+        if (cost < 0)
+        {
+            float *p = new float[1];
+            p[0] = 0;
+            *out_size = 1;
+            return p;
+        }
+        else
+        {
+            float *p = new float[points.size()];
+            std::copy(points.begin(), points.end(), p);
+            *out_size = static_cast<int>(points.size());
+            return p;
+        }
+    }
+    void kinematic_interpolate_free(float *p)
+    {
+        delete[] p;
     }
 }

@@ -117,13 +117,13 @@ __device__ __host__ float kinematic_curve(
     int2 start,
     float heading,
     float steering_angle,
-    float velocity_px_s,
-    float max_path_size,
-    float wheelbase_px,
+    int max_path_size_px,
+    int wheelbase_px,
     interpolation_callback cb,
     void *result_ptr)
 {
 
+    heading = heading - HALF_PI;
     const int width = plane_dim.x;
     const int height = plane_dim.y;
 
@@ -132,9 +132,8 @@ __device__ __host__ float kinematic_curve(
 
     const float steer = tanf(steering_angle);
     const float dt = 0.1;
-    const float ds = velocity_px_s * dt;
     const float beta = atanf(steer / 2);
-    const float heading_increment_factor = ds * cosf(beta) * steer / (2 * wheelbase_px);
+    const float heading_increment_factor = dt * cosf(beta) * steer / (2 * wheelbase_px);
 
     // x10 because dt is 0.1
     int max_size = max_path_size_px * 10;

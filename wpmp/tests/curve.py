@@ -31,6 +31,7 @@ from PyQt6.QtWidgets import (
 
 from pydriveless import Waypoint, angle
 from pywpmp import HermiteInterpolator, KinematicInterpolator
+#from kinematic import kinematic_curve
 
 CANVAS_W = 800
 CANVAS_H = 800
@@ -124,27 +125,39 @@ class CurveApp(QWidget):
         box.setValue(default)
         return box
 
-    # ------------------------------------------------------------- logic
-
     def generate_kinematic_curve(self):
         try:
-            p1 = Waypoint(int(self.p1_x.value()), int(self.p1_z.value()))
-            p2 = Waypoint(
-                int(self.p2_x.value()),
-                int(self.p2_z.value()),
-                heading=angle.new_deg(self.p2_heading.value()),
+            p1 = Waypoint(
+                int(self.p1_x.value()),
+                int(self.p1_z.value()),
+                heading=angle.new_deg(self.p1_heading.value()),
             )
 
+            ratio_w = CANVAS_W / self.real_width.value()
+            ratio_h = CANVAS_H / self.real_height.value()
+            ratio_sq = math.sqrt(ratio_w * ratio_h)
+
+            res = []
+
             interpolator = KinematicInterpolator()
-            points = interpolator.kinematic_interpolation(
-                CANVAS_W,
-                CANVAS_H,
-                p1,
-                math.radians(self.turn_angle.value()),
-                self.velocity.value(),
-                1000.0,
-                51.2
-            )
+            res = interpolator.kinematic_interpolation(CANVAS_W, 
+                                                 CANVAS_H, 
+                                                 p1, 
+                                                 angle.new_deg(self.turn_angle.value()),
+                                                 int(self.max_path_size_px.value()),
+                                                 int(self.wheelbase.value() * ratio_sq))
+
+            # cost = kinematic_curve(
+            #                 (CANVAS_W, CANVAS_H),
+            #                 (p1.x, p1.z),
+            #                 p1.heading.rad(),
+            #                 math.radians(self.turn_angle.value()),
+            #                 self.max_path_size_px.value(),
+            #                 self.wheelbase.value() * ratio_sq,
+            #                 self.callback_fn,
+            #                 res
+            #             )
+            points = res
 
             # RGB canvas, built directly (no cv2 / BGR conversion needed)
             canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
@@ -154,7 +167,6 @@ class CurveApp(QWidget):
                     canvas[p.z, p.x, :] = [0, 255, 0]
 
             canvas[p1.z, p1.x, :] = [255, 255, 255]
-            canvas[p2.z, p2.x, :] = [255, 255, 255]
 
             image = QImage(
                 canvas.data,

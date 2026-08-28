@@ -14,7 +14,7 @@ import ctypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
-from pydriveless import Waypoint
+from pydriveless import Waypoint, angle
 import os
 
 
@@ -35,63 +35,53 @@ class KinematicInterpolator:
         lib_path = os.path.join(os.path.dirname(__file__), "../cpp", "libwpmp.so")
                    
         self._lib = ctypes.CDLL(lib_path)
-        self._lib.kinematic_interpolate_c.argtypes = [     
-            ctypes.c_int,  # plane_width
-            ctypes.c_int,  # plane_height
-            ctypes.c_float,  # p1_x
-            ctypes.c_float,  # p1_z
-            ctypes.c_float,  # p1_heading_rad
-            ctypes.c_float,  # steering_angle
-            ctypes.c_float,  # velocity_px_s
-            ctypes.c_float,  # max_path_size
-            ctypes.c_float,  # wheelbase_px
-            _CALLBACK_TYPE,  # cb
-            ctypes.c_void_p,  # result_ptr (unused on the Python side, kept for API parity)
+        self._lib.kinematic_interpolate_c.argtypes = [
+            ctypes.c_int,                    # plane_width
+            ctypes.c_int,                    # plane_height
+            ctypes.c_int,                    # x
+            ctypes.c_int,                    # z
+            ctypes.c_float,                  # heading
+            ctypes.c_float,                  # steering_angle
+            ctypes.c_int,                    # max_path_size_px
+            ctypes.c_int,                    # wheelbase_px
+            ctypes.POINTER(ctypes.c_int),    # out_size
         ]
-        self._lib.kinematic_interpolate_c.restype = ctypes.c_bool
+        self._lib.kinematic_interpolate_c.restype = ctypes.POINTER(ctypes.c_float)
+
+        self._lib.kinematic_interpolate_free.argtypes = [ctypes.POINTER(ctypes.c_float)]
+        self._lib.kinematic_interpolate_free.restype = None
 
     def kinematic_interpolation(
         self,
         plane_width: int,
         plane_height: int,
         p1: Waypoint,
-        steering_angle: float,
-        velocity_px_s: float,
+        steering_angle: angle,
         max_path_size: float,
         wheelbase_px: float
     ) -> List[Waypoint]:
         """
-        Interpolates a Kinematic curve between p1 and p2.
+        Interpolates a Kinematic curve from p1.
 
         Returns a list of Waypoints, or an empty list if the curve exceeded
         the steering limit (mirroring `res.clear()` in the original C++ code).
         """
-        collected: List[Waypoint] = []
-
-        # The callback runs synchronously inside the C++ call below (same
-        # thread, same call stack), so it's safe to simply append to the
-        # Python list captured by closure. No ctx/void* juggling needed.
-        def _collect(ctx, x, z, heading) -> bool:
-            collected.append(Waypoint(x, z, heading))
-            return True  # True = keep interpolating
-
-        c_callback = _CALLBACK_TYPE(_collect)
-
-        valid = self._lib.kinematic_interpolate_c(
-            plane_width,
-            plane_height,
-            float(p1.x),
-            float(p1.z),
-            float(p1.heading.rad()),
-            float(steering_angle),
-            float(velocity_px_s),
-            float(max_path_size),
-            float(wheelbase_px),
-            c_callback,
-            None,  # ctx not needed: Python closure replaces the void* trick
+        size = ctypes.c_int(0)
+        ptr = self._lib.kinematic_interpolate_c(
+            plane_width, plane_height, p1.x, p1.z,
+            p1.heading.rad(), steering_angle.rad(), max_path_size, wheelbase_px,
+            ctypes.byref(size)
         )
+        try:
+            if size.value == 0:
+                return []
 
-        if not valid:
-            collected.clear()
-
-        return collected
+            flat = ptr[:size.value]  # copies data into a Python list of floats
+            # cb() pushes (x, z, heading) triplets per point
+            waypoints = []
+            for i in range(0, len(flat), 3):
+                x, z, heading = flat[i], flat[i + 1], flat[i + 2]
+                waypoints.append(Waypoint(int(round(x)), int(round(z)), angle.new_rad(heading)))
+            return waypoints
+        finally:
+            self._lib.kinematic_interpolate_free(ptr)
