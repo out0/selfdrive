@@ -58,36 +58,46 @@ std::vector<Waypoint> hermite_interpolatior(int plane_width,
 
 extern "C"
 {
-
-    // Flat, ctypes-callable wrapper.
-    // p1/p2 are passed as separate (x, z, heading_rad) floats instead of a
-    // float3 struct to avoid any struct-layout/ABI ambiguity from Python.
-    //
-    // Returns true if the curve stayed within the steering limit (result is
-    // valid / should be kept), false otherwise (caller should discard whatever
-    // the callback collected, mirroring the `res.clear()` behavior in the
-    // original C++ wrapper).
-    bool hermite_interpolate_c(int plane_width, int plane_height,
-                               float p1_x, float p1_z, float p1_heading_rad,
-                               float p2_x, float p2_z, float p2_heading_rad,
-                               float wheelbase, float delta_max_rad,
-                               interpolation_callback cb, void *result_ptr)
-    {
-        float3 fp1 = {p1_x, p1_z, p1_heading_rad};
-        float3 fp2 = {p2_x, p2_z, p2_heading_rad};
-
-        float cost = hermite_curve({plane_width, plane_height}, fp1, fp2,
-                                   wheelbase, delta_max_rad, cb, result_ptr);
-
-        return cost >= 0;
-    }
-
     float cb_interpolation(void *ptr, int x, int z, float heading) {
         std::vector<float> *points = (std::vector<float> *)ptr;
         points->push_back(x);
         points->push_back(z);
         points->push_back(heading);
         return 1.0;
+    }
+
+    // Flat, ctypes-callable wrapper — same shape as kinematic_interpolate_c:
+    // internally collects points via cb_interpolation into a flat
+    // [x, z, heading, x, z, heading, ...] float array, writes its length to
+    // *out_size, and returns the heap-allocated buffer.
+    float *hermite_interpolate_c(int plane_width, int plane_height,
+                                 float p1_x, float p1_z, float p1_heading_rad,
+                                 float p2_x, float p2_z, float p2_heading_rad,
+                                 float wheelbase, float delta_max_rad,
+                                 int *out_size)
+    {
+        float3 fp1 = {p1_x, p1_z, p1_heading_rad};
+        float3 fp2 = {p2_x, p2_z, p2_heading_rad};
+
+        std::vector<float> points;
+
+        float cost = hermite_curve({plane_width, plane_height}, fp1, fp2,
+                                   wheelbase, delta_max_rad, cb_interpolation, &points);
+
+        if (cost < 0)
+        {
+            float *p = new float[1];
+            p[0] = 0;
+            *out_size = 1;
+            return p;
+        }
+        else
+        {
+            float *p = new float[points.size()];
+            std::copy(points.begin(), points.end(), p);
+            *out_size = static_cast<int>(points.size());
+            return p;
+        }
     }
 
     float *kinematic_interpolate_c(
@@ -121,7 +131,13 @@ extern "C"
             return p;
         }
     }
+
     void kinematic_interpolate_free(float *p)
+    {
+        delete[] p;
+    }
+
+    void hermite_interpolate_free(float *p)
     {
         delete[] p;
     }

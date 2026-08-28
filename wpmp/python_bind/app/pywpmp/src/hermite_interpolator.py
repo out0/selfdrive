@@ -14,42 +14,32 @@ import ctypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
-from pydriveless import Waypoint
+from pydriveless import Waypoint, angle
 import os
 
-
-# bool (*)(void*, int, int, float) -- matches interpolation_callback in the C++ code
-_CALLBACK_TYPE = ctypes.CFUNCTYPE(
-    ctypes.c_bool,  # return
-    ctypes.c_void_p,  # ctx
-    ctypes.c_int,  # x
-    ctypes.c_int,  # z
-    ctypes.c_float,  # heading
-)
-
-
 class HermiteInterpolator:
-    """Thin wrapper around hermite_interpolate_c exposed by libhermite.so."""
-
     def __init__(self, lib_path: str | None = None):
-        lib_path = os.path.join(os.path.dirname(__file__), "../cpp", "libwpmp.so")
-                   
+        if lib_path is None:
+            lib_path = os.path.join(os.path.dirname(__file__), "../cpp", "libwpmp.so")
+
         self._lib = ctypes.CDLL(lib_path)
         self._lib.hermite_interpolate_c.argtypes = [
-            ctypes.c_int,  # plane_width
-            ctypes.c_int,  # plane_height
-            ctypes.c_float,  # p1_x
-            ctypes.c_float,  # p1_z
-            ctypes.c_float,  # p1_heading_rad
-            ctypes.c_float,  # p2_x
-            ctypes.c_float,  # p2_z
-            ctypes.c_float,  # p2_heading_rad
-            ctypes.c_float,  # wheelbase
-            ctypes.c_float,  # delta_max_rad
-            _CALLBACK_TYPE,  # cb
-            ctypes.c_void_p,  # result_ptr (unused on the Python side, kept for API parity)
+            ctypes.c_int,                    # plane_width
+            ctypes.c_int,                    # plane_height
+            ctypes.c_float,                  # p1_x
+            ctypes.c_float,                  # p1_z
+            ctypes.c_float,                  # p1_heading_rad
+            ctypes.c_float,                  # p2_x
+            ctypes.c_float,                  # p2_z
+            ctypes.c_float,                  # p2_heading_rad
+            ctypes.c_float,                  # wheelbase
+            ctypes.c_float,                  # delta_max_rad
+            ctypes.POINTER(ctypes.c_int),    # out_size
         ]
-        self._lib.hermite_interpolate_c.restype = ctypes.c_bool
+        self._lib.hermite_interpolate_c.restype = ctypes.POINTER(ctypes.c_float)
+
+        self._lib.hermite_interpolate_free.argtypes = [ctypes.POINTER(ctypes.c_float)]
+        self._lib.hermite_interpolate_free.restype = None
 
     def hermite_interpolation(
         self,
@@ -60,39 +50,23 @@ class HermiteInterpolator:
         wheelbase: float,
         delta_max_rad: float,
     ) -> List[Waypoint]:
-        """
-        Interpolates a hermite curve between p1 and p2.
-
-        Returns a list of Waypoints, or an empty list if the curve exceeded
-        the steering limit (mirroring `res.clear()` in the original C++ code).
-        """
-        collected: List[Waypoint] = []
-
-        # The callback runs synchronously inside the C++ call below (same
-        # thread, same call stack), so it's safe to simply append to the
-        # Python list captured by closure. No ctx/void* juggling needed.
-        def _collect(ctx, x, z, heading) -> bool:
-            collected.append(Waypoint(x, z, heading))
-            return True  # True = keep interpolating
-
-        c_callback = _CALLBACK_TYPE(_collect)
-
-        valid = self._lib.hermite_interpolate_c(
-            plane_width,
-            plane_height,
-            float(p1.x),
-            float(p1.z),
-            float(p1.heading.rad()),
-            float(p2.x),
-            float(p2.z),
-            float(p2.heading.rad()),
-            float(wheelbase),
-            float(delta_max_rad),
-            c_callback,
-            None,  # ctx not needed: Python closure replaces the void* trick
+        size = ctypes.c_int(0)
+        ptr = self._lib.hermite_interpolate_c(
+            plane_width, plane_height,
+            float(p1.x), float(p1.z), p1.heading.rad(),
+            float(p2.x), float(p2.z), p2.heading.rad(),
+            wheelbase, delta_max_rad,
+            ctypes.byref(size)
         )
-
-        if not valid:
-            collected.clear()
-
-        return collected
+        try:
+            if not ptr or size.value < 3:
+                # size == 1 is the C++ side's "failed / fake" sentinel value
+                return []
+            flat = ptr[:size.value]
+            return [
+                Waypoint(int(round(flat[i])), int(round(flat[i + 1])), angle.new_rad(flat[i + 2]))
+                for i in range(0, len(flat), 3)
+            ]
+        finally:
+            if ptr:
+                self._lib.hermite_interpolate_free(ptr)
