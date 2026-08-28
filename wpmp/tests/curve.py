@@ -55,8 +55,10 @@ class CurveApp(QWidget):
         p1_form = QFormLayout(p1_box)
         self.p1_x = self._spin(0, CANVAS_W - 1, 400)
         self.p1_z = self._spin(0, CANVAS_H - 1, 750)
+        self.p1_heading = self._spin(-360, 360, 0)
         p1_form.addRow("x", self.p1_x)
         p1_form.addRow("z", self.p1_z)
+        p1_form.addRow("heading (deg)", self.p1_heading)
         controls.addWidget(p1_box)
 
         p2_box = QGroupBox("P2")
@@ -71,10 +73,16 @@ class CurveApp(QWidget):
 
         params_box = QGroupBox("Curve parameters")
         params_form = QFormLayout(params_box)
-        self.velocity = self._spin(0.01, 1000, 5.2, step=0.1)
+        self.max_path_size_px = self._spin(0, 10000, 1000, step=10)
         self.turn_angle = self._spin(-360, 360, 40)
-        params_form.addRow("velocity", self.velocity)
-        params_form.addRow("turn angle (deg)", self.turn_angle)
+        self.wheelbase = self._spin(0.0, 20.0, 5.6, step=0.1)
+        self.real_width = self._spin(1.0, CANVAS_W, 32, step=0.1)
+        self.real_height = self._spin(1.0, CANVAS_H, 32, step=0.1)
+        params_form.addRow("max path size (px)", self.max_path_size_px)
+        params_form.addRow("steering (deg)", self.turn_angle)
+        params_form.addRow("wheelbase (m)", self.wheelbase)
+        params_form.addRow("real width (m)", self.real_width)
+        params_form.addRow("real height (m)", self.real_height)
         controls.addWidget(params_box)
 
         btn_row = QHBoxLayout()
@@ -178,7 +186,7 @@ class CurveApp(QWidget):
                 CANVAS_H,
                 p1,
                 p2,
-                self.velocity.value(),
+                1,
                 math.radians(self.turn_angle.value()),
             )
 

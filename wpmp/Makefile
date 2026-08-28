@@ -9,7 +9,7 @@ bin:
 install: bin 
 	cd build && sudo make install
 	mkdir -p python_bind/app/pywpmp/cpp
-	cp build/libwpmp.so.0.1.0	python_bind/app/pywpmp/cpp/libwpmp.so
+	cp build/libwpmp.so.0.1.1	python_bind/app/pywpmp/cpp/libwpmp.so
 #	cd python_bind && pip3 install .
 	cd python_bind && pip3 install . --break-system-packages	
 	cd python_bind && rm -rf build

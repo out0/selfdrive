@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(wpmp LANGUAGES CXX VERSION 0.1.0 DESCRIPTION "libwpmp")
+project(wpmp LANGUAGES CXX VERSION 0.1.1 DESCRIPTION "libwpmp")
 
 find_package(driveless REQUIRED)
 get_target_property(_driveless_defs driveless::driveless INTERFACE_COMPILE_DEFINITIONS)

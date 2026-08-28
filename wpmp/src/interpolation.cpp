@@ -1,6 +1,7 @@
 #include <driveless/waypoint.h>
 #include <vector>
 #include <driveless/cuda_basic.h>
+#include <vector>
 
 typedef float (*interpolation_callback)(void *, int, int, float);
 
@@ -82,23 +83,17 @@ extern "C"
         return cost >= 0;
     }
 
-    bool kinematic_interpolate_c(
-        int plane_width,
-        int plane_height,
-        int x,
-        int z,
-        float heading,
-        float steering_angle,
-        float velocity_px_s,
-        float max_path_size,
-        float wheelbase_px,
-        interpolation_callback cb,
-        void *result_ptr)
+    bool kinematic_interpolate_c(int plane_width, int plane_height,
+                                 float p1_x, float p1_z, float p1_heading_rad,
+                                 float steering_angle, float velocity_m_s,
+                                 float max_path_size, int *params,
+                                 float *physical_params,
+                                 interpolation_callback cb, void *result_ptr)
     {
 
-        float cost = kinematic_curve({plane_width, plane_height}, {x, z},
-                                     heading, steering_angle, velocity_px_s, max_path_size, wheelbase_px, cb, result_ptr);
+        float3 fp1 = {p1_x, p1_z, p1_heading_rad};
 
-        return cost >= 0;
+        return kinematic_curve({TO_INT(fp1.x), TO_INT(fp1.y)}, p1_heading_rad,
+                               steering_angle, velocity_m_s, max_path_size, params, physical_params, cb, result_ptr);
     }
 }

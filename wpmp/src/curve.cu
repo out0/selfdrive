@@ -136,17 +136,19 @@ __device__ __host__ float kinematic_curve(
     const float beta = atanf(steer / 2);
     const float heading_increment_factor = ds * cosf(beta) * steer / (2 * wheelbase_px);
 
-    int max_size = TO_INT(max_path_size) + 1;
+    // x10 because dt is 0.1
+    int max_size = max_path_size_px * 10;
     int size = 0;
     int last_x = start.x;
     int last_z = start.y;
 
     float curve_cost = 0;
+    //printf("calling curve gen max_path_size = %f, max_size = %d\n", max_path_size, max_size);
 
-    while (max_path_size <= 0 || size < max_size)
+    while (max_path_size_px <= 0 || size < max_size)
     {
-        x += ds * cosf(heading + beta);
-        z += ds * sinf(heading + beta);
+        x += dt * cosf(heading + beta);
+        z += dt * sinf(heading + beta);
         heading += heading_increment_factor;
 
         int cx = TO_INT(x);
@@ -160,6 +162,7 @@ __device__ __host__ float kinematic_curve(
 
         size += 1;
 
+        //printf("calling cb (%d, %d, %f)\n", cx, cz, heading);
         float point_cost = cb(result_ptr, cx, cz, heading);
 
         if (point_cost < 0)

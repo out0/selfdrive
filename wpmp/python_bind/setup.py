@@ -5,7 +5,7 @@ with open("app/README.md", "r") as f:
 
 setup(
     name="pywpmp",
-    version="0.1.0",
+    version="0.1.1",
     description="Wave Parallel Multipath Planner",
     package_dir={"": "app"},
     packages=find_packages(where="app"),
