@@ -31,7 +31,8 @@ from PyQt6.QtWidgets import (
 
 from pydriveless import Waypoint, angle
 from pywpmp import HermiteInterpolator, KinematicInterpolator
-#from kinematic import kinematic_curve
+from check_viable import check_not_reachable
+from kinematic import kinematic_curve
 
 CANVAS_W = 800
 CANVAS_H = 800
@@ -64,9 +65,9 @@ class CurveApp(QWidget):
 
         p2_box = QGroupBox("P2")
         p2_form = QFormLayout(p2_box)
-        self.p2_x = self._spin(0, CANVAS_W - 1, 700)
+        self.p2_x = self._spin(0, CANVAS_W - 1, 400)
         self.p2_z = self._spin(0, CANVAS_H - 1, 0)
-        self.p2_heading = self._spin(-360, 360, 110)
+        self.p2_heading = self._spin(-360, 360, 0)
         p2_form.addRow("x", self.p2_x)
         p2_form.addRow("z", self.p2_z)
         p2_form.addRow("heading (deg)", self.p2_heading)
@@ -106,8 +107,20 @@ class CurveApp(QWidget):
         btn_row2.addWidget(self.save2_btn)
         controls.addLayout(btn_row2)
 
+        btn_row3 = QHBoxLayout()
+        self.generate3_btn = QPushButton("Generate P2 back curves")
+        self.generate3_btn.clicked.connect(self.generate_kinematic_back_curves)
+        btn_row3.addWidget(self.generate3_btn)
+        controls.addLayout(btn_row3)
+
+        btn_row4 = QHBoxLayout()
+        self.generate4_btn = QPushButton("No reachable zone")
+        self.generate4_btn.clicked.connect(self.show_no_reachable_zone)
+        btn_row4.addWidget(self.generate4_btn)
+        controls.addLayout(btn_row4)
+
         controls.addStretch(1)
-        root.addLayout(controls, 0)
+        root.addLayout(controls, 0) 
 
         # ---- right: image preview -------------------------------------------
         self.image_label = QLabel("No curve generated yet")
@@ -124,6 +137,125 @@ class CurveApp(QWidget):
         box.setSingleStep(step)
         box.setValue(default)
         return box
+
+    def show_no_reachable_zone(self):
+        try:
+            goal = Waypoint(
+                int(self.p2_x.value()),
+                int(self.p2_z.value()),
+                heading=angle.new_deg(self.p2_heading.value() + 180),
+            )
+
+            ratio_w = CANVAS_W / self.real_width.value()
+            ratio_h = CANVAS_H / self.real_height.value()
+            ratio_sq = math.sqrt(ratio_w * ratio_h)
+
+            canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
+
+            with open("outp1.dat", "w") as file:
+                for z in range(CANVAS_H):
+                    for x in range(CANVAS_W):
+                        not_reachable = check_not_reachable(goal, angle.new_deg(40), int(self.wheelbase.value() * ratio_sq), x, z)
+                        if not_reachable:
+                            canvas[z, x, :] = [255, 0, 0]
+                            file.write(f"({x}, {z})\n")
+
+            image = QImage(
+                canvas.data,
+                CANVAS_W,
+                CANVAS_H,
+                canvas.strides[0],
+                QImage.Format.Format_RGB888,
+            ).copy()  # copy() so the QImage owns its own buffer
+
+            self._last_image = image
+            self.image_label.setPixmap(QPixmap.fromImage(image))
+            self.save_btn.setEnabled(True)
+
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(self, "Error generating curve", str(exc))        
+
+    def accum(self, result: list, cx, cz, heading):
+        result.append(Waypoint(cx, cz, angle.new_rad(heading)))
+        return 1
+
+    def generate_kinematic_back_curves(self):
+        try:
+            p1 = Waypoint(
+                int(self.p2_x.value()),
+                int(self.p2_z.value()),
+                heading=angle.new_deg(self.p2_heading.value() + 180),
+            )
+
+            ratio_w = CANVAS_W / self.real_width.value()
+            ratio_h = CANVAS_H / self.real_height.value()
+            ratio_sq = math.sqrt(ratio_w * ratio_h)
+
+            # res = []
+            wheelbase_px = int(self.wheelbase.value() * ratio_sq)
+
+            # interpolator = KinematicInterpolator()
+            # curve1 = interpolator.kinematic_interpolation(CANVAS_W, 
+            #                                      CANVAS_H, 
+            #                                      p1, 
+            #                                      angle.new_deg(self.turn_angle.value()),
+            #                                      int(self.max_path_size_px.value()),
+            #                                      wheelbase_px)
+            # curve2 = interpolator.kinematic_interpolation(CANVAS_W, 
+            #                                      CANVAS_H, 
+            #                                      p1, 
+            #                                      angle.new_deg(-self.turn_angle.value()),
+            #                                      int(self.max_path_size_px.value()),
+            #                                      wheelbase_px)
+            curve1 = []
+            kinematic_curve(
+                (CANVAS_W, CANVAS_H),
+                (p1.x, p1.z),
+                p1.heading.rad(),
+                math.radians(40),
+                int(self.max_path_size_px.value()),
+                wheelbase_px,
+                self.accum,
+                curve1)
+
+            curve2 = []
+            kinematic_curve(
+                (CANVAS_W, CANVAS_H),
+                (p1.x, p1.z),
+                p1.heading.rad(),
+                math.radians(-40),
+                int(self.max_path_size_px.value()),
+                wheelbase_px,
+                self.accum,
+                curve2)
+            
+            # RGB canvas, built directly (no cv2 / BGR conversion needed)
+            canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
+
+            with open("outp2.dat", "w") as file:
+                for points in [curve1, curve2]:
+                    for p in points:
+                        if 0 <= p.z < CANVAS_H and 0 <= p.x < CANVAS_W:
+                            canvas[p.z, p.x, :] = [0, 255, 0]
+                            file.write(f"({p.x}, {p.z})\n")   
+
+
+            canvas[p1.z, p1.x, :] = [255, 255, 255]
+
+            image = QImage(
+                canvas.data,
+                CANVAS_W,
+                CANVAS_H,
+                canvas.strides[0],
+                QImage.Format.Format_RGB888,
+            ).copy()  # copy() so the QImage owns its own buffer
+
+            self._last_image = image
+            self.image_label.setPixmap(QPixmap.fromImage(image))
+            self.save_btn.setEnabled(True)
+
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(self, "Error generating curve", str(exc))
 
     def generate_kinematic_curve(self):
         try:

@@ -1,12 +1,12 @@
 import math
 
 def kinematic_curve(
-    plane_dim,           # (width, height)
-    start,                # (x, y)
-    heading,
-    steering_angle,
-    max_path_size,
-    wheelbase_px,
+    plane_dim: tuple[int, int],           # (width, height)
+    start: tuple[int, int],                # (x, y)
+    heading: float,
+    steering_angle: float,
+    max_path_size: int,
+    wheelbase_px: int,
     cb,                   # callback(result, cx, cz, heading) -> float
     result
 ):
@@ -17,7 +17,7 @@ def kinematic_curve(
     steer = math.tan(steering_angle)
     dt = 0.1
     beta = math.atan(steer / 2)
-    curvature = dt * math.cos(beta) * steer / (2 * wheelbase_px)
+    curvature = (0.1 * math.cos(beta) * steer) / (2 * wheelbase_px)
 
     max_size = int(max_path_size) + 1
     size = 0
