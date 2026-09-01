@@ -34,6 +34,8 @@ from pywpmp import HermiteInterpolator, KinematicInterpolator
 from check_viable import check_not_reachable
 from kinematic import kinematic_curve
 
+from pydriveless import SearchFrame
+
 CANVAS_W = 800
 CANVAS_H = 800
 
@@ -75,7 +77,7 @@ class CurveApp(QWidget):
 
         params_box = QGroupBox("Curve parameters")
         params_form = QFormLayout(params_box)
-        self.max_path_size_px = self._spin(0, 10000, 1000, step=10)
+        self.max_path_size_px = self._spin(0, 10000, 0, step=10)
         self.turn_angle = self._spin(-360, 360, 40)
         self.wheelbase = self._spin(0.0, 20.0, 5.6, step=0.1)
         self.real_width = self._spin(1.0, CANVAS_W, 32, step=0.1)
@@ -140,6 +142,93 @@ class CurveApp(QWidget):
 
     def show_no_reachable_zone(self):
         try:
+            f = SearchFrame(CANVAS_W, CANVAS_H, (-1, -1), (-1, -1))
+            f.set_class_costs(np.array([
+                1,
+                -1
+            ]))
+            f.set_class_colors(np.array([
+                [0, 0, 0],
+                [255, 255, 255]
+            ]))
+
+            f.set_physical_frame_dimension(self.real_width.value(), self.real_height.value())
+            f.set_physical_vehicle_params(self.wheelbase.value(), angle.new_deg(self.turn_angle.value()))
+
+            origin = Waypoint(
+                int(self.p1_x.value()),
+                int(self.p1_z.value()),
+                heading=angle.new_deg(self.p1_heading.value()),
+            )
+
+
+            goal = Waypoint(
+                int(self.p2_x.value()),
+                int(self.p2_z.value()),
+                heading=angle.new_deg(self.p2_heading.value()),
+            )
+
+            ratio_w = CANVAS_W / self.real_width.value()
+            ratio_h = CANVAS_H / self.real_height.value()
+            ratio_sq = math.sqrt(ratio_w * ratio_h)
+            canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
+            wheelbase_px = int(self.wheelbase.value() * ratio_sq)
+
+            f.process_safe_distance_zone(min_distance=(1, 1), compute_vectorized=False)
+            f.process_exclusion_zones(origin, goal)
+
+            curve1 = []
+            kinematic_curve(
+                (CANVAS_W, CANVAS_H),
+                (goal.x, goal.z),
+                goal.heading.rad() + math.pi,
+                math.radians(40),
+                int(self.max_path_size_px.value()),
+                wheelbase_px,
+                self.accum,
+                curve1)
+
+            curve2 = []
+            kinematic_curve(
+                (CANVAS_W, CANVAS_H),
+                (goal.x, goal.z),
+                goal.heading.rad() + math.pi,
+                math.radians(-40),
+                int(self.max_path_size_px.value()),
+                wheelbase_px,
+                self.accum,
+                curve2)
+
+
+            for points in [curve1, curve2]:
+                for p in points:
+                    if 0 <= p.z < CANVAS_H and 0 <= p.x < CANVAS_W:
+                        canvas[p.z, p.x, :] = [0, 255, 0]
+
+            for z in range(CANVAS_H):
+                for x in range(CANVAS_W):
+                    if not f.is_traversable(x, z):
+                        canvas[z, x, :] = [255, 0, 0]
+
+  
+            image = QImage(
+                canvas.data,
+                CANVAS_W,
+                CANVAS_H,
+                canvas.strides[0],
+                QImage.Format.Format_RGB888,
+            ).copy()  # copy() so the QImage owns its own buffer
+
+            self._last_image = image
+            self.image_label.setPixmap(QPixmap.fromImage(image))
+            self.save_btn.setEnabled(True)
+
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(self, "Error generating curve", str(exc))        
+    
+
+    def show_no_reachable_zone_local(self):
+        try:
             goal = Waypoint(
                 int(self.p2_x.value()),
                 int(self.p2_z.value()),
@@ -151,14 +240,53 @@ class CurveApp(QWidget):
             ratio_sq = math.sqrt(ratio_w * ratio_h)
 
             canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
+            wheelbase_px = int(self.wheelbase.value() * ratio_sq)
+
+            curve1 = []
+            kinematic_curve(
+                (CANVAS_W, CANVAS_H),
+                (goal.x, goal.z),
+                goal.heading.rad(),
+                math.radians(40),
+                int(self.max_path_size_px.value()),
+                wheelbase_px,
+                self.accum,
+                curve1)
+
+            curve2 = []
+            kinematic_curve(
+                (CANVAS_W, CANVAS_H),
+                (goal.x, goal.z),
+                goal.heading.rad(),
+                math.radians(-40),
+                int(self.max_path_size_px.value()),
+                wheelbase_px,
+                self.accum,
+                curve2)
+            
+            # RGB canvas, built directly (no cv2 / BGR conversion needed)
+            canvas = np.zeros((CANVAS_H, CANVAS_W, 3), dtype=np.uint8)
+
+
+            with open("outp2.dat", "w") as file:
+                for points in [curve1, curve2]:
+                    for p in points:
+                        if 0 <= p.z < CANVAS_H and 0 <= p.x < CANVAS_W:
+                            canvas[p.z, p.x, :] = [0, 255, 0]
+                            file.write(f"({p.x}, {p.z})\n")
 
             with open("outp1.dat", "w") as file:
                 for z in range(CANVAS_H):
                     for x in range(CANVAS_W):
-                        not_reachable = check_not_reachable(goal, angle.new_deg(40), int(self.wheelbase.value() * ratio_sq), x, z)
+                        not_reachable = check_not_reachable(goal, angle.new_deg(40), wheelbase_px, x, z)
                         if not_reachable:
                             canvas[z, x, :] = [255, 0, 0]
                             file.write(f"({x}, {z})\n")
+
+ 
+                            #canvas[p.z, p.x, :] = [0, 255, 0]
+                            #file.write(f"({p.x}, {p.z})\n") 
+
 
             image = QImage(
                 canvas.data,

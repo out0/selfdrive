@@ -37,21 +37,21 @@ def check_not_reachable(goal: Waypoint, max_steering_angle: angle, wheelbase_px:
     beta = math.atan(steer / 2)
     curvature = abs(math.cos(beta) * steer / (2 * wheelbase_px))
     R = 1/curvature
-    R = R
     Rsq = R*R
   
-    rad = goal.heading.rad()
-    dx = math.sin(rad)
-    dy = -math.cos(rad)
-    p = (goal.x + R * dx, goal.z + R * dy)
+    # rad = goal.heading.rad()
+    # dx = math.sin(rad)
+    # dy = -math.cos(rad)
+    # p = (goal.x + R * dx, goal.z + R * dy)
+    # po = (p[0] - goal.x, p[1] - goal.z)
+    # pr = (pr[0] + goal.x, pr[1] + goal.z)
+    # pl = (pl[0] + goal.x, pl[1] + goal.z)
 
-    po = (p[0] - goal.x, p[1] - goal.z)
+     # right turn (steering_angle = +max_steering_angle)
+    pr = (goal.x + R * math.cos(goal.heading.rad() + beta), goal.z + R * math.sin(goal.heading.rad() + beta))
+    # left turn (steering_angle = -max_steering_angle)
+    pl = (goal.x - R * math.cos(goal.heading.rad() - beta), goal.z - R * math.sin(goal.heading.rad() - beta))
 
-    pr = (-po[1], po[0])
-    pl = (po[1], -po[0])
-
-    pr = (pr[0] + goal.x, pr[1] + goal.z)
-    pl = (pl[0] + goal.x, pl[1] + goal.z)
 
     if (x == 0 and z == 0):
         print(pr)
@@ -60,11 +60,11 @@ def check_not_reachable(goal: Waypoint, max_steering_angle: angle, wheelbase_px:
     dx = pr[0] - x
     dz = pr[1] - z
     dist = dx * dx + dz * dz
-    if abs(dist - Rsq) <= 2: return True
+    if dist <= Rsq: return True
 
     dx = pl[0] - x
     dz = pl[1] - z
     dist = dx * dx + dz * dz
-    if abs(dist - Rsq) <= 2: return True
+    if dist <= Rsq: return True
 
     return False

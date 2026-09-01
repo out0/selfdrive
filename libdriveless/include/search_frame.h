@@ -350,6 +350,8 @@ public:
         return _physical_params.get();
 #endif
     }
+
+    void processKinematicExclusionAreas(Waypoint origin, Waypoint goal);
 };
 
 #endif

@@ -11,8 +11,6 @@ extern const float H_TRAVERSABILITY_ANGLES[];
 extern const int TRAVERSABILITY_BITS[];
 extern const int H_TRAVERSABILITY_BITS[];
 
-
-
 extern std::pair<int, int> __checkTraversableAngleBitPairCheck(float heading_rad);
 extern bool CHECK_OUT_BOUNDARIES(int width, int height, int x, int z);
 extern void setObstacle(float3 *frame, int width, int height, int x, int z);
@@ -241,7 +239,7 @@ public:
             const int nodeClass = TO_INT(_frame[pos].x);
             if (_classCosts[nodeClass] < 0)
             {
-                
+
                 _frame[pos].y = 999999999;
                 return;
             }
@@ -272,4 +270,105 @@ float SearchFrame::getDistanceToGoal(int x, int z)
 {
     float3 *ptr = getPtr();
     return ptr[z * width() + x].y;
+}
+
+std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool invert_angle)
+{
+    const float max_steering_angle = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    const float wheelbase_px = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
+    const float steer = tanf(max_steering_angle);
+    const float beta = atanf(steer / 2);
+    float curvature = cosf(beta) * steer / (2 * wheelbase_px);
+    if (curvature < 0)
+        curvature = -1 * curvature;
+    
+    const float R = 1 / curvature;
+    const float Rsq = R * R;
+    const float heading = invert_angle ? p1.heading().rad() + PI : p1.heading().rad();
+
+    int4 coordinates;
+
+    coordinates.x = p1.x() + R * cosf(heading + beta);
+    coordinates.y = p1.z() + R * sinf(heading + beta);
+    coordinates.z = p1.x() - R * cosf(heading - beta);
+    coordinates.w = p1.z() - R * sinf(heading - beta);
+
+    return {coordinates, Rsq};
+}
+
+class KinematicExclusionAreasProcessor : public ParallelProcessor
+{
+private:
+    float3 *_frame;
+    float *_classCosts;
+    int *_searchSpaceParams;
+    int4 _origin;
+    int4 _goal;
+    float _Rsqd;
+    int _maxId;
+
+public:
+    KinematicExclusionAreasProcessor(float3 *frame, int *searchSpaceParams, int4 origin, int4 goal, float Rsqd, int numThreadHandlers = 12) : ParallelProcessor(numThreadHandlers, searchSpaceParams[FRAME_PARAM_HEIGHT], searchSpaceParams[FRAME_PARAM_WIDTH]),
+                                                                                                                                              _frame(frame), _searchSpaceParams(searchSpaceParams), _origin(origin), _goal(goal), _Rsqd(Rsqd)
+    {
+        _maxId = _searchSpaceParams[FRAME_PARAM_HEIGHT] * _searchSpaceParams[FRAME_PARAM_WIDTH];
+    }
+
+    void handler(int pos) override
+    {
+        if (pos >= _maxId)
+            return;
+
+        const int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
+        const int z = pos / width;
+        const int x = pos - z * width;
+
+        const int dx1 = _origin.x - x;
+        const int dz1 = _origin.y - z;
+        const int dx2 = _origin.z - x;
+        const int dz2 = _origin.w - z;
+
+        if ((dx1 * dx1 + dz1 * dz1) <= _Rsqd)
+        {
+            _frame[pos].z = 0.0;
+            return;
+        }
+        if ((dx2 * dx2 + dz2 * dz2) <= _Rsqd)
+        {
+            _frame[pos].z = 0.0;
+            return;
+        }
+
+        const int dx3 = _goal.x - x;
+        const int dz3 = _goal.y - z;
+        const int dx4 = _goal.z - x;
+        const int dz4 = _goal.w - z;
+
+        if ((dx3 * dx3 + dz3 * dz3) <= _Rsqd)
+        {
+            _frame[pos].z = 0.0;
+            return;
+        }
+        if ((dx4 * dx4 + dz4 * dz4) <= _Rsqd)
+        {
+            _frame[pos].z = 0.0;
+            return;
+        }
+    }
+};
+
+void SearchFrame::processKinematicExclusionAreas(Waypoint origin, Waypoint goal)
+{
+    if (getPhysicalParamsPtr() == nullptr)
+    {
+        throw std::invalid_argument("Can only execute processKinematicExclusionAreas with physical params set\n");
+    }
+
+    int size = width() * height();
+    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+    std::pair<int4, float> icr_origin = computeICR(getPhysicalParamsPtr(), origin, false);
+    std::pair<int4, float> icr_goal = computeICR(getPhysicalParamsPtr(), goal, true);
+
+    KinematicExclusionAreasProcessor(getPtr(), _params.get(), icr_origin.first, icr_goal.first, icr_goal.second).runAndWait();
 }

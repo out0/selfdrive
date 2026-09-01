@@ -16,7 +16,6 @@ extern __device__ __host__ void propagateObstacleBottom(float3 *frame, const int
 extern __device__ __host__ void propagateMinDistance(float3 *frame, float *classCosts, const int width, const int height, const int minDistance, int pos, int x, int z);
 extern __device__ __host__ void count_obstacle_in_search_zones(float3 *frame, float *classCosts, int *search_params, uint4 *search_zone_info, int pos);
 
-
 std::pair<int, int> SearchFrame::checkTraversableAngleBitPairCheck(float heading_rad)
 {
     return __checkTraversableAngleBitPairCheck(heading_rad);
@@ -58,7 +57,7 @@ __global__ void __CUDA_safe_distance_prepare(float3 *frame, float *classCosts, i
     }
 }
 
- __global__ void __CUDA_safe_distance_obstacle_expansion_based(float3 *frame, float *classCosts, int *_searchSpaceParams, int half_minDist_px, int2 search_zone_dim, uint4 *search_zone_info)
+__global__ void __CUDA_safe_distance_obstacle_expansion_based(float3 *frame, float *classCosts, int *_searchSpaceParams, int half_minDist_px, int2 search_zone_dim, uint4 *search_zone_info)
 {
     int pos = blockIdx.x * blockDim.x + threadIdx.x;
     int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
@@ -153,7 +152,6 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
         CUDA(cudaDeviceSynchronize());
         _safeZoneVectorialChecked = true;
     }
-
 }
 
 __global__ void __CUDA_distance_to_goal(float3 *frame, float *classCosts, int *_searchSpaceParams, int goal_x, int goal_z)
@@ -207,4 +205,86 @@ float SearchFrame::getDistanceToGoal(int x, int z)
 {
     float3 *ptr = getPtr();
     return ptr[z * width() + x].y;
+}
+
+std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool invert_angle)
+{
+    const float max_steering_angle = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
+    const float wheelbase_px = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
+    const float steer = tanf(max_steering_angle);
+    const float beta = atanf(steer / 2);
+    float curvature = cosf(beta) * steer / (2 * wheelbase_px);
+    if (curvature < 0)
+        curvature = -1 * curvature;
+    const float R = 1 / curvature;
+    const float Rsq = R * R;
+    const float heading = invert_angle ? p1.heading().rad() + PI : p1.heading().rad();
+
+    int4 coordinates;
+
+    coordinates.x = p1.x() + R * cosf(heading + beta);
+    coordinates.y = p1.z() + R * sinf(heading + beta);
+    coordinates.z = p1.x() - R * cosf(heading - beta);
+    coordinates.w = p1.z() - R * sinf(heading - beta);
+    return {coordinates, Rsq};
+}
+
+__global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_searchSpaceParams, int4 origin, int4 goal, float Rsqd)
+{
+    const int pos = blockIdx.x * blockDim.x + threadIdx.x;
+    const int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
+    const int height = _searchSpaceParams[FRAME_PARAM_HEIGHT];
+
+    if (pos >= width * height)
+        return;
+
+    const int z = pos / width;
+    const int x = pos - z * width;
+
+    const int dx1 = origin.x - x;
+    const int dz1 = origin.y - z;
+    const int dx2 = origin.z - x;
+    const int dz2 = origin.w - z;
+
+    if ((dx1 * dx1 + dz1 * dz1) <= Rsqd) {
+        frame[pos].z = 0.0;
+        return;
+    }
+    if ((dx2 * dx2 + dz2 * dz2) <= Rsqd) {
+        frame[pos].z = 0.0;
+        return;
+    }
+
+    const int dx3 = goal.x - x;
+    const int dz3 = goal.y - z;
+    const int dx4 = goal.z - x;
+    const int dz4 = goal.w - z;
+
+    if ((dx3 * dx3 + dz3 * dz3) <= Rsqd) {
+        frame[pos].z = 0.0;
+        return;
+    }
+    if ((dx4 * dx4 + dz4 * dz4) <= Rsqd) {
+        frame[pos].z = 0.0;
+        return;
+    }
+}
+
+void SearchFrame::processKinematicExclusionAreas(Waypoint origin, Waypoint goal)
+{
+    if (getPhysicalParamsPtr() == nullptr)
+    {
+        throw std::invalid_argument("Can only execute processKinematicExclusionAreas with physical params set\n");
+    }
+
+    int size = width() * height();
+    int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
+
+
+    std::pair<int4, float> icr_origin = computeICR(getPhysicalParamsPtr(), origin, false);
+    std::pair<int4, float> icr_goal = computeICR(getPhysicalParamsPtr(), goal, true);
+
+    __CUDA_process_kinematic_exclusion_areas<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), getFrameParamsPtr(), icr_origin.first, icr_goal.first, icr_goal.second);
+    CUDA(cudaDeviceSynchronize());
+
 }

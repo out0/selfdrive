@@ -133,34 +133,60 @@ extern "C"
         (*frame)[{x, z}].x = v1;
         (*frame)[{x, z}].y = v2;
         (*frame)[{x, z}].z = v3;
-        //frame->setValues(x, z, v1, v2, v3);
+        // frame->setValues(x, z, v1, v2, v3);
     }
 
-
-    void process_distance_to_goal(void *self, int x, int z) {
+    void process_distance_to_goal(void *self, int x, int z)
+    {
         SearchFrame *frame = (SearchFrame *)self;
         frame->processDistanceToGoal(x, z);
     }
 
-    float get_distance_to_goal(void *self, int x, int z) {
+    float get_distance_to_goal(void *self, int x, int z)
+    {
         SearchFrame *frame = (SearchFrame *)self;
         return frame->getDistanceToGoal(x, z);
     }
 
-    bool is_safe_zone_checked(void *self) {
-         SearchFrame *frame = (SearchFrame *)self;
-         return frame->isSafeZoneChecked();
+    bool is_safe_zone_checked(void *self)
+    {
+        SearchFrame *frame = (SearchFrame *)self;
+        return frame->isSafeZoneChecked();
     }
 
-    bool is_vectorial_safe_zone_checked(void *self) {
-         SearchFrame *frame = (SearchFrame *)self;
-         return frame->isVectorialSafeZoneChecked();
+    bool is_vectorial_safe_zone_checked(void *self)
+    {
+        SearchFrame *frame = (SearchFrame *)self;
+        return frame->isVectorialSafeZoneChecked();
     }
 
-    bool is_distance_to_goal_processed(void *self) {
-         SearchFrame *frame = (SearchFrame *)self;
-         return frame->isDistanceToGoalProcessed();
+    bool is_distance_to_goal_processed(void *self)
+    {
+        SearchFrame *frame = (SearchFrame *)self;
+        return frame->isDistanceToGoalProcessed();
     }
 
+    void set_physical_frame_dimension(void *self, float width_m, float height_m) {
+        SearchFrame *frame = (SearchFrame *)self;
+        frame->setPhysicalDimensionInMeters(width_m, height_m);
+    }
+    void set_physical_vehicle_params(void *self, float wheelbase_m, float max_steering_angle_rad) {
+        SearchFrame *frame = (SearchFrame *)self;
+        frame->setVehicleParams(wheelbase_m, angle::rad(max_steering_angle_rad));
+    }
 
+    void process_exclusion_zones(void *self,
+                                 int origin_x,
+                                 int origin_z,
+                                 float origin_heading_rad,
+                                 int goal_x,
+                                 int goal_z,
+                                 float goal_heading_rad)
+    {
+        SearchFrame *frame = (SearchFrame *)self;
+
+        frame->processKinematicExclusionAreas(
+            Waypoint(origin_x, origin_z, angle::rad(origin_heading_rad)),
+            Waypoint(goal_x, goal_z, angle::rad(goal_heading_rad)));
+    }
 }

@@ -221,7 +221,31 @@ class SearchFrame:
         SearchFrame.lib.is_distance_to_goal_processed.restype = ctypes.c_bool
         SearchFrame.lib.is_distance_to_goal_processed.argtypes = [
             ctypes.c_void_p,                # self
-        ]        
+        ]
+
+        SearchFrame.lib.set_physical_frame_dimension.restype = None
+        SearchFrame.lib.set_physical_frame_dimension.argtypes = [
+            ctypes.c_void_p,                # self
+            ctypes.c_float,                 # width_m
+            ctypes.c_float                 # height_m
+        ]
+        SearchFrame.lib.set_physical_vehicle_params.restype = None
+        SearchFrame.lib.set_physical_vehicle_params.argtypes = [
+            ctypes.c_void_p,                # self
+            ctypes.c_float,                 # wheelbase_m
+            ctypes.c_float                  # max_steering_angle_rad
+        ]
+
+        SearchFrame.lib.process_exclusion_zones.restype = None
+        SearchFrame.lib.process_exclusion_zones.argtypes = [
+            ctypes.c_void_p,                # self
+            ctypes.c_int,                   # origin_x
+            ctypes.c_int,                   # origin_z
+            ctypes.c_float,                 # origin_heading
+            ctypes.c_int,                   # goal_x
+            ctypes.c_int,                   # goal_z
+            ctypes.c_float                  # goal_heading
+        ]
 
 
 
@@ -313,6 +337,16 @@ class SearchFrame:
         self.__copy_back_frame = None
         SearchFrame.lib.process_distance_to_goal(self._cuda_ptr, x, z)
 
+    def process_exclusion_zones(self, origin: Waypoint, goal: Waypoint):
+        self.__copy_back_frame = None
+        SearchFrame.lib.process_exclusion_zones(self._cuda_ptr, 
+                                                origin.x,
+                                                origin.z,
+                                                origin.heading.rad(),
+                                                goal.x,
+                                                goal.z,
+                                                goal.heading.rad())
+
     def get_distance_to_goal(self, x: int, z: int) -> float:
         return SearchFrame.lib.get_distance_to_goal(self._cuda_ptr, x, z)
 
@@ -370,3 +404,10 @@ class SearchFrame:
 
     def is_distance_to_goal_processed (self) -> bool:
         return SearchFrame.lib.is_distance_to_goal_processed(self._cuda_ptr)
+
+
+    def set_physical_frame_dimension(self, width_m: float, height_m: float) -> None:
+        SearchFrame.lib.set_physical_frame_dimension(self._cuda_ptr, width_m, height_m)
+
+    def set_physical_vehicle_params(self, wheelbase_m: float, max_steering_angle: angle) -> None:
+        SearchFrame.lib.set_physical_vehicle_params(self._cuda_ptr, wheelbase_m, max_steering_angle.rad())
