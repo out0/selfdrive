@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include <functional>
 #include "../../include/wpmp_graph.h"
 
 extern bool _ASSERT_DEQ(double a, double b, int tolerance = 4);
@@ -28,5 +29,14 @@ SearchFrame *buildTestSearchFrame();
 cv::Mat exportGraph(SearchFrame *frame, WGraph *graph, const std::string &file);
 
 void showSearchParameters(SearchFrame * frame);
+
+template <typename Func>
+auto timeIt(std::string name, Func&& f) {
+    auto start = std::chrono::high_resolution_clock::now();
+    f();
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "[" << name << "]" << " execution time: " << duration / 1000 << " ms" << " (" << duration << ") us" << std::endl;
+}
 
 #endif

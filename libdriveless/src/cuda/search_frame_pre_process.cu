@@ -207,7 +207,7 @@ float SearchFrame::getDistanceToGoal(int x, int z)
     return ptr[z * width() + x].y;
 }
 
-std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool invert_angle)
+std::pair<int4, int> computeICR(float *physical_params, Waypoint p1, bool invert_angle)
 {
     const float max_steering_angle = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
     const float wheelbase_px = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
@@ -217,7 +217,6 @@ std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool inve
     if (curvature < 0)
         curvature = -1 * curvature;
     const float R = 1 / curvature;
-    const float Rsq = R * R;
     const float heading = invert_angle ? p1.heading().rad() + PI : p1.heading().rad();
 
     int4 coordinates;
@@ -226,10 +225,12 @@ std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool inve
     coordinates.y = p1.z() + R * sinf(heading + beta);
     coordinates.z = p1.x() - R * cosf(heading - beta);
     coordinates.w = p1.z() - R * sinf(heading - beta);
-    return {coordinates, Rsq};
+    return {coordinates, TO_INT(R)};
 }
 
-__global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_searchSpaceParams, int4 origin, int4 goal, float Rsqd)
+#define ABS(a) a < 0 ? -1 * a : a
+
+__global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_searchSpaceParams, int4 origin, int4 goal, int Rsqd)
 {
     const int pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
@@ -246,11 +247,18 @@ __global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_se
     const int dx2 = origin.z - x;
     const int dz2 = origin.w - z;
 
-    if ((dx1 * dx1 + dz1 * dz1) <= Rsqd) {
+    int dist1 = TO_INT(sqrtf(dx1 * dx1 + dz1 * dz1));
+    int dist2 = TO_INT(sqrtf(dx2 * dx2 + dz2 * dz2));
+
+    if ((dist1 + 1) < Rsqd)
+    {
+        if ((x == 400 && z == 0))
+            printf("400, 0 set to unreachable 1\n");
         frame[pos].z = 0.0;
         return;
     }
-    if ((dx2 * dx2 + dz2 * dz2) <= Rsqd) {
+    if ((dist2 + 1) < Rsqd)
+    {
         frame[pos].z = 0.0;
         return;
     }
@@ -260,11 +268,17 @@ __global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_se
     const int dx4 = goal.z - x;
     const int dz4 = goal.w - z;
 
-    if ((dx3 * dx3 + dz3 * dz3) <= Rsqd) {
+    int dist3 = TO_INT(sqrtf(dx3 * dx3 + dz3 * dz3));
+    int dist4 = TO_INT(sqrtf(dx4 * dx4 + dz4 * dz4));
+
+
+    if ((dist3 + 1) < Rsqd)
+    {
         frame[pos].z = 0.0;
         return;
     }
-    if ((dx4 * dx4 + dz4 * dz4) <= Rsqd) {
+    if ((dist4 + 1) < Rsqd)
+    {
         frame[pos].z = 0.0;
         return;
     }
@@ -280,11 +294,9 @@ void SearchFrame::processKinematicExclusionAreas(Waypoint origin, Waypoint goal)
     int size = width() * height();
     int numBlocks = floor(size / THREADS_IN_BLOCK) + 1;
 
-
-    std::pair<int4, float> icr_origin = computeICR(getPhysicalParamsPtr(), origin, false);
-    std::pair<int4, float> icr_goal = computeICR(getPhysicalParamsPtr(), goal, true);
+    std::pair<int4, int> icr_origin = computeICR(getPhysicalParamsPtr(), origin, false);
+    std::pair<int4, int> icr_goal = computeICR(getPhysicalParamsPtr(), goal, true);
 
     __CUDA_process_kinematic_exclusion_areas<<<numBlocks, THREADS_IN_BLOCK>>>(getPtr(), getFrameParamsPtr(), icr_origin.first, icr_goal.first, icr_goal.second);
     CUDA(cudaDeviceSynchronize());
-
 }

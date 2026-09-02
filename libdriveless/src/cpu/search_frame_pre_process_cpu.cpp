@@ -272,7 +272,7 @@ float SearchFrame::getDistanceToGoal(int x, int z)
     return ptr[z * width() + x].y;
 }
 
-std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool invert_angle)
+std::pair<int4, int> computeICR(float *physical_params, Waypoint p1, bool invert_angle)
 {
     const float max_steering_angle = physical_params[PHYSICAL_PARAM_MAX_STEERING_RAD];
     const float wheelbase_px = physical_params[PHYSICAL_PARAM_WHEELBASE_PX];
@@ -283,7 +283,6 @@ std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool inve
         curvature = -1 * curvature;
     
     const float R = 1 / curvature;
-    const float Rsq = R * R;
     const float heading = invert_angle ? p1.heading().rad() + PI : p1.heading().rad();
 
     int4 coordinates;
@@ -293,7 +292,7 @@ std::pair<int4, float> computeICR(float *physical_params, Waypoint p1, bool inve
     coordinates.z = p1.x() - R * cosf(heading - beta);
     coordinates.w = p1.z() - R * sinf(heading - beta);
 
-    return {coordinates, Rsq};
+    return {coordinates, TO_INT(R)};
 }
 
 class KinematicExclusionAreasProcessor : public ParallelProcessor
@@ -328,12 +327,12 @@ public:
         const int dx2 = _origin.z - x;
         const int dz2 = _origin.w - z;
 
-        if ((dx1 * dx1 + dz1 * dz1) <= _Rsqd)
+        if ((dx1 * dx1 + dz1 * dz1) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;
         }
-        if ((dx2 * dx2 + dz2 * dz2) <= _Rsqd)
+        if ((dx2 * dx2 + dz2 * dz2) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;
@@ -344,12 +343,12 @@ public:
         const int dx4 = _goal.z - x;
         const int dz4 = _goal.w - z;
 
-        if ((dx3 * dx3 + dz3 * dz3) <= _Rsqd)
+        if ((dx3 * dx3 + dz3 * dz3) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;
         }
-        if ((dx4 * dx4 + dz4 * dz4) <= _Rsqd)
+        if ((dx4 * dx4 + dz4 * dz4) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;
