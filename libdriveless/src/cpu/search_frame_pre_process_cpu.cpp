@@ -284,7 +284,7 @@ std::pair<int4, int> computeICR(float *physical_params, Waypoint p1, bool invert
     float curvature = cosf(beta) * steer / (2 * wheelbase_px);
     if (curvature < 0)
         curvature = -1 * curvature;
-    
+
     const float R = 1 / curvature;
     const float heading = invert_angle ? p1.heading().rad() + PI : p1.heading().rad();
 
@@ -322,6 +322,11 @@ public:
             return;
 
         const int width = _searchSpaceParams[FRAME_PARAM_WIDTH];
+        const int height = _searchSpaceParams[FRAME_PARAM_HEIGHT];
+
+        if (pos >= width * height)
+            return;
+
         const int z = pos / width;
         const int x = pos - z * width;
 
@@ -330,12 +335,17 @@ public:
         const int dx2 = _origin.z - x;
         const int dz2 = _origin.w - z;
 
-        if ((dx1 * dx1 + dz1 * dz1) < _Rsqd)
+        int dist1 = TO_INT(sqrtf(dx1 * dx1 + dz1 * dz1));
+        int dist2 = TO_INT(sqrtf(dx2 * dx2 + dz2 * dz2));
+
+        if ((dist1 + 1) < _Rsqd)
         {
+            if ((x == 400 && z == 0))
+                printf("400, 0 set to unreachable 1\n");
             _frame[pos].z = 0.0;
             return;
         }
-        if ((dx2 * dx2 + dz2 * dz2) < _Rsqd)
+        if ((dist2 + 1) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;
@@ -346,12 +356,15 @@ public:
         const int dx4 = _goal.z - x;
         const int dz4 = _goal.w - z;
 
-        if ((dx3 * dx3 + dz3 * dz3) < _Rsqd)
+        int dist3 = TO_INT(sqrtf(dx3 * dx3 + dz3 * dz3));
+        int dist4 = TO_INT(sqrtf(dx4 * dx4 + dz4 * dz4));
+
+        if ((dist3 + 1) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;
         }
-        if ((dx4 * dx4 + dz4 * dz4) < _Rsqd)
+        if ((dist4 + 1) < _Rsqd)
         {
             _frame[pos].z = 0.0;
             return;

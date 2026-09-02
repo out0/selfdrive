@@ -21,9 +21,7 @@ __device__ __host__ float traversability_cost(float3 *frame, int *params, float 
             int segmentation_class = TO_INT(frame[COMPUTE_POS(width, x, z)].x);
             return classCost[segmentation_class];
         }
-    } else {
-         printf("pre_process_collision_dist is false\n");
-    }
+    } 
 
     const int lower_bound_ego_x = params[FRAME_PARAM_LOWER_BOUND_X];
     const int lower_bound_ego_z = params[FRAME_PARAM_LOWER_BOUND_Z];

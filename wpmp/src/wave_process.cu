@@ -80,6 +80,15 @@ __device__ __host__ void to_goal_wave(float3 *frame,
     float cost = -1;
     float heading = -1;
 
+    const bool pre_process_collision_vector = params[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_VECTOR;
+    const bool pre_process_collision_dist = pre_process_collision_vector || params[FRAME_PREPROCESS_COLLISION_TYPE] == PREPROCESS_COLLISION_DIST;
+
+    if (pre_process_collision_dist)
+    {
+        if (TO_INT(frame[pos].z) == 0)
+            return;
+    }
+
     if (SEARCH_ZONE_TOTAL_OBSTACLES(search_zone_info, zone_pos) == 0)
     {
         if (is_zone_edge(x, z, sz_location.x, sz_location.y, zone_dim))
@@ -193,7 +202,7 @@ __device__ __host__ void to_goal_wave_2(float3 *frame,
     hermite_check_conf conf{frame, params, class_costs, min_distances};
     heading = is_node ? NODE_HEADING(node_data, pos) : compute_heading(x, z, goal);
     float cost = hermite_curve(frame_dim, {TO_FLOAT(x), TO_FLOAT(z), heading}, goal, wheelbase, delta_max_rad, &hermite_connection_check, &conf);
-    
+
     if (cost > 0)
     {
         if (is_node)
