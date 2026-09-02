@@ -40,13 +40,14 @@ TEST(TestWGraph, GoalWaveClear)
     frame->setPhysicalDimensionInMeters(80, 80);
     frame->setVehicleParams(5.412658773, maxSteering);
 
-    Waypoint origin(400, 0, angle::rad(0));
+    Waypoint origin(400, 799, angle::rad(0));
     graph.set_start(origin.x(), origin.z(), origin.heading().rad());
     Waypoint goal(400, 0, angle::rad(0));
     // Waypoint goal(128, 0, angle::rad(0));
 
     printf("processing safe distance check\n");
     frame->processSafeDistanceZone({5, 5}, false);
+
     frame->processDistanceToGoal(goal.x(), goal.z());
 
     showSearchParameters(frame);
@@ -58,6 +59,17 @@ TEST(TestWGraph, GoalWaveClear)
     std::vector<uchar> dest(static_cast<size_t>(frame->width()) * frame->height() * 3);
     frame->exportToColorFrame(dest.data());
     cv::Mat cimg(frame->height(), frame->width(), CV_8UC3, dest.data());
+
+    for (int h = 0; h < frame->height(); h++)
+        for (int w = 0; w < frame->width(); w++)
+            if (frame->getTraversability(w, h) == 0)
+            {
+                cv::Vec3b &pixel = cimg.at<cv::Vec3b>(h, w);
+                pixel[0] = 255;
+                pixel[1] = 0;
+                pixel[2] = 0;
+            }
+
     cv::imwrite("frame.png", cimg);
 
     timeIt("goal wave", [&]() { //

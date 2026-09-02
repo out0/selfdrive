@@ -191,6 +191,7 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
     SafeDistanceObstacleExpansionBasedProcessor(getPtr(), _search_zone_info->getPtr(), _classCosts.get(), _params.get(), minDist_px).runAndWait();
 
     _safeZoneChecked = true;
+    _params.get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_DIST;
 
     if (computeVectorized)
     {
@@ -198,6 +199,7 @@ void SearchFrame::processSafeDistanceZone(std::pair<int, int> minDistance, bool 
         // CUDA(cudaDeviceSynchronize());
         SafeDistanceVectorBasedProcessor(getPtr(), _classCosts.get(), _params.get(), min_x, min_z).runAndWait();
         _safeZoneVectorialChecked = true;
+        _params.get()[FRAME_PREPROCESS_COLLISION_TYPE] = PREPROCESS_COLLISION_VECTOR;
     }
 }
 
@@ -264,6 +266,7 @@ void SearchFrame::processDistanceToGoal(int x, int z)
 
     DistanceToGoalProcessor(getPtr(), _classCosts.get(), _params.get(), x, z).runAndWait();
     _distanceToGoalProcessed = true;
+    _params.get()[FRAME_PREPROCESS_DIST_TO_GOAL_ENABLED] = 1;
 }
 
 float SearchFrame::getDistanceToGoal(int x, int z)
