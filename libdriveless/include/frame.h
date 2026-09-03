@@ -11,7 +11,6 @@
 
 #ifdef DRIVELESS_CUDA_ENABLED
 
-
 extern void CUDA_clear(DOUBLE4 *frame, int width, int height);
 extern void CUDA_clear(float4 *frame, int width, int height);
 extern void CUDA_clear(int4 *frame, int width, int height);
@@ -83,6 +82,33 @@ public:
         return _height;
     }
 
+    void set(std::pair<size_t, size_t> indices, T value)
+    {
+        if (indices.first >= _width || indices.second >= _height)
+        {
+            throw std::out_of_range("Index out of bounds!");
+        }
+        long pos = indices.second * _width + indices.first;
+#ifdef DRIVELESS_CUDA_ENABLED
+        _frame->get()[pos] = value;
+#else
+        _frame.get()[pos] = value;
+#endif
+    }
+    void set(long pos, T value)
+    {
+        long p = _width * _height;
+        if (pos > p)
+        {
+            throw std::out_of_range("Index out of bounds!");
+        }
+#ifdef DRIVELESS_CUDA_ENABLED
+        _frame->get()[pos] = value;
+#else
+        _frame.get()[pos] = value;
+#endif
+    }
+
     T &operator[](std::pair<size_t, size_t> indices)
     {
         return at(indices);
@@ -97,7 +123,7 @@ public:
         }
 
 #ifdef DRIVELESS_CUDA_ENABLED
-        return _frame[pos];
+        return _frame->get()[pos];
 #else
         return _frame.get()[pos];
 #endif
