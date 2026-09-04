@@ -152,7 +152,7 @@ target_link_libraries(
   ${GTEST_LIBRARIES} 
   ${CUDA_LIBRARIES}
   ${CUDA_FRAME}
-  ${OpenCV_LIBS}          # ✅ Now properly resolved
+  ${OpenCV_LIBS}          
   GSL::gsl 
   GSL::gslcblas
   driveless

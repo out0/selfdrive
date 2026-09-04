@@ -95,7 +95,7 @@ void SearchFrame::setClassCosts(std::vector<float> classCosts)
     for (auto val : classCosts)
     {
         _classCosts.get()[i] = val;
-        printf("_classCosts = %f\n", _classCosts.get()[i]);
+        //printf("_classCosts = %f\n", _classCosts.get()[i]);
         i++;
     }
 }

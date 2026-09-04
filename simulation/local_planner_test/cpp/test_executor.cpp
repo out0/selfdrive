@@ -18,6 +18,7 @@
 #include <driveless/search_frame.h>
 #include <driveless/search_params.h>
 #include <driveless/waypoint.h>
+#include <driveless/interpolator.h>
 
 #include "test_utils.h"
 
@@ -83,7 +84,9 @@ void export_fastrrt_nodes(FastRRT &planner, TestConfig &conf)
         Waypoint wp_parent(n.parent_x, n.parent_z, parentHeading);
         Waypoint wp_child(n.x, n.z, angle::rad(n.heading_rad));
 
-        std::vector<Waypoint> curve = interpolateHermiteCurve(width, height, wp_parent, wp_child);
+        // std::vector<Waypoint> curve = interpolateHermiteCurve(width, height, wp_parent, wp_child);
+
+        std::vector<Waypoint> curve = Interpolator::hermite(width, height, wp_parent, wp_child, 0.1f);
 
         for (auto &pt : curve)
         {
@@ -140,9 +143,10 @@ void exec_local_planner(FastRRT &planner, SearchFrame &frame, TestConfig &conf, 
     {
         while (planner.planning_loop())
         {
-            export_fastrrt_nodes(planner, conf);
-            // TestUtils::export_frame_planner_result(conf, frame, "output2.png", ...);
+            //export_fastrrt_nodes(planner, conf);
         }
+        auto [path, cost] = planner.getInterpolatedPlannedPath();
+        TestUtils::export_frame_planner_result(conf, frame, "output2.png", path);
     }
 
     TestTimer::exec_stop();
@@ -180,6 +184,9 @@ void exec_fastrrt_costmap(const std::string &map_name)
     SearchFrame *frame = search_params.frame();
     frame->processDistanceToGoal(search_params.goal().x(), search_params.goal().z());
     frame->processSafeDistanceZone(safe_dist, /*computeVectorized=*/true);
+    frame->setVehicleParams(5.25, angle::deg(40));
+    frame->setPhysicalDimensionInMeters(200, 200);
+    frame->processKinematicExclusionAreas(search_params.start(), search_params.goal());
 
     FastRRT planner(ego_params, /*smartExpansion=*/true);
     planner.setPlanData(search_params);
@@ -192,6 +199,6 @@ void exec_fastrrt_costmap(const std::string &map_name)
 
 int main()
 {
-    exec_fastrrt_costmap("map_cost_31");
+    exec_fastrrt_costmap("map_cost_25");
     return 0;
 }
