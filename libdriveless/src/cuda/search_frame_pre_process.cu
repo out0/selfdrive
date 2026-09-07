@@ -255,15 +255,14 @@ __global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_se
 
     int dist1 = TO_INT(sqrtf(dx1 * dx1 + dz1 * dz1));
     int dist2 = TO_INT(sqrtf(dx2 * dx2 + dz2 * dz2));
+    const int tolerance = 2;
 
-    if ((dist1 + 1) < Rsqd)
+    if ((dist1 + tolerance) < Rsqd)
     {
-        if ((x == 400 && z == 0))
-            printf("400, 0 set to unreachable 1\n");
         frame[pos].z = 0.0;
         return;
     }
-    if ((dist2 + 1) < Rsqd)
+    if ((dist2 + tolerance) < Rsqd)
     {
         frame[pos].z = 0.0;
         return;
@@ -278,12 +277,12 @@ __global__ void __CUDA_process_kinematic_exclusion_areas(float3 *frame, int *_se
     int dist4 = TO_INT(sqrtf(dx4 * dx4 + dz4 * dz4));
 
 
-    if ((dist3 + 1) < Rsqd)
+    if ((dist3 + tolerance) < Rsqd)
     {
         frame[pos].z = 0.0;
         return;
     }
-    if ((dist4 + 1) < Rsqd)
+    if ((dist4 + tolerance) < Rsqd)
     {
         frame[pos].z = 0.0;
         return;

@@ -209,6 +209,55 @@ std::vector<Waypoint> from_float_array(float *arr)
     return res;
 }
 
+
+std::vector<Waypoint> Interpolator::kinematicCurve(int width, int height, Waypoint start, angle steeringAngle, int wheelbase_px, int max_path_size) {
+
+    const float steer = tanf(steeringAngle.rad());
+    const float dt = 0.1;
+    const float beta = atanf(steer / 2);
+    const float curvature = (0.1 * cosf(beta) * steer) / (2 * wheelbase_px);
+    const int max_size = TO_INT(max_path_size) + 1;
+    
+    float heading = start.heading().rad() - HALF_PI;
+    float x = 0.0 + start.x();
+    float z = 0.0 + start.z(); 
+
+    int size = 0;
+    int last_x = start.x();
+    int last_z = start.z();
+
+    std::vector<Waypoint> curve;
+
+    curve.push_back(start);
+
+    while (max_path_size <= 0 or size < max_size) {
+        x += dt * cosf(heading + beta);
+        z += dt * sinf(heading + beta);
+        heading += curvature;
+
+        int cx = TO_INT(x);
+        int cz = TO_INT(z);
+
+        if (cx == last_x && cz == last_z)
+            continue;
+
+        if (cx < 0 || cx >= width || cz < 0 || cz >= height)
+            break;
+
+        last_x = cx;
+        last_z = cz;
+
+        curve.push_back(Waypoint(cx, cz, angle::rad(heading)));
+        size += 1;
+    }
+
+    return curve;
+
+}
+
+
+
+
 extern "C"
 {
 
