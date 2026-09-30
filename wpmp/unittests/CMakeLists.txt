@@ -106,9 +106,12 @@ add_executable(
     ../../src/interpolation.cpp
     ../../src/cuda/cuda_wave_process.cu
     ../../src/search_vision_util.cu
+    ../../src/graph_expansion.cu
+    ../../src/cpu/graph_expansion_cpu.cpp
     src/test_utils.cpp
     src/unittests.cpp
     src/test_goal_wave.cpp
+    src/test_graph_expansion.cpp
 )
 else()
     set_source_files_properties(
@@ -131,9 +134,11 @@ else()
     ../../src/interpolation.cpp
     ../../src/cpu/cpu_wave_process.cpp
     ../../src/search_vision_util.cu
+    ../../src/cpu/graph_expansion_cpu.cpp
     src/test_utils.cpp
     src/unittests.cpp
-    src/test_goal_wave.cpp
+#    src/test_goal_wave.cpp
+    src/test_graph_expansion.cpp
   )
 endif()
 

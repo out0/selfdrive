@@ -46,10 +46,11 @@ extern __device__ __host__ void SET_NODE_PARENT(int4 *node_conf, int pos, int pa
 #define NODE_TYPE_GRAPH_CONNECTED_TO_GOAL 4
 #define NODE_TYPE_NULL_SZ_IN_CHECK 5
 #define NODE_TYPE_NULL_CONNECTED_TO_GOAL 6
+#define NODE_TYPE_SOLUTION 7
 
 #define IS_NODE(node_conf, pos) (node_conf[pos].z == NODE_TYPE_GRAPH || node_conf[pos].z == NODE_TYPE_ORIGIN || node_conf[pos].z == NODE_TYPE_GRAPH_CONNECTED_TO_GOAL)
 
 
-
+#define GET_PRECOMPUTED_DISTANCE_TO_GOAL(frame, pos) (frame[pos].y)
 
 #endif

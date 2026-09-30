@@ -178,6 +178,23 @@ cv::Mat exportGraph(SearchFrame *frame, WGraph *graph, const std::string &file)
                 pixel[1] = 0;
                 pixel[2] = 255;
                 break;
+            case NODE_TYPE_GRAPH:
+            case NODE_TYPE_ORIGIN:
+                pixel[0] = 128;
+                pixel[1] = 0;
+                pixel[2] = 128;
+                break;
+            // case NODE_TYPE_GRAPH_TEMP:
+            //     pixel[0] = 128;
+            //     pixel[1] = 128;
+            //     pixel[2] = 128;
+            //     break;
+            // case NODE_TYPE_GRAPH_TEMP_SOLUTION:
+            //     pixel[0] = 255;
+            //     pixel[1] = 0;
+            //     pixel[2] = 0;
+            //     break;
+            
             }
         }
     if (!file.empty())

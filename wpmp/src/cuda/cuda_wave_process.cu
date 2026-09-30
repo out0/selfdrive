@@ -91,3 +91,4 @@ void WGraph::compute_goal_wave(
 
     CUDA(cudaDeviceSynchronize());
 }
+

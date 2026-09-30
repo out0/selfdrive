@@ -214,4 +214,8 @@ __device__ __host__ void to_goal_wave_2(float3 *frame,
         }
         SET_NODE_COST_TO_GOAL(node_data, pos, cost);
     }
+    else
+    {
+        SET_NODE_TYPE(node_conf, pos, NODE_TYPE_NULL);
+    }
 }

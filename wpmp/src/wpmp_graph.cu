@@ -24,4 +24,12 @@ void WGraph::set_start(int x, int z, float heading)
     SET_NODE_HEADING(_node_conf->getPtr(), pos, heading);
 }
 
-
+extern __device__ __host__ bool expand_node(float3 *frame,
+                                     int *params,
+                                     float *physical_params,
+                                     float *class_costs,
+                                     int x, int z,
+                                     int4 *node_conf,
+                                     float4 *node_data,
+                                     int max_size_px,
+                                     float3 goal);
