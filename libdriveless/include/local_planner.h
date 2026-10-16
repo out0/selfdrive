@@ -6,6 +6,7 @@
 #include "waypoint.h"
 
 class LocalPlanner {
+public:    
     /// @brief Initializes the local planner
     /// @param copyIntrinsicCostsFromFrame copys the values in frame's channel G as intrinsic values to support using cost maps.
     virtual void initialize(bool copyIntrinsicCostsFromFrame = false) = 0;

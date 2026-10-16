@@ -303,15 +303,15 @@ public:
         __draw_arrow(color_frame, conf.start.z(), conf.start.x(), 90 - conf.start.heading().deg());
         __draw_arrow(color_frame, conf.goal.z(), conf.goal.x(), 90 - conf.goal.heading().deg(), cv::Scalar(128, 30, 128));
 
-        for (int h = 0; h < color_frame.rows; h++)
-        {
-            for (int w = 0; w < color_frame.cols; w++)
-            {
-                int t = frame.getTraversability(w, h);
-                if (t & 0x100)
-                    color_frame.at<cv::Vec3b>(h, w) = cv::Vec3b(128, 128, 128);
-            }
-        }
+        // for (int h = 0; h < color_frame.rows; h++)
+        // {
+        //     for (int w = 0; w < color_frame.cols; w++)
+        //     {
+        //         int t = frame.getTraversability(w, h);
+        //         if (t & 0x100)
+        //             color_frame.at<cv::Vec3b>(h, w) = cv::Vec3b(128, 128, 128);
+        //     }
+        // }
 
         for (auto &p : path)
             color_frame.at<cv::Vec3b>(p.z(), p.x()) =

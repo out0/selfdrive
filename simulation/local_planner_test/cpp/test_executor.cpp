@@ -32,6 +32,9 @@
 #include <tuple>
 #include <vector>
 
+using namespace std::this_thread; // sleep_for, sleep_until
+using namespace std::chrono; // nanoseconds, system_clock, seconds
+
 // -----------------------------------------------------------------------
 // PathResult: mirrors the python PathResult helper class
 // -----------------------------------------------------------------------
@@ -86,15 +89,15 @@ void export_fastrrt_nodes(FastRRT &planner, TestConfig &conf)
 
         // std::vector<Waypoint> curve = interpolateHermiteCurve(width, height, wp_parent, wp_child);
 
-        std::vector<Waypoint> curve = Interpolator::hermite(width, height, wp_parent, wp_child, 0.1f);
+        // std::vector<Waypoint> curve = Interpolator::hermite(width, height, wp_parent, wp_child, 0.1f);
 
-        for (auto &pt : curve)
-        {
-            int px = pt.x();
-            int pz = pt.z();
-            if (px >= 0 && px < width && pz >= 0 && pz < height)
-                f.at<cv::Vec3b>(pz, px) = cv::Vec3b(131, 143, 134);
-        }
+        // for (auto &pt : curve)
+        // {
+        //     int px = pt.x();
+        //     int pz = pt.z();
+        //     if (px >= 0 && px < width && pz >= 0 && pz < height)
+        //         f.at<cv::Vec3b>(pz, px) = cv::Vec3b(131, 143, 134);
+        // }
     }
 
     // Draw nodes on top so they remain visible
@@ -120,7 +123,7 @@ void export_path_to_file(FastRRT &planner)
 // -----------------------------------------------------------------------
 // exec_local_planner: mirrors python's exec_local_planner()
 // -----------------------------------------------------------------------
-void exec_local_planner(FastRRT &planner, SearchFrame &frame, TestConfig &conf, int max_timeout_improving)
+void exec_local_planner(LocalPlanner &planner, SearchFrame &frame, TestConfig &conf, int max_timeout_improving)
 {
     TestTimer::exec_start();
     planner.initialize(true);
@@ -144,6 +147,7 @@ void exec_local_planner(FastRRT &planner, SearchFrame &frame, TestConfig &conf, 
         while (planner.planning_loop())
         {
             //export_fastrrt_nodes(planner, conf);
+            //sleep_until(system_clock::now() + milliseconds(500));
         }
         auto [path, cost] = planner.getInterpolatedPlannedPath();
         TestUtils::export_frame_planner_result(conf, frame, "output2.png", path);
@@ -174,7 +178,7 @@ void exec_local_planner(FastRRT &planner, SearchFrame &frame, TestConfig &conf, 
 void exec_fastrrt_costmap(const std::string &map_name)
 {
     TestConfig conf = TestUtils::read_config(map_name);
-    std::pair<int, int> safe_dist{10, 10};
+    std::pair<int, int> safe_dist{20, 20};
 
     EgoParams ego_params = TestUtils::build_ego_params(conf);
     SearchParams search_params = TestUtils::build_search_params(conf, /*gpu=*/true);

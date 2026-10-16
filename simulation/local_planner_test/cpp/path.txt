@@ -1,4 +1,0 @@
-x=344, z=428, heading_deg=45
-x=474, z=370, heading_deg=75.4213
-x=558, z=343, heading_deg=71.0266
-x=722, z=523, heading_deg=149.705
