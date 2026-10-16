@@ -34,3 +34,4 @@ HiDrive
 tmp34534.dat
 yolov8n.pt
 ../simulation/local_planner_test/path.txt
+test_executor
